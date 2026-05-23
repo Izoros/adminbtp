@@ -17,14 +17,16 @@
 ## Validation locale
 
 La page `/client-space` expose uniquement les elements lies a
-`org_client_004`, une action cliente simulee et un fil de commentaires
-associe a une validation.
+`org_client_004`, un fil de commentaires associe a une validation et,
+en mode Supabase, des decisions client reelles `valider` / `refuser` /
+`demander des ajustements` persistees dans `client_feedback_threads`.
 
 ## Points de securite
 
 - filtrage strict par `clientOrganizationId`
 - aucun element d'un autre client n'est expose
 - les actions client restent bornees a des statuts simples et auditables
+- les validations reelles sont relues dans le statut visible de l'element
 
 ## Resultat d'execution
 

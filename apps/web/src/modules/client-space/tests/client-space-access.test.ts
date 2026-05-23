@@ -5,6 +5,7 @@ import {
   filterWorkspaceItemsForViewer,
   getCommentsForWorkspaceItem,
   getWorkspaceItemsForClient,
+  resolveWorkspaceItemStatus,
   updateClientActionStatus,
 } from "@/modules/client-space/services/client-space-access";
 import {
@@ -65,5 +66,11 @@ describe("client-space-access", () => {
     );
 
     expect(filterCommentsForVisibleItems(demoClientComments, visibleItems)).toHaveLength(2);
+  });
+
+  it("deduit le statut client depuis la derniere decision visible", () => {
+    expect(
+      resolveWorkspaceItemStatus(demoClientWorkspaceItems[1]!, demoClientComments),
+    ).toBe("commented");
   });
 });

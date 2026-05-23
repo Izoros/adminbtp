@@ -43,6 +43,7 @@ export const demoClientComments: ClientComment[] = [
     clientOrganizationId: "org_client_004",
     authorRole: "client",
     message: "Merci d'ajouter la reference du lot facade avant validation finale.",
+    decision: "commented",
   },
   {
     id: "client_comment_002",
@@ -50,5 +51,6 @@ export const demoClientComments: ClientComment[] = [
     clientOrganizationId: "org_client_004",
     authorRole: "adminbtp",
     message: "Mise a jour prevue avant nouvel envoi au signataire.",
+    decision: null,
   },
 ];

@@ -1,6 +1,7 @@
 import type {
   ClientActionStatus,
   ClientComment,
+  ClientDecision,
   ClientWorkspaceItem,
 } from "@/modules/client-space/types/client-space";
 
@@ -58,10 +59,24 @@ export function filterCommentsForVisibleItems(
 
 export function updateClientActionStatus(
   item: ClientWorkspaceItem,
-  status: Extract<ClientActionStatus, "approved" | "rejected" | "commented">,
+  status: ClientDecision,
 ) {
   return {
     ...item,
     status,
   };
+}
+
+export function resolveWorkspaceItemStatus(
+  item: ClientWorkspaceItem,
+  comments: ClientComment[],
+): ClientActionStatus {
+  const decisionComment = comments.find(
+    (comment) =>
+      comment.workspaceItemId === item.id &&
+      comment.authorRole === "client" &&
+      comment.decision,
+  );
+
+  return decisionComment?.decision ?? item.status;
 }

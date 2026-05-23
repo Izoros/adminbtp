@@ -7,6 +7,7 @@ import {
 import {
   filterCommentsForVisibleItems,
   filterWorkspaceItemsForViewer,
+  resolveWorkspaceItemStatus,
 } from "@/modules/client-space/services/client-space-access";
 import {
   demoClientComments,
@@ -14,6 +15,7 @@ import {
 } from "@/modules/client-space/services/demo-client-space";
 import type {
   ClientComment,
+  ClientDecision,
   ClientWorkspaceItem,
   ClientWorkspaceItemType,
   ClientViewerMode,
@@ -38,6 +40,59 @@ type ClientSpaceUserScope = {
   organizationIds: string[];
   viewerMode: "internal" | "client";
 };
+
+const CLIENT_DECISION_PREFIX = "[[decision:";
+
+export function formatClientDecisionMessage(input: {
+  decision: ClientDecision;
+  message?: string | null;
+}): string {
+  const normalizedMessage = sanitizeClientCommentDraft({
+    message: input.message,
+  });
+
+  return `${CLIENT_DECISION_PREFIX}${input.decision}]]${normalizedMessage ? ` ${normalizedMessage}` : ""}`;
+}
+
+export function parseClientDecisionMessage(message: string): {
+  decision: ClientDecision | null;
+  visibleMessage: string;
+} {
+  if (!message.startsWith(CLIENT_DECISION_PREFIX)) {
+    return {
+      decision: null,
+      visibleMessage: message,
+    };
+  }
+
+  const markerEnd = message.indexOf("]]");
+
+  if (markerEnd === -1) {
+    return {
+      decision: null,
+      visibleMessage: message,
+    };
+  }
+
+  const rawDecision = message.slice(CLIENT_DECISION_PREFIX.length, markerEnd);
+  const visibleMessage = message.slice(markerEnd + 2).trim();
+
+  if (
+    rawDecision !== "approved" &&
+    rawDecision !== "rejected" &&
+    rawDecision !== "commented"
+  ) {
+    return {
+      decision: null,
+      visibleMessage: visibleMessage || message,
+    };
+  }
+
+  return {
+    decision: rawDecision,
+    visibleMessage,
+  };
+}
 
 export function inferWorkspaceItemType(accessScope: string): ClientWorkspaceItemType {
   const normalizedScope = accessScope.toLowerCase();
@@ -78,13 +133,16 @@ export function mapClientPortalAccessRow(
 export function mapClientFeedbackThreadRow(
   row: ClientFeedbackThreadRow,
 ): ClientComment {
+  const parsedDecision = parseClientDecisionMessage(row.message);
+
   return {
     id: row.id,
     workspaceItemId: row.related_entity_id,
     clientOrganizationId: row.client_organization_id,
     authorRole: row.author_role as ClientComment["authorRole"],
-    message: row.message,
+    message: parsedDecision.visibleMessage,
     createdAt: row.created_at,
+    decision: parsedDecision.decision,
   };
 }
 
@@ -221,14 +279,28 @@ export async function loadClientSpaceData(
     visibleWorkspaceItems,
   );
 
+  const workspaceItems = visibleWorkspaceItems.map((item) =>
+    updateWorkspaceItemStatusFromComments(item, comments),
+  );
+
   return {
     source: "supabase",
     clientOrganizationId:
       userScope.viewerMode === "client"
         ? userScope.preferredOrganizationId
-        : visibleWorkspaceItems[0]?.clientOrganizationId ?? null,
+        : workspaceItems[0]?.clientOrganizationId ?? null,
     viewerMode: userScope.viewerMode,
-    workspaceItems: visibleWorkspaceItems,
+    workspaceItems,
     comments,
+  };
+}
+
+function updateWorkspaceItemStatusFromComments(
+  item: ClientWorkspaceItem,
+  comments: ClientComment[],
+): ClientWorkspaceItem {
+  return {
+    ...item,
+    status: resolveWorkspaceItemStatus(item, comments),
   };
 }

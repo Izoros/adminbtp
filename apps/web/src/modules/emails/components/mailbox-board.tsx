@@ -1,32 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { reclassifyEmail } from "@/modules/emails/services/email-classification";
+import { Input } from "@/components/ui/input";
+import {
+  emailClassifications,
+  initialEmailMutationState,
+  type EmailMutationState,
+} from "@/modules/emails/services/email-action-state";
 import type {
-  EmailClassification,
   EmailRecord,
   MailboxBoardData,
 } from "@/modules/emails/types/email";
 
-const classifications: EmailClassification[] = [
-  "unclassified",
-  "document",
-  "payment_followup",
-  "task",
-  "client_message",
-  "validation",
-];
-
 type MailboxBoardProps = {
   initialData: MailboxBoardData;
+  updateAction: (
+    state: EmailMutationState,
+    formData: FormData,
+  ) => Promise<EmailMutationState>;
 };
 
-export function MailboxBoard({ initialData }: MailboxBoardProps) {
-  const [emails, setEmails] = useState<EmailRecord[]>(initialData.emails);
+export function MailboxBoard({
+  initialData,
+  updateAction,
+}: MailboxBoardProps) {
+  const [mutationState, mutationAction, isMutationPending] = useActionState(
+    updateAction,
+    initialEmailMutationState,
+  );
 
   const mailbox = initialData.mailbox;
+  const emails: EmailRecord[] = initialData.emails;
 
   const providerPreparation = useMemo(
     () => [
@@ -36,14 +42,6 @@ export function MailboxBoard({ initialData }: MailboxBoardProps) {
     ],
     [],
   );
-
-  function handleClassificationChange(emailId: string, classification: EmailClassification) {
-    setEmails((currentEmails) =>
-      currentEmails.map((email) =>
-        email.id === emailId ? reclassifyEmail(email, classification) : email,
-      ),
-    );
-  }
 
   return (
     <section className="space-y-6">
@@ -133,18 +131,68 @@ export function MailboxBoard({ initialData }: MailboxBoardProps) {
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {classifications.map((classification) => (
-                  <Button
-                    key={classification}
-                    variant={email.classification === classification ? "default" : "outline"}
-                    className="h-9 rounded-full px-4 text-xs"
-                    onClick={() => handleClassificationChange(email.id, classification)}
+              <form
+                action={mutationAction}
+                className="mt-5 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4"
+              >
+                <input type="hidden" name="emailId" value={email.id} />
+                <input type="hidden" name="organizationId" value={email.organizationId} />
+                <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                  <label className="space-y-2 text-xs font-medium tracking-[0.14em] text-stone-500 uppercase">
+                    Classification
+                    <select
+                      name="classification"
+                      defaultValue={email.classification}
+                      className="h-11 w-full rounded-2xl border border-stone-200 bg-white px-4 text-sm font-normal tracking-normal text-stone-700 outline-none transition focus:border-stone-400"
+                      disabled={isMutationPending}
+                    >
+                      {emailClassifications.map((classification) => (
+                        <option key={classification} value={classification}>
+                          {classification}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-xs font-medium tracking-[0.14em] text-stone-500 uppercase">
+                    Chantier
+                    <Input
+                      name="projectId"
+                      defaultValue={email.projectId ?? ""}
+                      placeholder="project_001"
+                      disabled={isMutationPending}
+                    />
+                  </label>
+                  <label className="space-y-2 text-xs font-medium tracking-[0.14em] text-stone-500 uppercase">
+                    Tache
+                    <Input
+                      name="relatedTaskId"
+                      defaultValue={email.relatedTaskId ?? ""}
+                      placeholder="task_001"
+                      disabled={isMutationPending}
+                    />
+                  </label>
+                  <div className="flex items-end">
+                    <Button
+                      type="submit"
+                      className="h-11 rounded-full px-5 text-sm"
+                      disabled={isMutationPending}
+                    >
+                      Enregistrer
+                    </Button>
+                  </div>
+                </div>
+                {mutationState.status !== "idle" && mutationState.emailId === email.id ? (
+                  <p
+                    className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                      mutationState.status === "success" ?
+                        "bg-emerald-50 text-emerald-800"
+                      : "bg-rose-50 text-rose-800"
+                    }`}
                   >
-                    {classification}
-                  </Button>
-                ))}
-              </div>
+                    {mutationState.message}
+                  </p>
+                ) : null}
+              </form>
             </div>
           ))}
         </article>

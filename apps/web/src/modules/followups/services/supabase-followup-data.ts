@@ -126,6 +126,7 @@ export async function getFollowupDashboardData(
       situation,
       followups: generateFollowupSchedule(situation),
       dataOrigin: "demo",
+      persistenceMode: "demo",
       fallbackReason: "Configuration Supabase absente ou lecture distante indisponible.",
     };
   }
@@ -142,6 +143,7 @@ export async function getFollowupDashboardData(
         situation,
         followups: generateFollowupSchedule(situation),
         dataOrigin: "demo",
+        persistenceMode: "demo",
         fallbackReason: "Aucune situation n'a ete trouvee en base.",
       };
     }
@@ -157,6 +159,7 @@ export async function getFollowupDashboardData(
           ? persistedFollowups.map(mapFollowupRow)
           : generateFollowupSchedule(situation),
       dataOrigin: "supabase",
+      persistenceMode: persistedFollowups.length > 0 ? "persisted" : "generated",
       fallbackReason:
         persistedFollowups.length > 0
           ? undefined
@@ -169,6 +172,7 @@ export async function getFollowupDashboardData(
       situation,
       followups: generateFollowupSchedule(situation),
       dataOrigin: "demo",
+      persistenceMode: "demo",
       fallbackReason: "Lecture Supabase impossible, bascule vers les donnees de demonstration.",
     };
   }

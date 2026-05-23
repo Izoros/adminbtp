@@ -152,6 +152,7 @@ describe("chargement tresorerie via Supabase", () => {
     const data = await getFollowupDashboardData(undefined, null);
 
     expect(data.dataOrigin).toBe("demo");
+    expect(data.persistenceMode).toBe("demo");
     expect(data.followups).toHaveLength(4);
   });
 
@@ -164,6 +165,7 @@ describe("chargement tresorerie via Supabase", () => {
     const data = await getFollowupDashboardData(undefined, reader);
 
     expect(data.dataOrigin).toBe("supabase");
+    expect(data.persistenceMode).toBe("persisted");
     expect(data.followups).toHaveLength(1);
     expect(data.followups[0]?.stepLabel).toBe("Relance J+7");
   });
@@ -201,6 +203,7 @@ describe("chargement tresorerie via Supabase", () => {
     const data = await getFollowupDashboardData(undefined, reader);
 
     expect(data.dataOrigin).toBe("supabase");
+    expect(data.persistenceMode).toBe("generated");
     expect(data.followups).toHaveLength(4);
     expect(data.fallbackReason).toContain("Aucune relance");
   });

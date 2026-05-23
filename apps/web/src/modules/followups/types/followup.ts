@@ -31,11 +31,18 @@ export type PaymentFollowup = {
 };
 
 export type FollowupDataOrigin = "demo" | "supabase";
+export type FollowupPersistenceMode = "demo" | "generated" | "persisted";
+
+export type FollowupFeedback = {
+  tone: "success" | "error" | "info";
+  message: string;
+};
 
 export type FollowupDashboardData = {
   situation: Situation;
   followups: PaymentFollowup[];
   dataOrigin: FollowupDataOrigin;
+  persistenceMode: FollowupPersistenceMode;
   fallbackReason?: string;
 };
 

@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildDemoClientSpaceData,
   buildEmptyClientSpaceData,
+  formatClientDecisionMessage,
   inferWorkspaceItemType,
   mapClientFeedbackThreadRow,
   mapClientPortalAccessRow,
+  parseClientDecisionMessage,
   resolvePreferredOrganizationId,
   sanitizeClientCommentDraft,
 } from "@/modules/client-space/services/client-space-data";
@@ -53,6 +55,21 @@ describe("client-space-data", () => {
 
     expect(mapClientPortalAccessRow(accessRow).type).toBe("validation");
     expect(mapClientFeedbackThreadRow(feedbackRow).workspaceItemId).toBe("access_001");
+  });
+
+  it("code et decode une decision client dans le fil d'echange", () => {
+    const encodedMessage = formatClientDecisionMessage({
+      decision: "approved",
+      message: "Validation du courrier apres correction.",
+    });
+
+    expect(encodedMessage).toBe(
+      "[[decision:approved]] Validation du courrier apres correction.",
+    );
+    expect(parseClientDecisionMessage(encodedMessage)).toEqual({
+      decision: "approved",
+      visibleMessage: "Validation du courrier apres correction.",
+    });
   });
 
   it("retourne un etat vide Supabase pour un viewer sans element", () => {

@@ -5,11 +5,11 @@
 - schema SQL `mailboxes`
 - schema SQL `emails`
 - types TypeScript du module `emails`
-- classification manuelle locale
-- rattachement metier organisation / chantier / tache
+- action serveur de reclassement email
+- rattachement metier organisation / chantier / tache persiste dans Supabase
 - preparation Gmail et Outlook documentee
 - page `/emails`
-- tests de reclassement et de liaison metier
+- tests de reclassement, scope serveur et liaison metier
 
 ## Validation cible
 
@@ -18,7 +18,9 @@
 ## Validation locale
 
 La page `/emails` expose une boite `client@adminbtp.yt`, deux emails de
-demonstration et un reclassement manuel par categorie.
+demonstration et un formulaire de reclassement/rattachement qui persiste
+`classification`, `project_id` et `related_task_id` dans Supabase quand la
+session et le scope serveur sont disponibles.
 
 ## Points de securite
 

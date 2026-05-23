@@ -1,5 +1,9 @@
 export type ClientActionStatus = "pending" | "approved" | "rejected" | "commented";
 export type ClientViewerMode = "internal" | "client" | "demo";
+export type ClientDecision = Extract<
+  ClientActionStatus,
+  "approved" | "rejected" | "commented"
+>;
 
 export type ClientWorkspaceItemType =
   | "document"
@@ -26,4 +30,5 @@ export type ClientComment = {
   authorRole: "client" | "adminbtp";
   message: string;
   createdAt?: string;
+  decision?: ClientDecision | null;
 };
