@@ -4,6 +4,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 
 ## Contenu
 
+- [Depot GitHub](/Users/symba/Documents/9_AdminBTP/README.md:1) : [Izoros/adminbtp](https://github.com/Izoros/adminbtp)
 - [Socle architecture produit](/Users/symba/Documents/9_AdminBTP/docs/adminbtp-platform-architecture.md)
 - [Plan de deploiement V1/V2](/Users/symba/Documents/9_AdminBTP/docs/adminbtp-v1-v2-rollout.md)
 - [Roadmap de developpement](/Users/symba/Documents/9_AdminBTP/docs/ROADMAP.md)
@@ -69,10 +70,10 @@ Application web :
 
 ## Mise en ligne
 
-Deploiement Vercel realise et verifie le `2026-05-22` :
+Deploiement Vercel realise et verifie le `2026-05-23` :
 
 - URL de production principale : [adminbtp.vercel.app](https://adminbtp.vercel.app)
-- URL de deploiement validee : [adminbtp-c0u2g2gis-izoros-projects.vercel.app](https://adminbtp-c0u2g2gis-izoros-projects.vercel.app)
+- URL de deploiement validee : [adminbtp-dnme7ixia-izoros-projects.vercel.app](https://adminbtp-dnme7ixia-izoros-projects.vercel.app)
 
 Note d'exploitation :
 
@@ -80,6 +81,7 @@ Note d'exploitation :
 - la route de sante [adminbtp.vercel.app/api/health](https://adminbtp.vercel.app/api/health) repond `200`
 - le projet Vercel est configure en monorepo avec `rootDirectory = apps/web`
 - les deploiements de production doivent etre lances depuis la racine du depot
+- le depot GitHub source est [Izoros/adminbtp](https://github.com/Izoros/adminbtp)
 
 ## Scripts utiles
 
