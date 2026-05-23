@@ -19,6 +19,9 @@ type ProjectPhaseBoardProps = {
   alerts: PhaseAlert[];
   source: "demo" | "supabase";
   sourceDetail: string;
+  toggleChecklistAction: (formData: FormData) => Promise<void>;
+  updatePhaseStatusAction: (formData: FormData) => Promise<void>;
+  resolveAlertAction: (formData: FormData) => Promise<void>;
 };
 
 export function ProjectPhaseBoard({
@@ -28,6 +31,9 @@ export function ProjectPhaseBoard({
   alerts,
   source,
   sourceDetail,
+  toggleChecklistAction,
+  updatePhaseStatusAction,
+  resolveAlertAction,
 }: ProjectPhaseBoardProps) {
   const profile = getPhaseProfileFromProjectRole(activeRole);
 
@@ -108,10 +114,28 @@ export function ProjectPhaseBoard({
                         key={item.id}
                         className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700"
                       >
-                        <span className="font-medium text-stone-950">
-                          {item.isCompleted ? "OK" : "En attente"}
-                        </span>{" "}
-                        {item.label}
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <span className="font-medium text-stone-950">
+                              {item.isCompleted ? "OK" : "En attente"}
+                            </span>{" "}
+                            {item.label}
+                          </div>
+                          <form action={toggleChecklistAction}>
+                            <input type="hidden" name="checklistItemId" value={item.id} />
+                            <input
+                              type="hidden"
+                              name="nextCompletedValue"
+                              value={item.isCompleted ? "false" : "true"}
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-full border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
+                            >
+                              {item.isCompleted ? "Reouvrir" : "Valider"}
+                            </button>
+                          </form>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -127,6 +151,16 @@ export function ProjectPhaseBoard({
                         ? "Le passage de phase est autorise: tous les points obligatoires sont completes."
                         : "Le passage de phase reste bloque: il manque au moins un point obligatoire."}
                     </p>
+                    <form action={updatePhaseStatusAction} className="mt-4">
+                      <input type="hidden" name="phaseId" value={phase.id} />
+                      <input type="hidden" name="nextStatus" value={nextStatus} />
+                      <button
+                        type="submit"
+                        className="rounded-full bg-stone-950 px-4 py-2 text-xs font-medium text-white transition hover:bg-stone-800"
+                      >
+                        Appliquer le statut {nextStatus}
+                      </button>
+                    </form>
                   </div>
 
                   <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5">
@@ -148,6 +182,20 @@ export function ProjectPhaseBoard({
                             <p className="mt-2 text-sm text-stone-700">
                               {alert.message}
                             </p>
+                            <p className="mt-2 text-xs text-stone-500">
+                              Statut : {alert.isResolved ? "Resolue" : "Active"}
+                            </p>
+                            {!alert.isResolved ? (
+                              <form action={resolveAlertAction} className="mt-3">
+                                <input type="hidden" name="alertId" value={alert.id} />
+                                <button
+                                  type="submit"
+                                  className="rounded-full border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
+                                >
+                                  Marquer comme resolue
+                                </button>
+                              </form>
+                            ) : null}
                           </div>
                         ))
                       )}
