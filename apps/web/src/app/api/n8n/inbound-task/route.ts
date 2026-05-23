@@ -13,6 +13,21 @@ import {
   resolveMailboxForInboundWebhook,
 } from "@/modules/emails/services/supabase-email-data";
 
+async function parseWebhookJsonBody(request: Request) {
+  try {
+    return {
+      success: true as const,
+      data: (await request.json()) as unknown,
+    };
+  } catch {
+    return {
+      success: false as const,
+      status: 400,
+      errors: ["Le corps de requete doit contenir un JSON valide."],
+    };
+  }
+}
+
 export async function POST(request: Request) {
   const jsonValidation = validateJsonRequest(request);
 
@@ -38,21 +53,19 @@ export async function POST(request: Request) {
     );
   }
 
-  let rawPayload: unknown;
+  const jsonBody = await parseWebhookJsonBody(request);
 
-  try {
-    rawPayload = (await request.json()) as unknown;
-  } catch {
+  if (!jsonBody.success) {
     return NextResponse.json(
       {
         ok: false,
-        errors: ["Le corps de requete doit contenir un JSON valide."],
+        errors: jsonBody.errors,
       },
-      { status: 400 },
+      { status: jsonBody.status },
     );
   }
 
-  const validationResult = validateInboundEmailWebhookPayload(rawPayload);
+  const validationResult = validateInboundEmailWebhookPayload(jsonBody.data);
 
   if (!validationResult.success) {
     return NextResponse.json(
@@ -64,22 +77,32 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload = validationResult.data;
-  const task = createTaskFromInboundWebhook(payload);
-  const mailboxResolution = await resolveMailboxForInboundWebhook(
-    payload.organizationId,
-    payload.mailboxAddress,
-  );
-  const persistence = await persistInboundEmail(payload);
+  try {
+    const payload = validationResult.data;
+    const task = createTaskFromInboundWebhook(payload);
+    const mailboxResolution = await resolveMailboxForInboundWebhook(
+      payload.organizationId,
+      payload.mailboxAddress,
+    );
+    const persistence = await persistInboundEmail(payload);
 
-  return NextResponse.json({
-    ok: true,
-    authorization: {
-      protectionEnabled: authorizationValidation.protectionEnabled,
-    },
-    payload,
-    task,
-    mailboxResolution,
-    persistence,
-  });
+    return NextResponse.json({
+      ok: true,
+      authorization: {
+        protectionEnabled: authorizationValidation.protectionEnabled,
+      },
+      payload,
+      task,
+      mailboxResolution,
+      persistence,
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        errors: ["Le traitement du webhook entrant a echoue."],
+      },
+      { status: 502 },
+    );
+  }
 }

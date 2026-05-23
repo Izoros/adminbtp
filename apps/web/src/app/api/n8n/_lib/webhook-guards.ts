@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 const jsonContentTypes = [
   "application/json",
   "application/cloudevents+json",
@@ -18,9 +20,10 @@ export function validateJsonRequest(request: Request) {
     };
   }
 
-  const isJsonPayload = jsonContentTypes.some((allowedType) =>
-    contentType.toLowerCase().includes(allowedType),
-  );
+  const normalizedContentType = contentType.split(";")[0]?.trim().toLowerCase();
+  const isJsonPayload = normalizedContentType
+    ? jsonContentTypes.includes(normalizedContentType as (typeof jsonContentTypes)[number])
+    : false;
 
   if (!isJsonPayload) {
     return {
@@ -35,6 +38,21 @@ export function validateJsonRequest(request: Request) {
   };
 }
 
+function hasMatchingWebhookToken(expectedToken: string, providedToken: string | null) {
+  if (!providedToken) {
+    return false;
+  }
+
+  const expectedBuffer = Buffer.from(expectedToken, "utf8");
+  const providedBuffer = Buffer.from(providedToken, "utf8");
+
+  if (expectedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
 export function validateWebhookAuthorization(request: Request) {
   const expectedToken = getExpectedWebhookToken();
 
@@ -45,11 +63,17 @@ export function validateWebhookAuthorization(request: Request) {
     };
   }
 
-  const bearerToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
-  const directToken = request.headers.get("x-adminbtp-webhook-token")?.trim();
-  const providedToken = bearerToken || directToken || null;
+  const bearerTokenHeader = request.headers.get("authorization");
+  const bearerToken =
+    bearerTokenHeader && /^Bearer\s+/i.test(bearerTokenHeader)
+      ? bearerTokenHeader.replace(/^Bearer\s+/i, "").trim()
+      : null;
+  const directToken = request.headers.get("x-adminbtp-webhook-token")?.trim() || null;
+  const providedTokens = [bearerToken, directToken].filter(
+    (token): token is string => Boolean(token),
+  );
 
-  if (providedToken !== expectedToken) {
+  if (!providedTokens.some((providedToken) => hasMatchingWebhookToken(expectedToken, providedToken))) {
     return {
       success: false as const,
       protectionEnabled: true,

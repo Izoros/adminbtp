@@ -1,11 +1,27 @@
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 
 import {
+  createFollowupSupabaseReader,
   getFollowupDashboardData,
   selectSituationForFollowups,
 } from "@/modules/followups/services/supabase-followup-data";
 import type { FollowupSupabaseReader } from "@/modules/followups/services/supabase-followup-data";
+import { createClient } from "@/lib/supabase/server";
+import { loadServerOrganizationScope } from "@/lib/permissions";
 import type { Tables } from "@/types/supabase";
+
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: vi.fn(),
+}));
+
+vi.mock("@/lib/permissions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/permissions")>("@/lib/permissions");
+
+  return {
+    ...actual,
+    loadServerOrganizationScope: vi.fn(),
+  };
+});
 
 function createSituation(
   overrides: Partial<Tables<"situations">> = {},
@@ -45,7 +61,93 @@ function createFollowup(
   };
 }
 
+function createSelectQueryResult<T>(data: T) {
+  const query = {
+    select: vi.fn(() => query),
+    in: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    order: vi.fn(() => query),
+    data,
+    error: null,
+  };
+
+  return query;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("chargement tresorerie via Supabase", () => {
+  it("applique le scope organisation sur la lecture des situations", async () => {
+    const situationQuery = createSelectQueryResult([createSituation()]);
+    const from = vi.fn((table: string) => {
+      if (table === "situations") {
+        return situationQuery;
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    vi.mocked(createClient).mockResolvedValue({
+      from,
+    } as never);
+    vi.mocked(loadServerOrganizationScope).mockResolvedValue({
+      accessibleOrganizationIds: ["org_adminbtp_001", "org_adminbtp_002"],
+      preferredOrganizationId: "org_adminbtp_001",
+      memberships: [],
+      userId: "user_001",
+      internalRole: "member",
+    });
+
+    const reader = await createFollowupSupabaseReader();
+
+    expect(reader).not.toBeNull();
+    await reader?.listSituations({
+      organizationId: "org_adminbtp_001",
+      projectId: "project_001",
+      situationId: "situation_001",
+    });
+
+    expect(situationQuery.in).toHaveBeenCalledWith("organization_id", [
+      "org_adminbtp_001",
+      "org_adminbtp_002",
+    ]);
+    expect(situationQuery.eq).toHaveBeenCalledWith("organization_id", "org_adminbtp_001");
+    expect(situationQuery.eq).toHaveBeenCalledWith("project_id", "project_001");
+    expect(situationQuery.eq).toHaveBeenCalledWith("id", "situation_001");
+  });
+
+  it("applique le scope organisation sur la lecture des relances persistantes", async () => {
+    const followupQuery = createSelectQueryResult([createFollowup()]);
+    const from = vi.fn((table: string) => {
+      if (table === "payment_followups") {
+        return followupQuery;
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    vi.mocked(createClient).mockResolvedValue({
+      from,
+    } as never);
+    vi.mocked(loadServerOrganizationScope).mockResolvedValue({
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
+      memberships: [],
+      userId: "user_001",
+      internalRole: "member",
+    });
+
+    const reader = await createFollowupSupabaseReader();
+
+    expect(reader).not.toBeNull();
+    await reader?.listFollowupsBySituation("situation_001");
+
+    expect(followupQuery.in).toHaveBeenCalledWith("organization_id", ["org_adminbtp_001"]);
+    expect(followupQuery.eq).toHaveBeenCalledWith("situation_id", "situation_001");
+  });
+
   it("bascule sur la demonstration sans lecteur Supabase", async () => {
     const data = await getFollowupDashboardData(undefined, null);
 

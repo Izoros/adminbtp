@@ -141,6 +141,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 14 : livree
 - phase 15 : livree
 - phase 16 : livree
+- phase 17 : livree
 
 ### PHASE 0 - Socle projet
 
@@ -404,6 +405,21 @@ Validation :
 - les webhooks rejetent les formats invalides et peuvent exiger un token
 - la production expose un signal de sante minimal et des en-tetes de securite controles
 
+### PHASE 17 - Verification transverse des garde-fous serveur
+
+Contenu :
+
+- recentrage documentaire sur les garde-fous auth, scope serveur et observabilite
+- campagne de tests cibles sur `server-scope`, `server-guards`, `documents`, `signatures`, `consulting` et `client-space`
+- commande locale dediee `npm run verify:guards`
+- integration de cette verification dans `npm run verify`
+
+Validation :
+
+- les refus de scope serveur sont testes sur les actions sensibles prioritaires
+- le noyau permissions partage reste documente a jour
+- `npm run verify:guards` passe avant la suite de validation globale
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -434,3 +450,4 @@ Ordre cible :
 15. Phase 14
 16. Phase 15
 17. Phase 16
+18. Phase 17

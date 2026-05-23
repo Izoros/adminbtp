@@ -90,6 +90,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm run test
+npm run verify:guards
 npm run build
 npm run verify
 npm run verify:prod
@@ -107,8 +108,9 @@ Le depot a depasse le simple mode demonstration sur le coeur auth/securite :
 
 - authentification reelle Supabase par lien magique, avec callback SSR
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
+- garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`
-- endpoint `/api/health` et verification distante `npm run verify:prod`
+- endpoint `/api/health`, verification locale ciblee `npm run verify:guards` et verification distante `npm run verify:prod`
 
 Le reste de l'application conserve encore, selon les modules, des fallbacks demo explicites tant que toute la chaine session + CRUD reel n'est pas generalisee.
 

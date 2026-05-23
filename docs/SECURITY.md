@@ -20,7 +20,7 @@
 ## Points de vigilance
 
 - le `SUPABASE_SERVICE_ROLE_KEY` ne doit jamais etre expose au navigateur
-- les webhooks `n8n` doivent etre proteges par `N8N_SHARED_SECRET`
+- les webhooks `n8n` doivent etre proteges par `ADMINBTP_N8N_WEBHOOK_TOKEN`
 - les futures integrations Gmail, Outlook et Odoo devront etre journalisees
 - les uploads documentaires devront etre controles par type et taille
 - un `200` HTTP seul ne suffit pas: les controles smoke doivent aussi rejeter les pages d erreur Next.js ou Vercel servies avec un statut trompeur

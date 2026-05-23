@@ -1,13 +1,29 @@
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 
 import {
+  createEmailSupabaseReader,
   getMailboxBoardData,
   persistInboundEmail,
   resolveMailboxForInboundWebhook,
 } from "@/modules/emails/services/supabase-email-data";
 import type { EmailSupabaseReader } from "@/modules/emails/services/supabase-email-data";
+import { createClient } from "@/lib/supabase/server";
+import { loadServerOrganizationScope } from "@/lib/permissions";
 import { validateInboundEmailWebhookPayload } from "@/modules/emails/services/n8n-workflows";
 import type { Tables } from "@/types/supabase";
+
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: vi.fn(),
+}));
+
+vi.mock("@/lib/permissions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/permissions")>("@/lib/permissions");
+
+  return {
+    ...actual,
+    loadServerOrganizationScope: vi.fn(),
+  };
+});
 
 function createMailbox(overrides: Partial<Tables<"mailboxes">> = {}): Tables<"mailboxes"> {
   return {
@@ -56,7 +72,139 @@ function createReader(overrides: Partial<EmailSupabaseReader> = {}): EmailSupaba
   };
 }
 
+function createSelectQueryResult<T>(data: T) {
+  const query = {
+    select: vi.fn(() => query),
+    in: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    order: vi.fn(() => query),
+    maybeSingle: vi.fn(() => ({ data, error: null })),
+    data,
+    error: null,
+  };
+
+  return query;
+}
+
+function createInsertQueryResult<T>(data: T) {
+  const query = {
+    insert: vi.fn(() => query),
+    select: vi.fn(() => query),
+    single: vi.fn(() => ({ data, error: null })),
+  };
+
+  return query;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("chargement emails via Supabase", () => {
+  it("applique le scope organisation sur la lecture des boites actives", async () => {
+    const mailboxQuery = createSelectQueryResult([createMailbox()]);
+    const from = vi.fn((table: string) => {
+      if (table === "mailboxes") {
+        return mailboxQuery;
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    vi.mocked(createClient).mockResolvedValue({
+      from,
+    } as never);
+    vi.mocked(loadServerOrganizationScope).mockResolvedValue({
+      accessibleOrganizationIds: ["org_adminbtp_001", "org_adminbtp_002"],
+      preferredOrganizationId: "org_adminbtp_001",
+      memberships: [],
+      userId: "user_001",
+      internalRole: "member",
+    });
+
+    const reader = await createEmailSupabaseReader();
+
+    expect(reader).not.toBeNull();
+    await reader?.listActiveMailboxes({
+      organizationId: "org_adminbtp_001",
+      mailboxAddress: "client@adminbtp.yt",
+    });
+
+    expect(mailboxQuery.in).toHaveBeenCalledWith("organization_id", [
+      "org_adminbtp_001",
+      "org_adminbtp_002",
+    ]);
+    expect(mailboxQuery.eq).toHaveBeenCalledWith("organization_id", "org_adminbtp_001");
+    expect(mailboxQuery.eq).toHaveBeenCalledWith("address", "client@adminbtp.yt");
+  });
+
+  it("refuse implicitement la resolution d'une boite hors scope organisation", async () => {
+    const mailboxQuery = createSelectQueryResult(createMailbox());
+    const from = vi.fn((table: string) => {
+      if (table === "mailboxes") {
+        return mailboxQuery;
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    vi.mocked(createClient).mockResolvedValue({
+      from,
+    } as never);
+    vi.mocked(loadServerOrganizationScope).mockResolvedValue({
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
+      memberships: [],
+      userId: "user_001",
+      internalRole: "member",
+    });
+
+    const reader = await createEmailSupabaseReader();
+    const mailbox = await reader?.findMailboxByOrganizationAndAddress(
+      "org_hors_scope",
+      "client@adminbtp.yt",
+    );
+
+    expect(mailbox).toBeNull();
+    expect(mailboxQuery.eq).not.toHaveBeenCalled();
+  });
+
+  it("refuse l'insertion d'un email hors scope organisation", async () => {
+    const insertQuery = createInsertQueryResult(createEmail());
+    const from = vi.fn((table: string) => {
+      if (table === "emails") {
+        return insertQuery;
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    vi.mocked(createClient).mockResolvedValue({
+      from,
+    } as never);
+    vi.mocked(loadServerOrganizationScope).mockResolvedValue({
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
+      memberships: [],
+      userId: "user_001",
+      internalRole: "member",
+    });
+
+    const reader = await createEmailSupabaseReader();
+
+    await expect(
+      reader?.insertEmail({
+        mailbox_id: "mailbox_001",
+        organization_id: "org_hors_scope",
+        sender_email: "conducteur@groupement-tce.fr",
+        subject: "Pieces manquantes",
+        body_text: "Merci de transmettre la piece.",
+        classification: "task",
+      }),
+    ).rejects.toThrow("Le scope serveur courant ne couvre pas cette organisation.");
+    expect(insertQuery.insert).not.toHaveBeenCalled();
+  });
+
   it("bascule sur les donnees de demonstration sans lecteur Supabase", async () => {
     const data = await getMailboxBoardData(undefined, null);
 

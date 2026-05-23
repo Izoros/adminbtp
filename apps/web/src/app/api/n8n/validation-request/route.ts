@@ -10,6 +10,21 @@ import {
 } from "@/modules/emails/services/n8n-workflows";
 import { createEmailSupabaseReader } from "@/modules/emails/services/supabase-email-data";
 
+async function parseWebhookJsonBody(request: Request) {
+  try {
+    return {
+      success: true as const,
+      data: (await request.json()) as unknown,
+    };
+  } catch {
+    return {
+      success: false as const,
+      status: 400,
+      errors: ["Le corps de requete doit contenir un JSON valide."],
+    };
+  }
+}
+
 export async function POST(request: Request) {
   const jsonValidation = validateJsonRequest(request);
 
@@ -35,21 +50,19 @@ export async function POST(request: Request) {
     );
   }
 
-  let rawPayload: unknown;
+  const jsonBody = await parseWebhookJsonBody(request);
 
-  try {
-    rawPayload = (await request.json()) as unknown;
-  } catch {
+  if (!jsonBody.success) {
     return NextResponse.json(
       {
         ok: false,
-        errors: ["Le corps de requete doit contenir un JSON valide."],
+        errors: jsonBody.errors,
       },
-      { status: 400 },
+      { status: jsonBody.status },
     );
   }
 
-  const validationResult = validateValidationRequestWebhookPayload(rawPayload);
+  const validationResult = validateValidationRequestWebhookPayload(jsonBody.data);
 
   if (!validationResult.success) {
     return NextResponse.json(
@@ -61,22 +74,32 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload = validationResult.data;
-  const reader = await createEmailSupabaseReader();
+  try {
+    const payload = validationResult.data;
+    const reader = await createEmailSupabaseReader();
 
-  const outboundPayload = createValidationWebhookPayload(
-    payload.signatureRequestId,
-    payload.destination,
-    payload.body,
-  );
+    const outboundPayload = createValidationWebhookPayload(
+      payload.signatureRequestId,
+      payload.destination,
+      payload.body,
+    );
 
-  return NextResponse.json({
-    ok: true,
-    authorization: {
-      protectionEnabled: authorizationValidation.protectionEnabled,
-    },
-    payload,
-    outboundPayload,
-    dataOrigin: reader ? "supabase" : "demo",
-  });
+    return NextResponse.json({
+      ok: true,
+      authorization: {
+        protectionEnabled: authorizationValidation.protectionEnabled,
+      },
+      payload,
+      outboundPayload,
+      dataOrigin: reader ? "supabase" : "demo",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        errors: ["La preparation de la demande de validation a echoue."],
+      },
+      { status: 502 },
+    );
+  }
 }

@@ -199,6 +199,17 @@ Chaque phase ne peut etre consideree comme livree que si :
 - `npm run verify:prod` controle aussi les en-tetes de securite en production
 - les limites restantes de fallback demo et d'observabilite sont documentees
 
+## PHASE 17 - Verification transverse des garde-fous serveur
+
+- le noyau `server-scope` est teste explicitement
+- le noyau `server-guards` est teste explicitement
+- les actions `documents` refusent un scope organisation hors perimetre
+- les actions `signatures` refusent un scope organisation hors perimetre
+- les actions `consulting` refusent un scope organisation hors perimetre
+- les actions `client-space` refusent un scope organisation hors perimetre
+- la commande `npm run verify:guards` est disponible et documentee
+- `npm run verify` execute cette verification ciblee avant la batterie complete
+
 ## Checklist de merge
 
 Avant merge dans `develop` :

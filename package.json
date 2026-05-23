@@ -11,6 +11,7 @@
     "lint": "npm run lint --workspace web",
     "typecheck": "npm run typecheck --workspace web",
     "test": "npm run test --workspace web",
+    "verify:guards": "npm run test --workspace web -- src/lib/permissions/server-guards.test.ts src/lib/permissions/server-scope.test.ts src/modules/documents/tests/document-actions.test.ts src/modules/signatures/tests/signature-actions.test.ts src/modules/consulting/tests/consulting-actions.test.ts src/modules/client-space/tests/client-space-actions.test.ts",
     "test:watch": "npm run test:watch --workspace web",
     "verify": "bash ./scripts/validate.sh",
     "verify:prod": "bash ./scripts/verify-production.sh",

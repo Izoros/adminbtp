@@ -8,6 +8,9 @@ npm run lint
 echo "==> Typecheck"
 npm run typecheck
 
+echo "==> Garde-fous serveur"
+npm run verify:guards
+
 echo "==> Tests"
 npm run test
 
