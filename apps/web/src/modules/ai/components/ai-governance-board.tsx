@@ -7,11 +7,13 @@ import type { AiGovernanceData } from "@/modules/ai/services/ai-data";
 type AiGovernanceBoardProps = {
   data: AiGovernanceData;
   reviewSuggestionAction: (formData: FormData) => Promise<void>;
+  applySuggestionAction: (formData: FormData) => Promise<void>;
 };
 
 export function AiGovernanceBoard({
   data,
   reviewSuggestionAction,
+  applySuggestionAction,
 }: AiGovernanceBoardProps) {
   const generatedSuggestions = data.suggestions.slice(0, 4);
   const emailSuggestions = getSuggestionsByKind(data.suggestions, "email_summary");
@@ -112,6 +114,24 @@ export function AiGovernanceBoard({
                       Rejeter
                     </button>
                   </form>
+                ) : null}
+                {canWrite &&
+                suggestion.status === "approved" &&
+                suggestion.governanceState !== "blocked" ? (
+                  <form action={applySuggestionAction} className="mt-3">
+                    <input type="hidden" name="suggestionId" value={suggestion.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-medium text-white transition hover:bg-emerald-600"
+                    >
+                      Appliquer la suggestion
+                    </button>
+                  </form>
+                ) : null}
+                {suggestion.status === "applied" ? (
+                  <p className="mt-3 text-xs font-medium text-emerald-700">
+                    Suggestion appliquee avec validation humaine et audit associe.
+                  </p>
                 ) : null}
               </div>
             ))}

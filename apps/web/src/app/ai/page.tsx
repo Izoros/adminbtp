@@ -1,8 +1,10 @@
-import { revalidatePath } from "next/cache";
-
 import { AiGovernanceBoard } from "@/modules/ai/components/ai-governance-board";
+import { buildInitialAiMutationState } from "@/modules/ai/services/ai-action-state";
+import {
+  applyAiSuggestionAction,
+  reviewAiSuggestionAction,
+} from "@/modules/ai/services/ai-actions";
 import { loadAiGovernanceData } from "@/modules/ai/services/ai-data";
-import { normalizeSuggestionReviewDecision } from "@/modules/ai/services/ai-governance";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AiPage() {
@@ -12,63 +14,13 @@ export default async function AiPage() {
   async function reviewSuggestionAction(formData: FormData) {
     "use server";
 
-    const supabaseClient = await createClient();
+    await reviewAiSuggestionAction(buildInitialAiMutationState(), formData);
+  }
 
-    if (!supabaseClient || data.source !== "supabase") {
-      return;
-    }
+  async function applySuggestionAction(formData: FormData) {
+    "use server";
 
-    const suggestionId = formData.get("suggestionId")?.toString();
-    const decision = normalizeSuggestionReviewDecision(
-      formData.get("decision")?.toString(),
-    );
-    const targetSuggestion = data.suggestions.find(
-      (suggestion) => suggestion.id === suggestionId,
-    );
-
-    if (!suggestionId || !decision || !targetSuggestion) {
-      return;
-    }
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const { error: updateError } = await supabaseClient
-      .from("ai_suggestions")
-      .update({
-        status: decision,
-        validated_by: user.id,
-        validated_at: now,
-      })
-      .eq("id", suggestionId)
-      .eq("organization_id", targetSuggestion.organizationId);
-
-    if (updateError) {
-      return;
-    }
-
-    await supabaseClient.from("ai_suggestion_audit_logs").insert({
-      ai_suggestion_id: suggestionId,
-      actor_type: "user",
-      actor_id: user.id,
-      action: decision,
-      details: {
-        origin: "ai_page",
-        message:
-          decision === "approved"
-            ? "Validation humaine depuis l'interface IA."
-            : "Rejet humain depuis l'interface IA.",
-      },
-    });
-
-    revalidatePath("/ai");
+    await applyAiSuggestionAction(buildInitialAiMutationState(), formData);
   }
 
   return (
@@ -77,6 +29,7 @@ export default async function AiPage() {
         <AiGovernanceBoard
           data={data}
           reviewSuggestionAction={reviewSuggestionAction}
+          applySuggestionAction={applySuggestionAction}
         />
       </div>
     </main>
