@@ -88,6 +88,19 @@ describe("workflows n8n", () => {
     }
   });
 
+  it("accepte une demande de validation basee uniquement sur signatureRequestId", () => {
+    const payload = validateValidationRequestWebhookPayload({
+      signatureRequestId: " signature_request_001 ",
+    });
+
+    expect(payload.success).toBe(true);
+    if (payload.success) {
+      expect(payload.data.signatureRequestId).toBe("signature_request_001");
+      expect(payload.data.destination).toBeUndefined();
+      expect(payload.data.body).toBeUndefined();
+    }
+  });
+
   it("rejette une destination WhatsApp qui n'est pas au format E.164", () => {
     const payload = validateValidationRequestWebhookPayload({
       signatureRequestId: "signature_request_001",
@@ -98,6 +111,15 @@ describe("workflows n8n", () => {
     expect(payload.success).toBe(false);
     if (!payload.success) {
       expect(payload.errors).toContain("destination doit etre un numero E.164 valide.");
+    }
+  });
+
+  it("rejette toujours une demande sans signatureRequestId", () => {
+    const payload = validateValidationRequestWebhookPayload({});
+
+    expect(payload.success).toBe(false);
+    if (!payload.success) {
+      expect(payload.errors).toContain("signatureRequestId est obligatoire.");
     }
   });
 });

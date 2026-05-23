@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const resolveMailboxForInboundWebhook = vi.fn();
 const persistInboundEmail = vi.fn();
 const createEmailSupabaseReader = vi.fn();
+const resolveSignatureWebhookContext = vi.fn();
 
 vi.mock("@/modules/emails/services/supabase-email-data", () => ({
   resolveMailboxForInboundWebhook,
@@ -10,11 +11,16 @@ vi.mock("@/modules/emails/services/supabase-email-data", () => ({
   createEmailSupabaseReader,
 }));
 
+vi.mock("@/modules/signatures/services/signature-webhook-data", () => ({
+  resolveSignatureWebhookContext,
+}));
+
 describe("routes n8n", () => {
   beforeEach(() => {
     resolveMailboxForInboundWebhook.mockReset();
     persistInboundEmail.mockReset();
     createEmailSupabaseReader.mockReset();
+    resolveSignatureWebhookContext.mockReset();
     delete process.env.ADMINBTP_N8N_WEBHOOK_TOKEN;
   });
 
@@ -236,6 +242,11 @@ describe("routes n8n", () => {
 
   it("retourne une charge sortante normalisee pour la validation", async () => {
     createEmailSupabaseReader.mockResolvedValue(null);
+    resolveSignatureWebhookContext.mockResolvedValue({
+      dataOrigin: "demo",
+      requestId: "signature_request_001",
+      whatsappPayload: null,
+    });
 
     const { POST } = await import("@/app/api/n8n/validation-request/route");
 
@@ -261,6 +272,82 @@ describe("routes n8n", () => {
     expect(body.outboundPayload.channel).toBe("whatsapp");
     expect(body.outboundPayload.destination).toBe("+262690000000");
     expect(body.dataOrigin).toBe("demo");
+  });
+
+  it("reutilise le payload WhatsApp persiste si destination et body ne sont pas fournis", async () => {
+    createEmailSupabaseReader.mockResolvedValue(null);
+    resolveSignatureWebhookContext.mockResolvedValue({
+      dataOrigin: "supabase",
+      requestId: "signature_request_001",
+      organizationId: "org_adminbtp_001",
+      whatsappPayload: {
+        channel: "whatsapp",
+        destination: "+262690000000",
+        destinationStatus: "pending_configuration",
+        template: "signature_validation_v1",
+        requestId: "signature_request_001",
+        organizationId: "org_adminbtp_001",
+        documentId: "document_001",
+        preparedAt: "2026-05-23T10:00:00.000Z",
+        message: "Validation requise",
+        body: "Validation requise pour le compte rendu chantier.",
+      },
+    });
+
+    const { POST } = await import("@/app/api/n8n/validation-request/route");
+
+    const response = await POST(
+      new Request("http://localhost/api/n8n/validation-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          signatureRequestId: "signature_request_001",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.outboundPayload.destination).toBe("+262690000000");
+    expect(body.outboundPayload.body).toBe(
+      "Validation requise pour le compte rendu chantier.",
+    );
+    expect(body.dataOrigin).toBe("supabase");
+  });
+
+  it("retourne 400 si aucun payload complet ne peut etre resolu pour la validation", async () => {
+    createEmailSupabaseReader.mockResolvedValue(null);
+    resolveSignatureWebhookContext.mockResolvedValue({
+      dataOrigin: "demo",
+      requestId: "signature_request_001",
+      whatsappPayload: null,
+    });
+
+    const { POST } = await import("@/app/api/n8n/validation-request/route");
+
+    const response = await POST(
+      new Request("http://localhost/api/n8n/validation-request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          signatureRequestId: "signature_request_001",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.ok).toBe(false);
+    expect(body.errors).toContain(
+      "Aucun payload WhatsApp complet n'a pu etre resolu pour cette demande de signature.",
+    );
   });
 
   it("retourne 415 si la route de validation ne recoit pas un payload JSON", async () => {

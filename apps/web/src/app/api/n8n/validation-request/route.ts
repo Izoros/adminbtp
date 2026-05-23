@@ -9,6 +9,7 @@ import {
   validateValidationRequestWebhookPayload,
 } from "@/modules/emails/services/n8n-workflows";
 import { createEmailSupabaseReader } from "@/modules/emails/services/supabase-email-data";
+import { resolveSignatureWebhookContext } from "@/modules/signatures/services/signature-webhook-data";
 
 async function parseWebhookJsonBody(request: Request) {
   try {
@@ -77,11 +78,30 @@ export async function POST(request: Request) {
   try {
     const payload = validationResult.data;
     const reader = await createEmailSupabaseReader();
+    const signatureContext = await resolveSignatureWebhookContext(
+      payload.signatureRequestId,
+    );
+    const resolvedDestination =
+      payload.destination ?? signatureContext.whatsappPayload?.destination;
+    const resolvedBody = payload.body ?? signatureContext.whatsappPayload?.body;
+
+    if (!resolvedDestination || !resolvedBody) {
+      return NextResponse.json(
+        {
+          ok: false,
+          errors: [
+            "Aucun payload WhatsApp complet n'a pu etre resolu pour cette demande de signature.",
+          ],
+          signatureContext,
+        },
+        { status: 400 },
+      );
+    }
 
     const outboundPayload = createValidationWebhookPayload(
       payload.signatureRequestId,
-      payload.destination,
-      payload.body,
+      resolvedDestination,
+      resolvedBody,
     );
 
     return NextResponse.json({
@@ -91,7 +111,9 @@ export async function POST(request: Request) {
       },
       payload,
       outboundPayload,
-      dataOrigin: reader ? "supabase" : "demo",
+      signatureContext,
+      dataOrigin:
+        signatureContext.dataOrigin === "supabase" || reader ? "supabase" : "demo",
     });
   } catch {
     return NextResponse.json(

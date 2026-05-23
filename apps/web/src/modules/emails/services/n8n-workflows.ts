@@ -180,14 +180,20 @@ export function validateValidationRequestWebhookPayload(
     errors.push("Seul le canal whatsapp est accepte.");
   }
 
-  if (!isNonEmptyString(payload.destination)) {
-    errors.push("destination est obligatoire.");
-  } else if (!isE164PhoneNumber(payload.destination.trim())) {
+  if (
+    payload.destination !== undefined &&
+    !isNonEmptyString(payload.destination)
+  ) {
+    errors.push("destination doit etre une chaine non vide s'il est fourni.");
+  } else if (
+    isNonEmptyString(payload.destination) &&
+    !isE164PhoneNumber(payload.destination.trim())
+  ) {
     errors.push("destination doit etre un numero E.164 valide.");
   }
 
-  if (!isNonEmptyString(payload.body)) {
-    errors.push("body est obligatoire.");
+  if (payload.body !== undefined && !isNonEmptyString(payload.body)) {
+    errors.push("body doit etre une chaine non vide s'il est fourni.");
   }
 
   if (errors.length > 0) {
@@ -202,8 +208,10 @@ export function validateValidationRequestWebhookPayload(
     data: {
       signatureRequestId: normalizeWhitespace(payload.signatureRequestId!),
       channel: "whatsapp",
-      destination: normalizeWhitespace(payload.destination!),
-      body: payload.body!.trim(),
+      destination: isNonEmptyString(payload.destination)
+        ? normalizeWhitespace(payload.destination)
+        : undefined,
+      body: isNonEmptyString(payload.body) ? payload.body.trim() : undefined,
     },
   };
 }

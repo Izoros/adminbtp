@@ -21,8 +21,8 @@ export type InboundEmailWebhookPayload = {
 export type ValidationRequestWebhookPayload = {
   signatureRequestId: string;
   channel?: "whatsapp";
-  destination: string;
-  body: string;
+  destination?: string;
+  body?: string;
 };
 
 export type NormalizedInboundEmailWebhookPayload = {
@@ -46,8 +46,8 @@ export type NormalizedInboundEmailWebhookPayload = {
 export type NormalizedValidationRequestWebhookPayload = {
   signatureRequestId: string;
   channel: "whatsapp";
-  destination: string;
-  body: string;
+  destination?: string;
+  body?: string;
 };
 
 export type WebhookValidationResult<T> =
