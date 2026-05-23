@@ -9,9 +9,12 @@
 - fonction SQL `can_complete_phase`
 - types TypeScript du module `phases`
 - moteur local de profils metier MOE, MOA, TCE et entreprise de lot
+- reader Supabase pour `project_phases`, `phase_checklist_items` et `phase_alerts`
+- fallback demonstration si le scope chantier ou la lecture base ne sont pas exploitables
 - blocage de transition si checklist incomplète
 - page `/phases`
 - tests de profils differencies et de transition
+- tests de resolution `supabase/demo` pour les phases
 
 ## Validation cible
 
@@ -20,8 +23,10 @@
 
 ## Validation locale
 
-La vue locale affiche un parcours MOE par defaut et expose des jeux de donnees
-distincts pour MOA, TCE et entreprise de lot dans les tests de module.
+La vue locale charge maintenant Supabase cote serveur quand le scope chantier et
+les donnees sont disponibles, avec bascule propre en demonstration sinon.
+Les jeux de donnees differencies MOA, TCE et entreprise de lot restent couverts
+par les tests de module.
 
 ## Points de securite
 
@@ -37,3 +42,4 @@ distincts pour MOA, TCE et entreprise de lot dans les tests de module.
 - `test` : OK
 - `build` : OK
 - validation locale des profils MOE, MOA, TCE et entreprise de lot : OK
+- validation lecture Supabase avec fallback demonstration : OK

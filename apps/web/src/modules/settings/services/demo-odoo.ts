@@ -1,4 +1,11 @@
-import type { OdooMapping } from "@/modules/settings/types/odoo";
+import type {
+  OdooMapping,
+  OdooMappingBoardData,
+} from "@/modules/settings/types/odoo";
+import {
+  findCustomerMappingForOrganization,
+  getMappingsByType,
+} from "@/modules/settings/services/odoo-mapping";
 
 export const demoOdooMappings: OdooMapping[] = [
   {
@@ -38,3 +45,22 @@ export const demoOdooMappings: OdooMapping[] = [
     syncStatus: "linked",
   },
 ];
+
+export function getDemoOdooMappingBoardData(): OdooMappingBoardData {
+  const organizationId = "org_adminbtp_001";
+
+  return {
+    organizationId,
+    customerMapping: findCustomerMappingForOrganization(
+      demoOdooMappings,
+      organizationId,
+    ),
+    invoiceMappings: getMappingsByType(demoOdooMappings, "invoice"),
+    subscriptionMappings: getMappingsByType(demoOdooMappings, "subscription"),
+    consultingMappings: getMappingsByType(
+      demoOdooMappings,
+      "consulting_service",
+    ),
+    dataOrigin: "demo",
+  };
+}

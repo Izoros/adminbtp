@@ -17,6 +17,8 @@ type ProjectPhaseBoardProps = {
   phases: ProjectPhase[];
   checklistItems: PhaseChecklistItem[];
   alerts: PhaseAlert[];
+  source: "demo" | "supabase";
+  sourceDetail: string;
 };
 
 export function ProjectPhaseBoard({
@@ -24,6 +26,8 @@ export function ProjectPhaseBoard({
   phases,
   checklistItems,
   alerts,
+  source,
+  sourceDetail,
 }: ProjectPhaseBoardProps) {
   const profile = getPhaseProfileFromProjectRole(activeRole);
 
@@ -50,6 +54,12 @@ export function ProjectPhaseBoard({
           La vue change selon le profil metier et bloque le passage a l&apos;etat
           termine tant que les items obligatoires ne sont pas completes.
         </p>
+        <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
+          <p className="font-medium text-stone-950">
+            Source : {source === "supabase" ? "Supabase" : "Demonstration"}
+          </p>
+          <p className="mt-1">{sourceDetail}</p>
+        </div>
       </div>
 
       <div className="grid gap-6">

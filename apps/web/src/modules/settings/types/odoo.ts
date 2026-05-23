@@ -13,3 +13,20 @@ export type OdooMapping = {
   odooRecordId: string;
   syncStatus: string;
 };
+
+export type OdooDataOrigin = "demo" | "supabase";
+
+export type OdooMappingBoardData = {
+  organizationId: string;
+  customerMapping?: OdooMapping;
+  invoiceMappings: OdooMapping[];
+  subscriptionMappings: OdooMapping[];
+  consultingMappings: OdooMapping[];
+  dataOrigin: OdooDataOrigin;
+  fallbackReason?: string;
+};
+
+export type OdooMappingQuery = {
+  organizationId?: string;
+  bindingType?: OdooBindingType;
+};

@@ -1,20 +1,19 @@
-import { demoOdooMappings } from "@/modules/settings/services/demo-odoo";
-import {
-  findCustomerMappingForOrganization,
-  getMappingsByType,
-} from "@/modules/settings/services/odoo-mapping";
+import type { OdooMappingBoardData } from "@/modules/settings/types/odoo";
 
-export function OdooMappingBoard() {
-  const customerMapping = findCustomerMappingForOrganization(
-    demoOdooMappings,
-    "org_adminbtp_001",
-  );
-  const invoiceMappings = getMappingsByType(demoOdooMappings, "invoice");
-  const subscriptionMappings = getMappingsByType(demoOdooMappings, "subscription");
-  const consultingMappings = getMappingsByType(
-    demoOdooMappings,
-    "consulting_service",
-  );
+type OdooMappingBoardProps = {
+  initialData: OdooMappingBoardData;
+};
+
+export function OdooMappingBoard({ initialData }: OdooMappingBoardProps) {
+  const {
+    organizationId,
+    customerMapping,
+    invoiceMappings,
+    subscriptionMappings,
+    consultingMappings,
+    dataOrigin,
+    fallbackReason,
+  } = initialData;
 
   return (
     <section className="space-y-6">
@@ -30,6 +29,16 @@ export function OdooMappingBoard() {
           la synchronisation a la facturation, aux abonnements et aux prestations
           de conseil.
         </p>
+        <div className="mt-4 flex flex-wrap gap-3 text-xs text-stone-600">
+          <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1">
+            Source : {dataOrigin}
+          </span>
+          {fallbackReason ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900">
+              {fallbackReason}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -38,10 +47,10 @@ export function OdooMappingBoard() {
             Liaison client
           </p>
           <div className="mt-4 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 text-sm text-stone-700">
-            <p>Organisation : {customerMapping?.organizationId}</p>
-            <p>Modele Odoo : {customerMapping?.odooModel}</p>
-            <p>Contact lie : {customerMapping?.odooRecordId}</p>
-            <p>Statut : {customerMapping?.syncStatus}</p>
+            <p>Organisation : {organizationId}</p>
+            <p>Modele Odoo : {customerMapping?.odooModel ?? "Aucun mapping client"}</p>
+            <p>Contact lie : {customerMapping?.odooRecordId ?? "Aucune liaison active"}</p>
+            <p>Statut : {customerMapping?.syncStatus ?? "non_lie"}</p>
           </div>
         </article>
 
