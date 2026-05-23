@@ -63,9 +63,12 @@ function createEmail(overrides: Partial<Tables<"emails">> = {}): Tables<"emails"
 
 function createReader(overrides: Partial<EmailSupabaseReader> = {}): EmailSupabaseReader {
   return {
+    accessibleOrganizationIds: ["org_adminbtp_001"],
+    preferredOrganizationId: "org_adminbtp_001",
     listActiveMailboxes: async () => [createMailbox()],
     listEmailsByMailbox: async () => [createEmail()],
     findMailboxByOrganizationAndAddress: async () => createMailbox(),
+    insertMailbox: async () => createMailbox(),
     findEmailByExternalMessageId: async () => null,
     insertEmail: async () => createEmail(),
     ...overrides,
@@ -216,7 +219,9 @@ describe("chargement emails via Supabase", () => {
     const data = await getMailboxBoardData(undefined, createReader());
 
     expect(data.dataOrigin).toBe("supabase");
-    expect(data.mailbox.displayName).toBe("Boite client AdminBTP");
+    expect(data.organizationId).toBe("org_adminbtp_001");
+    expect(data.mailbox).toBeDefined();
+    expect(data.mailbox!.displayName).toBe("Boite client AdminBTP");
     expect(data.emails[0]?.receivedAt).toBe("2026-05-19T08:15:00.000Z");
   });
 
@@ -237,7 +242,25 @@ describe("chargement emails via Supabase", () => {
     expect(listActiveMailboxes).toHaveBeenCalledWith({
       mailboxId: "mailbox_002",
     });
-    expect(data.mailbox.id).toBe("mailbox_002");
+    expect(data.mailbox).toBeDefined();
+    expect(data.mailbox!.id).toBe("mailbox_002");
+  });
+
+  it("reste en source Supabase vide si aucune boite n'existe encore pour l'organisation", async () => {
+    const data = await getMailboxBoardData(
+      {
+        organizationId: "org_adminbtp_001",
+      },
+      createReader({
+        listActiveMailboxes: async () => [],
+      }),
+    );
+
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.organizationId).toBe("org_adminbtp_001");
+    expect(data.mailbox).toBeUndefined();
+    expect(data.emails).toHaveLength(0);
+    expect(data.fallbackReason).toContain("Aucune boite active n'a encore ete trouvee");
   });
 
   it("resout une boite pour le webhook entrant si elle existe", async () => {

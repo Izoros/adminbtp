@@ -23,12 +23,21 @@ export type PersistedInboundEmailResult = {
 };
 
 export type EmailSupabaseReader = {
+  accessibleOrganizationIds: string[];
+  preferredOrganizationId: string | null;
   listActiveMailboxes: (query?: MailboxBoardQuery) => Promise<MailboxRow[]>;
   listEmailsByMailbox: (mailboxId: string) => Promise<EmailRow[]>;
   findMailboxByOrganizationAndAddress: (
     organizationId: string,
     address: string,
   ) => Promise<MailboxRow | null>;
+  insertMailbox: (mailbox: {
+    organization_id: string;
+    address: string;
+    display_name: string;
+    provider: MailboxRow["provider"];
+    created_by: string;
+  }) => Promise<MailboxRow>;
   findEmailByExternalMessageId: (
     mailboxId: string,
     externalMessageId: string,
@@ -91,6 +100,8 @@ export async function createEmailSupabaseReader(): Promise<EmailSupabaseReader |
   const accessibleOrganizationIds = organizationScope.accessibleOrganizationIds;
 
   return {
+    accessibleOrganizationIds,
+    preferredOrganizationId: organizationScope.preferredOrganizationId,
     async listActiveMailboxes(query) {
       let request = supabase
         .from("mailboxes")
@@ -152,6 +163,29 @@ export async function createEmailSupabaseReader(): Promise<EmailSupabaseReader |
 
       return data;
     },
+    async insertMailbox(mailbox) {
+      if (!accessibleOrganizationIds.includes(mailbox.organization_id)) {
+        throw new Error("Le scope serveur courant ne couvre pas cette organisation.");
+      }
+
+      const { data, error } = await supabase
+        .from("mailboxes")
+        .insert({
+          organization_id: mailbox.organization_id,
+          address: mailbox.address,
+          display_name: mailbox.display_name,
+          provider: mailbox.provider,
+          created_by: mailbox.created_by,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
     async findEmailByExternalMessageId(mailboxId, externalMessageId) {
       const { data, error } = await supabase
         .from("emails")
@@ -201,15 +235,24 @@ export async function getMailboxBoardData(
     const mailbox = mailboxes[0];
 
     if (!mailbox) {
+      const organizationId =
+        query?.organizationId ??
+        resolvedReader.preferredOrganizationId ??
+        resolvedReader.accessibleOrganizationIds[0] ??
+        getDemoMailboxBoardData().organizationId;
+
       return {
-        ...getDemoMailboxBoardData(),
-        fallbackReason: "Aucune boite active n'a ete trouvee en base.",
+        organizationId,
+        emails: [],
+        dataOrigin: "supabase",
+        fallbackReason: "Aucune boite active n'a encore ete trouvee en base.",
       };
     }
 
     const emails = await resolvedReader.listEmailsByMailbox(mailbox.id);
 
     return {
+      organizationId: mailbox.organization_id,
       mailbox: mapMailboxRow(mailbox),
       emails: emails.map(mapEmailRow),
       dataOrigin: "supabase",

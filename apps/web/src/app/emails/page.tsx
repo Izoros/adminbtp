@@ -1,6 +1,7 @@
 import { getMailboxBoardData } from "@/modules/emails/services/supabase-email-data";
 import { MailboxBoard } from "@/modules/emails/components/mailbox-board";
 import { updateEmailClassificationAction } from "@/modules/emails/services/email-actions";
+import { createMailboxAction } from "@/modules/emails/services/mailbox-actions";
 
 type EmailsPageProps = {
   searchParams?: Promise<{
@@ -24,6 +25,7 @@ export default async function EmailsPage({ searchParams }: EmailsPageProps) {
         <MailboxBoard
           initialData={mailboxBoardData}
           updateAction={updateEmailClassificationAction}
+          createMailboxAction={createMailboxAction}
         />
       </div>
     </main>

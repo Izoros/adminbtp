@@ -9,6 +9,10 @@ import {
   initialEmailMutationState,
   type EmailMutationState,
 } from "@/modules/emails/services/email-action-state";
+import {
+  initialMailboxMutationState,
+  type MailboxMutationState,
+} from "@/modules/emails/services/mailbox-action-state";
 import type {
   EmailRecord,
   MailboxBoardData,
@@ -20,16 +24,23 @@ type MailboxBoardProps = {
     state: EmailMutationState,
     formData: FormData,
   ) => Promise<EmailMutationState>;
+  createMailboxAction: (
+    state: MailboxMutationState,
+    formData: FormData,
+  ) => Promise<MailboxMutationState>;
 };
 
 export function MailboxBoard({
   initialData,
   updateAction,
+  createMailboxAction,
 }: MailboxBoardProps) {
   const [mutationState, mutationAction, isMutationPending] = useActionState(
     updateAction,
     initialEmailMutationState,
   );
+  const [mailboxMutationState, mailboxMutationAction, isMailboxMutationPending] =
+    useActionState(createMailboxAction, initialMailboxMutationState);
 
   const mailbox = initialData.mailbox;
   const emails: EmailRecord[] = initialData.emails;
@@ -73,14 +84,22 @@ export function MailboxBoard({
           <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
             Boite generique
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
-            {mailbox.displayName}
-          </h2>
-          <div className="mt-5 space-y-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 text-sm text-stone-700">
-            <p>Adresse : {mailbox.address}</p>
-            <p>Provider courant : {mailbox.provider}</p>
-            <p>Organisation : {mailbox.organizationId}</p>
-          </div>
+          {mailbox ? (
+            <>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+                {mailbox.displayName}
+              </h2>
+              <div className="mt-5 space-y-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 text-sm text-stone-700">
+                <p>Adresse : {mailbox.address}</p>
+                <p>Provider courant : {mailbox.provider}</p>
+                <p>Organisation : {mailbox.organizationId}</p>
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 rounded-[1.5rem] border border-dashed border-stone-200 bg-stone-50 p-5 text-sm text-stone-600">
+              Aucune boite generique n&apos;est encore active pour cette organisation.
+            </div>
+          )}
 
           <div className="mt-6 rounded-[1.5rem] border border-amber-200/70 bg-[linear-gradient(135deg,#fffaf4_0%,#f8efe0_100%)] p-5">
             <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
@@ -92,9 +111,74 @@ export function MailboxBoard({
               ))}
             </ul>
           </div>
+
+          {!mailbox ? (
+            <form
+              action={mailboxMutationAction}
+              className="mt-6 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4"
+            >
+              <input type="hidden" name="organizationId" value={initialData.organizationId} />
+              <div className="grid gap-3">
+                <label className="space-y-2 text-xs font-medium tracking-[0.14em] text-stone-500 uppercase">
+                  Libelle
+                  <Input
+                    name="displayName"
+                    defaultValue="Boite client AdminBTP"
+                    disabled={isMailboxMutationPending}
+                  />
+                </label>
+                <label className="space-y-2 text-xs font-medium tracking-[0.14em] text-stone-500 uppercase">
+                  Adresse
+                  <Input
+                    name="address"
+                    defaultValue="client@adminbtp.yt"
+                    disabled={isMailboxMutationPending}
+                  />
+                </label>
+                <label className="space-y-2 text-xs font-medium tracking-[0.14em] text-stone-500 uppercase">
+                  Provider
+                  <select
+                    name="provider"
+                    defaultValue="internal"
+                    className="h-11 w-full rounded-2xl border border-stone-200 bg-white px-4 text-sm font-normal tracking-normal text-stone-700 outline-none transition focus:border-stone-400"
+                    disabled={isMailboxMutationPending}
+                  >
+                    <option value="internal">internal</option>
+                    <option value="gmail">gmail</option>
+                    <option value="outlook">outlook</option>
+                  </select>
+                </label>
+                <div>
+                  <Button
+                    type="submit"
+                    className="h-11 rounded-full px-5 text-sm"
+                    disabled={isMailboxMutationPending}
+                  >
+                    Creer la boite generique
+                  </Button>
+                </div>
+              </div>
+              {mailboxMutationState.status !== "idle" ? (
+                <p
+                  className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                    mailboxMutationState.status === "success"
+                      ? "bg-emerald-50 text-emerald-800"
+                      : "bg-rose-50 text-rose-800"
+                  }`}
+                >
+                  {mailboxMutationState.message}
+                </p>
+              ) : null}
+            </form>
+          ) : null}
         </article>
 
         <article className="space-y-5">
+          {emails.length === 0 ? (
+            <div className="rounded-[1.75rem] border border-dashed border-stone-200 bg-white p-6 text-sm text-stone-600 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+              Aucun email n&apos;est encore visible pour la boite courante.
+            </div>
+          ) : null}
           {emails.map((email) => (
             <div
               key={email.id}

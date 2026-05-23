@@ -43,6 +43,7 @@ export const demoEmails: EmailRecord[] = [
 
 export function getDemoMailboxBoardData() {
   return {
+    organizationId: demoMailboxes[0]!.organizationId,
     mailbox: demoMailboxes[0]!,
     emails: demoEmails,
     dataOrigin: "demo" as const,

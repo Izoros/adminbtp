@@ -34,7 +34,8 @@ export type EmailRecord = {
 export type DataOrigin = "demo" | "supabase";
 
 export type MailboxBoardData = {
-  mailbox: Mailbox;
+  organizationId: string;
+  mailbox?: Mailbox;
   emails: EmailRecord[];
   dataOrigin: DataOrigin;
   fallbackReason?: string;
