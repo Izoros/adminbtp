@@ -1,0 +1,135 @@
+# AdminBTP
+
+Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBTP.
+
+## Contenu
+
+- [Socle architecture produit](/Users/symba/Documents/9_AdminBTP/docs/adminbtp-platform-architecture.md)
+- [Plan de deploiement V1/V2](/Users/symba/Documents/9_AdminBTP/docs/adminbtp-v1-v2-rollout.md)
+- [Roadmap de developpement](/Users/symba/Documents/9_AdminBTP/docs/ROADMAP.md)
+- [Checklist de validation](/Users/symba/Documents/9_AdminBTP/docs/VALIDATION_CHECKLIST.md)
+- [Regles de contribution](/Users/symba/Documents/9_AdminBTP/docs/CONTRIBUTING.md)
+- [Runbook de deploiement](/Users/symba/Documents/9_AdminBTP/docs/DEPLOYMENT.md)
+- [Checklist de release](/Users/symba/Documents/9_AdminBTP/docs/RELEASE_CHECKLIST.md)
+- [Politique de securite](/Users/symba/Documents/9_AdminBTP/docs/SECURITY.md)
+- [Prochaines actions recommandees](/Users/symba/Documents/9_AdminBTP/docs/NEXT_STEPS.md)
+- [Guide Supabase local](/Users/symba/Documents/9_AdminBTP/docs/SUPABASE_LOCAL.md)
+- [Guide Supabase distant](/Users/symba/Documents/9_AdminBTP/docs/SUPABASE_REMOTE.md)
+- [Plan de workstreams paralleles](/Users/symba/Documents/9_AdminBTP/docs/PARALLEL_WORKSTREAMS.md)
+- [CDC minimal V1](/Users/symba/Documents/9_AdminBTP/docs/CDC/AdminBTP_V1.md)
+- [Schema SQL du pole expertise](/Users/symba/Documents/9_AdminBTP/database/adminbtp_consulting_foundation.sql)
+- [Seed SQL des profils experts](/Users/symba/Documents/9_AdminBTP/database/adminbtp_consulting_seed.sql)
+- [Validation d'execution de la phase 0](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_0.md)
+- [Validation d'execution de la phase 1](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_1.md)
+- [Validation d'execution de la phase 2](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_2.md)
+- [Validation d'execution de la phase 3](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_3.md)
+- [Validation d'execution de la phase 4](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_4.md)
+- [Validation d'execution de la phase 5](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_5.md)
+- [Validation d'execution de la phase 6](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_6.md)
+- [Validation d'execution de la phase 7](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_7.md)
+- [Validation d'execution de la phase 8](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_8.md)
+- [Validation d'execution de la phase 9](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_9.md)
+- [Validation d'execution de la phase 10](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_10.md)
+- [Validation d'execution de la phase 11](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_11.md)
+- [Validation d'execution de la phase 12](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_12.md)
+- [Validation d'execution de la phase 13](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_13.md)
+- [Validation d'execution de la phase 14](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_14.md)
+- [Validation d'execution de la phase 15](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_15.md)
+- [Validation d'execution de la phase 16](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_16.md)
+
+## Finalite
+
+Concevoir AdminBTP comme une plateforme de gestion administrative BTP et d'accompagnement technique, capable d'integrer:
+
+- logiciel SaaS
+- automatisation IA
+- gestionnaires administratifs externalises
+- expertise humaine internalisee
+
+## Prochaine etape logique
+
+La stack cible retenue pour le lancement du projet est:
+
+- monorepo `npm workspaces`
+- application `Next.js` dans `apps/web`
+- `Tailwind CSS`
+- `shadcn/ui`
+- client `Supabase`
+
+## Demarrage local
+
+```bash
+npm install
+npm run dev
+```
+
+Application web :
+
+- `http://localhost:3000`
+
+## Mise en ligne
+
+Deploiement Vercel realise et verifie le `2026-05-22` :
+
+- URL de production principale : [adminbtp.vercel.app](https://adminbtp.vercel.app)
+- URL de deploiement validee : [adminbtp-c0u2g2gis-izoros-projects.vercel.app](https://adminbtp-c0u2g2gis-izoros-projects.vercel.app)
+
+Note d'exploitation :
+
+- l'application est publiquement accessible en `200`
+- la route de sante [adminbtp.vercel.app/api/health](https://adminbtp.vercel.app/api/health) repond `200`
+- le projet Vercel est configure en monorepo avec `rootDirectory = apps/web`
+- les deploiements de production doivent etre lances depuis la racine du depot
+
+## Scripts utiles
+
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run verify
+npm run verify:prod
+npm run audit:prod
+npm run supabase:check
+npm run supabase:bootstrap
+npm run supabase:start
+npm run supabase:reset
+npm run supabase:types
+```
+
+## Etat actuel du socle
+
+Le depot a depasse le simple mode demonstration sur le coeur auth/securite :
+
+- authentification reelle Supabase par lien magique, avec callback SSR
+- ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
+- RLS consolidee sur les zones `ai` et `client-space`
+- endpoint `/api/health` et verification distante `npm run verify:prod`
+
+Le reste de l'application conserve encore, selon les modules, des fallbacks demo explicites tant que toute la chaine session + CRUD reel n'est pas generalisee.
+
+## Structure projet
+
+```text
+apps/
+  web/
+database/
+docs/
+packages/
+```
+
+## Orientation produit
+
+Brancher ce socle sur la stack applicative cible et derouler ensuite la roadmap par phases:
+
+- Supabase
+- multi-tenant
+- gestion chantiers
+- base documentaire
+- signatures
+- workflows n8n
+- Odoo
+- consulting expert
+- IA metier

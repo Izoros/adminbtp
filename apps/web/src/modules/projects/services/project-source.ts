@@ -1,0 +1,144 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { loadServerProjectScope } from "@/lib/permissions";
+import {
+  demoProjectOrganizations,
+  demoProjects,
+} from "@/modules/projects/services/demo-projects";
+import type {
+  Project,
+  ProjectOrganization,
+} from "@/modules/projects/types/project";
+import type { SupabaseDatabase } from "@/types/supabase";
+
+export type ProjectDataSource = "supabase" | "demo";
+
+export type ProjectDashboardData = {
+  projects: Project[];
+  projectOrganizations: ProjectOrganization[];
+  source: ProjectDataSource;
+  sourceDetail: string;
+};
+
+type ProjectSnapshot = {
+  projects: Project[];
+  projectOrganizations: ProjectOrganization[];
+};
+
+function mapProjectRow(
+  row: SupabaseDatabase["public"]["Tables"]["projects"]["Row"],
+): Project {
+  return {
+    id: row.id,
+    code: row.code,
+    slug: row.slug,
+    name: row.name,
+    description: row.description ?? "",
+    status: row.status,
+    ownerOrganizationId: row.owner_organization_id,
+    startsOn: row.starts_on ?? "",
+    endsOn: row.ends_on ?? undefined,
+  };
+}
+
+function buildDemoProjectDashboardData(sourceDetail: string): ProjectDashboardData {
+  return {
+    projects: demoProjects,
+    projectOrganizations: demoProjectOrganizations,
+    source: "demo",
+    sourceDetail,
+  };
+}
+
+function normalizeProjectSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
+  const availableProjectIds = new Set(snapshot.projects.map((project) => project.id));
+
+  return {
+    projects: snapshot.projects,
+    projectOrganizations: snapshot.projectOrganizations.filter((projectOrganization) =>
+      availableProjectIds.has(projectOrganization.projectId),
+    ),
+  };
+}
+
+export function resolveProjectDashboardData(
+  snapshot: ProjectSnapshot,
+): ProjectDashboardData {
+  const normalizedSnapshot = normalizeProjectSnapshot(snapshot);
+
+  if (
+    normalizedSnapshot.projects.length === 0 ||
+    normalizedSnapshot.projectOrganizations.length === 0
+  ) {
+    return buildDemoProjectDashboardData(
+      "Base vide ou non exploitable pour les chantiers, bascule sur les donnees de demonstration.",
+    );
+  }
+
+  return {
+    projects: normalizedSnapshot.projects,
+    projectOrganizations: normalizedSnapshot.projectOrganizations,
+    source: "supabase",
+    sourceDetail: `${normalizedSnapshot.projects.length} chantier(s) charge(s) depuis Supabase avec filtrage RLS.`,
+  };
+}
+
+export async function loadProjectDashboardData(
+  supabase: SupabaseClient<SupabaseDatabase> | null,
+  organizationIds: string[],
+): Promise<ProjectDashboardData> {
+  if (!supabase) {
+    return buildDemoProjectDashboardData(
+      "Configuration Supabase absente, utilisation du mode demonstration.",
+    );
+  }
+
+  const uniqueOrganizationIds = Array.from(new Set(organizationIds));
+
+  if (uniqueOrganizationIds.length === 0) {
+    return resolveProjectDashboardData({
+      projects: [],
+      projectOrganizations: [],
+    });
+  }
+
+  const projectScope = await loadServerProjectScope(supabase, uniqueOrganizationIds);
+
+  if (!projectScope) {
+    return buildDemoProjectDashboardData(
+      "Lecture des roles chantier indisponible, utilisation du mode demonstration.",
+    );
+  }
+
+  const projectOrganizations = projectScope.memberships.map((membership) => ({
+    projectId: membership.projectId,
+    organizationId: membership.organizationId,
+    role: membership.role,
+    isLead: membership.isLead,
+  }));
+  const projectIds = projectScope.accessibleProjectIds;
+
+  if (projectIds.length === 0) {
+    return resolveProjectDashboardData({
+      projects: [],
+      projectOrganizations,
+    });
+  }
+
+  const { data: projectsData, error: projectsError } = await supabase
+    .from("projects")
+    .select("*")
+    .in("id", projectIds)
+    .order("starts_on", { ascending: false, nullsFirst: false });
+
+  if (projectsError) {
+    return buildDemoProjectDashboardData(
+      "Lecture des chantiers indisponible, utilisation du mode demonstration.",
+    );
+  }
+
+  return resolveProjectDashboardData({
+    projects: (projectsData ?? []).map(mapProjectRow),
+    projectOrganizations,
+  });
+}

@@ -1,0 +1,86 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+  pull_request:
+
+jobs:
+  web-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Verifier le lint
+        run: npm run lint
+
+      - name: Verifier le typage
+        run: npm run typecheck
+
+      - name: Lancer les tests
+        run: npm run test
+
+      - name: Construire l application
+        run: npm run build
+
+      - name: Lancer le smoke local sur le build
+        run: |
+          npm run start --workspace web -- --hostname 127.0.0.1 --port 3000 > /tmp/adminbtp-web.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "${server_pid}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          # On attend que le build Next serve effectivement les routes critiques.
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+
+            if [ "${attempt}" -eq 30 ]; then
+              echo "Le serveur local n a pas demarre a temps." >&2
+              cat /tmp/adminbtp-web.log >&2
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          bash ./scripts/verify-smoke.sh http://127.0.0.1:3000
+
+  supabase-structure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Verifier la presence du dossier Supabase
+        run: test -f supabase/config.toml
+
+      - name: Verifier la presence des migrations
+        run: test "$(find supabase/migrations -maxdepth 1 -type f | wc -l)" -ge 1

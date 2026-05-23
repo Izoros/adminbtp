@@ -1,0 +1,30 @@
+{
+  "name": "adminbtp",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace web",
+    "build": "npm run build --workspace web",
+    "lint": "npm run lint --workspace web",
+    "typecheck": "npm run typecheck --workspace web",
+    "test": "npm run test --workspace web",
+    "test:watch": "npm run test:watch --workspace web",
+    "verify": "bash ./scripts/validate.sh",
+    "verify:prod": "bash ./scripts/verify-production.sh",
+    "audit:prod": "npm audit --omit=dev",
+    "supabase:check": "bash ./scripts/check-supabase-prereqs.sh",
+    "supabase:bootstrap": "bash ./scripts/bootstrap-supabase.sh",
+    "supabase:init": "npx supabase init",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:lint": "npx supabase db lint",
+    "supabase:types": "npx supabase gen types typescript --local --schema public > apps/web/src/types/supabase.ts"
+  },
+  "devDependencies": {
+    "supabase": "^2.101.0"
+  }
+}
