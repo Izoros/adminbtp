@@ -60,3 +60,9 @@ if (!canManageOrganization(organizationScope, organizationId)) {
 - `ai-data` et `client-space-data` peuvent remplacer leur resolution locale du scope organisation par `loadServerOrganizationScope`
 - les actions serveur qui recoivent `organizationId` ou `projectId` peuvent appliquer `assertOrganizationAccess` et `assertProjectAccess` avant les lectures/ecritures metier
 - les modules conservent leurs regles specifiques; ce noyau ne remplace pas les validations metier fines
+
+## Couverture de tests
+
+- le noyau partage est couvert par [server-scope.test.ts](/Users/symba/Documents/9_AdminBTP/apps/web/src/lib/permissions/server-scope.test.ts:1) et [server-guards.test.ts](/Users/symba/Documents/9_AdminBTP/apps/web/src/lib/permissions/server-guards.test.ts:1)
+- les refus de scope sur les actions sensibles sont verifies sur [document-actions.test.ts](/Users/symba/Documents/9_AdminBTP/apps/web/src/modules/documents/tests/document-actions.test.ts:1) et [signature-actions.test.ts](/Users/symba/Documents/9_AdminBTP/apps/web/src/modules/signatures/tests/signature-actions.test.ts:1)
+- chaque erreur utilisateur remontee par ces garde-fous reste explicite, sans laisser passer d'ecriture partielle ni de revalidation de cache
