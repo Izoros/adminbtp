@@ -14,6 +14,24 @@ export type AuditActionType =
   | "signature_requested"
   | "whatsapp_prepared";
 
+export type SignatureWhatsappPayload = {
+  channel: "whatsapp";
+  destination: string;
+  destinationStatus: "pending_configuration" | "disabled";
+  template: "signature_validation_v1";
+  requestId: string;
+  organizationId: string;
+  documentId: string;
+  documentTitle?: string;
+  documentStatus?: string;
+  signatureProfileLabel?: string;
+  signerName?: string;
+  signerRole?: string;
+  preparedAt: string;
+  message: string;
+  body: string;
+};
+
 export type SignatureProfile = {
   id: string;
   organizationId: string;
@@ -35,6 +53,7 @@ export type SignatureRequest = {
   approverId?: string;
   status: SignatureRequestStatus;
   validationNotes?: string;
+  whatsappPayload?: SignatureWhatsappPayload | null;
 };
 
 export type AuditLogEntry = {

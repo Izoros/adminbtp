@@ -6,11 +6,15 @@ import {
 type ConsultingDashboardProps = {
   data: ConsultingDashboardData;
   createExpertRequestAction: (formData: FormData) => Promise<void>;
+  createConsultingMissionAction: (formData: FormData) => Promise<void>;
+  registerConsultingHourAction: (formData: FormData) => Promise<void>;
 };
 
 export function ConsultingDashboard({
   data,
   createExpertRequestAction,
+  createConsultingMissionAction,
+  registerConsultingHourAction,
 }: ConsultingDashboardProps) {
   const expert = data.request
     ? data.expertProfiles.find(
@@ -144,6 +148,67 @@ export function ConsultingDashboard({
               <p>Heures consommees : {data.mission?.consumedHours ?? 0}</p>
             </div>
 
+            {!data.mission && data.request ? (
+              <form action={createConsultingMissionAction} className="mt-4 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Titre mission</span>
+                    <input
+                      name="title"
+                      defaultValue={data.request.title}
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Heures vendues</span>
+                    <input
+                      name="soldHours"
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      defaultValue="4"
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    />
+                  </label>
+                </div>
+                <label className="space-y-2 text-sm text-stone-700">
+                  <span>Expert pilote</span>
+                  <select
+                    name="leadExpertId"
+                    defaultValue={data.request.assignedExpertId || ""}
+                    className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                    disabled={!canWrite}
+                  >
+                    <option value="">A affecter plus tard</option>
+                    {data.expertProfiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-2 text-sm text-stone-700">
+                  <span>Description</span>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    defaultValue="Mission issue d'une demande d'expertise AdminBTP."
+                    className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                    disabled={!canWrite}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!canWrite}
+                  className="rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+                >
+                  Transformer en mission
+                </button>
+              </form>
+            ) : null}
+
             <div className="mt-4 space-y-3">
               {data.missionHours.map((hour) => (
                 <div
@@ -157,6 +222,91 @@ export function ConsultingDashboard({
                 </div>
               ))}
             </div>
+
+            {data.mission ? (
+              <form action={registerConsultingHourAction} className="mt-4 space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Date</span>
+                    <input
+                      name="workDate"
+                      type="date"
+                      defaultValue={new Date().toISOString().slice(0, 10)}
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Temps passe (h)</span>
+                    <input
+                      name="hoursSpent"
+                      type="number"
+                      min="0.25"
+                      step="0.25"
+                      defaultValue="1"
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Temps facturable (h)</span>
+                    <input
+                      name="billableHours"
+                      type="number"
+                      min="0"
+                      step="0.25"
+                      defaultValue="1"
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    />
+                  </label>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Expert</span>
+                    <select
+                      name="expertProfileId"
+                      defaultValue={expert?.id ?? data.expertProfiles[0]?.id ?? ""}
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    >
+                      <option value="">Aucun expert rattache</option>
+                      {data.expertProfiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm text-stone-700">
+                    <span>Activite</span>
+                    <input
+                      name="activityType"
+                      placeholder="analyse_documentaire"
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                      disabled={!canWrite}
+                    />
+                  </label>
+                </div>
+                <label className="space-y-2 text-sm text-stone-700">
+                  <span>Notes</span>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    placeholder="Preciser le travail realise, les points bloquants et la suite proposee."
+                    className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                    disabled={!canWrite}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!canWrite}
+                  className="rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+                >
+                  Enregistrer une heure
+                </button>
+              </form>
+            ) : null}
           </div>
 
           <div className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">

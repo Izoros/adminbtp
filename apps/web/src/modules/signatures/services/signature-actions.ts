@@ -12,10 +12,22 @@ import {
   buildSignatureTransitionLabel,
   mapStatusToAuditAction,
 } from "@/modules/signatures/services/signature-action-helpers";
+import {
+  mapSignatureProfileRow,
+  mapSignatureRequestRow,
+} from "@/modules/signatures/services/signature-data";
 import { canTransitionSignatureRequest } from "@/modules/signatures/services/signature-flow";
-import type { SignatureRequestStatus } from "@/modules/signatures/types/signature";
+import { prepareWhatsappValidationMessage } from "@/modules/signatures/services/signature-flow";
+import type {
+  SignatureRequestStatus,
+  SignatureWhatsappPayload,
+} from "@/modules/signatures/types/signature";
+import type { Tables } from "@/types/supabase";
 
 const fallbackActorId = "user_adminbtp_system";
+type SignatureRequestRow = Tables<"signature_requests">;
+type SignatureProfileRow = Tables<"signature_profiles">;
+type DocumentRow = Tables<"documents">;
 
 export type SignatureMutationState = {
   status: "idle" | "success" | "error";
@@ -224,11 +236,44 @@ export async function transitionSignatureRequestAction(
     throw error;
   }
 
+  const requestContext = await resolveSignatureRequestContext(
+    supabase,
+    requestId,
+    organizationId,
+  );
+
+  if (!requestContext.requestRow) {
+    return {
+      status: "error",
+      mode: "supabase",
+      message: "La demande de signature cible est introuvable dans Supabase.",
+    };
+  }
+
+  const whatsappPayload =
+    nextStatus === "pending_signature" ?
+      buildSignatureWhatsappPayload(
+        requestContext.requestRow,
+        requestContext.profileRow,
+        requestContext.documentRow,
+      )
+    : null;
+
+  if (nextStatus === "pending_signature" && !whatsappPayload) {
+    return {
+      status: "error",
+      mode: "supabase",
+      message:
+        "La preparation WhatsApp exige un document et un profil de signature complets dans Supabase.",
+    };
+  }
+
   const { error: updateError } = await supabase
     .from("signature_requests")
     .update({
       status: nextStatus,
       updated_at: new Date().toISOString(),
+      ...(whatsappPayload ? { whatsapp_payload: whatsappPayload } : {}),
     })
     .eq("id", requestId)
     .eq("organization_id", organizationId);
@@ -250,6 +295,13 @@ export async function transitionSignatureRequestAction(
     actor_user_id: actorUserId,
     details: {
       label: buildSignatureTransitionLabel(nextStatus),
+      ...(whatsappPayload ?
+        {
+          whatsapp_payload_ready: true,
+          whatsapp_destination_status: whatsappPayload.destinationStatus,
+          whatsapp_message: whatsappPayload.message,
+        }
+      : {}),
     },
   });
 
@@ -269,6 +321,101 @@ export async function transitionSignatureRequestAction(
     mode: "supabase",
     message: `Demande de signature mise a jour vers ${nextStatus}.`,
   };
+}
+
+async function resolveSignatureRequestContext(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  requestId: string,
+  organizationId: string,
+): Promise<{
+  requestRow: SignatureRequestRow | null;
+  profileRow: SignatureProfileRow | null;
+  documentRow: DocumentRow | null;
+}> {
+  const { data: requestRow, error: requestError } = await supabase
+    .from("signature_requests")
+    .select("*")
+    .eq("id", requestId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (requestError || !requestRow) {
+    return {
+      requestRow: null,
+      profileRow: null,
+      documentRow: null,
+    };
+  }
+
+  const [profileRow, documentRow] = await Promise.all([
+    resolveSignatureProfileRow(supabase, requestRow.signature_profile_id, organizationId),
+    resolveDocumentRow(supabase, requestRow.document_id, organizationId),
+  ]);
+
+  return {
+    requestRow,
+    profileRow,
+    documentRow,
+  };
+}
+
+async function resolveSignatureProfileRow(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  signatureProfileId: string | null,
+  organizationId: string,
+): Promise<SignatureProfileRow | null> {
+  if (!signatureProfileId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("signature_profiles")
+    .select("*")
+    .eq("id", signatureProfileId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+async function resolveDocumentRow(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  documentId: string,
+  organizationId: string,
+): Promise<DocumentRow | null> {
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("id", documentId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+function buildSignatureWhatsappPayload(
+  requestRow: SignatureRequestRow,
+  profileRow: SignatureProfileRow | null,
+  documentRow: DocumentRow | null,
+): SignatureWhatsappPayload | null {
+  if (!profileRow || !documentRow) {
+    return null;
+  }
+
+  const request = mapSignatureRequestRow(requestRow, documentRow);
+  const profile = mapSignatureProfileRow(profileRow);
+
+  return prepareWhatsappValidationMessage(request, {
+    profile,
+  });
 }
 
 function readRequiredField(formData: FormData, key: string): string | null {

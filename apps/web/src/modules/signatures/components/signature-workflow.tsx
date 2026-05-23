@@ -34,7 +34,11 @@ export function SignatureWorkflow({
   transitionAction = transitionSignatureRequestAction,
 }: SignatureWorkflowProps) {
   const { auditEntries, profile, request, source, sourceMessage } = workflowData;
-  const whatsappDraft = prepareWhatsappValidationMessage(request);
+  const whatsappDraft =
+    request.whatsappPayload ??
+    prepareWhatsappValidationMessage(request, {
+      profile,
+    });
   const [createState, createFormAction, isCreatePending] = useActionState(
     createAction,
     initialSignatureMutationState,
@@ -180,6 +184,11 @@ export function SignatureWorkflow({
             <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
               Preparation WhatsApp
             </p>
+            <div className="mt-4 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
+              <p>Destination : {whatsappDraft.destination}</p>
+              <p>Etat : {whatsappDraft.destinationStatus}</p>
+              <p>Prepare le : {whatsappDraft.preparedAt}</p>
+            </div>
             <pre className="mt-4 whitespace-pre-wrap rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
 {JSON.stringify(whatsappDraft, null, 2)}
             </pre>

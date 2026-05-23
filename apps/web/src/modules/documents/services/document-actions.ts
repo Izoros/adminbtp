@@ -240,6 +240,129 @@ export async function updateDocumentStatusAction(
   };
 }
 
+export async function regenerateDocumentAction(
+  _previousState: DocumentMutationState,
+  formData: FormData,
+): Promise<DocumentMutationState> {
+  const documentId = readRequiredField(formData, "documentId");
+  const templateId = readRequiredField(formData, "templateId");
+  const organizationId = readRequiredField(formData, "organizationId");
+  const projectId = readOptionalField(formData, "projectId");
+  const variables = buildDocumentVariablesFromFormData(formData);
+
+  if (!documentId || !templateId || !organizationId) {
+    return {
+      status: "error",
+      mode: "demo",
+      message: "Impossible de regenerer le document sans identifiants complets.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return {
+      status: "success",
+      mode: "demo",
+      message: "Supabase indisponible. La regeneration reste simulee en mode demonstration.",
+    };
+  }
+
+  const organizationScope = await loadServerOrganizationScope(supabase);
+
+  if (!organizationScope) {
+    return {
+      status: "error",
+      mode: "supabase",
+      message: "Le scope organisation de la session est introuvable. Reconnectez-vous avant de regenerer le document.",
+    };
+  }
+
+  try {
+    assertOrganizationAccess(organizationScope, organizationId);
+
+    if (projectId) {
+      const projectScope = await loadServerProjectScope(
+        supabase,
+        organizationScope.accessibleOrganizationIds,
+      );
+
+      if (!projectScope) {
+        return {
+          status: "error",
+          mode: "supabase",
+          message: "Le scope projet de la session est introuvable. Reessayez apres rechargement.",
+        };
+      }
+
+      assertProjectAccess(projectScope, {
+        projectId,
+        organizationId,
+      });
+    }
+  } catch (error) {
+    if (error instanceof ScopeGuardError) {
+      return {
+        status: "error",
+        mode: "supabase",
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
+
+  const { data: templateRow, error: templateError } = await supabase
+    .from("document_templates")
+    .select("*")
+    .eq("id", templateId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (templateError || !templateRow) {
+    return {
+      status: "error",
+      mode: "supabase",
+      message: "Le template cible est introuvable dans Supabase. Le document n'a pas ete regenere.",
+    };
+  }
+
+  const template = mapTemplateRowToDocumentTemplate(templateRow);
+  const regeneratedDocument = renderTemplate(template, variables);
+
+  const { error: updateError } = await supabase
+    .from("documents")
+    .update({
+      title: regeneratedDocument.title,
+      subject: regeneratedDocument.subject,
+      body_rendered: regeneratedDocument.bodyRendered,
+      metadata: {
+        variables,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", documentId)
+    .eq("organization_id", organizationId);
+
+  if (updateError) {
+    return {
+      status: "error",
+      mode: "supabase",
+      message: "Supabase a refuse la regeneration du document. Verifiez les droits et l'existence du document cible.",
+    };
+  }
+
+  revalidatePath("/documents");
+  revalidatePath("/signatures");
+  revalidatePath("/client-space");
+
+  return {
+    status: "success",
+    mode: "supabase",
+    message: "Document regenere dans Supabase et apercu revalide.",
+  };
+}
+
 function mapTemplateRowToDocumentTemplate(row: DocumentTemplateRow): DocumentTemplate {
   return {
     id: row.id,

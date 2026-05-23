@@ -6,6 +6,7 @@ import {
 import {
   createDocumentAction,
   initialDocumentMutationState,
+  regenerateDocumentAction,
 } from "@/modules/documents/services/document-actions";
 import { ScopeGuardError } from "@/lib/permissions";
 
@@ -40,6 +41,12 @@ vi.mock("next/cache", () => ({
 describe("actions documentaires", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createClientMock.mockReset();
+    loadServerOrganizationScopeMock.mockReset();
+    loadServerProjectScopeMock.mockReset();
+    assertOrganizationAccessMock.mockReset();
+    assertProjectAccessMock.mockReset();
+    revalidatePathMock.mockReset();
   });
 
   it("construit les variables de rendu a partir du formulaire", () => {
@@ -99,6 +106,126 @@ describe("actions documentaires", () => {
       message: "Le scope serveur courant ne couvre pas cette organisation.",
     });
     expect(assertProjectAccessMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+
+  it("regenere un document existant dans Supabase", async () => {
+    const templateMaybeSingleMock = vi.fn().mockResolvedValue({
+      data: {
+        id: "template_001",
+        organization_id: "org_001",
+        code: "cr",
+        name: "Compte rendu chantier",
+        subject: "CR - {{project_name}}",
+        body_template: "Bonjour {{recipient_name}}",
+        letterhead_name: "Entete test",
+        logo_url: null,
+        stamp_label: null,
+        signature_label: null,
+        created_at: "2026-05-23T10:00:00.000Z",
+        created_by: "user_001",
+        updated_at: "2026-05-23T10:00:00.000Z",
+      },
+      error: null,
+    });
+    const documentsEqMock = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const documentsUpdateMock = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        eq: documentsEqMock,
+      })),
+    }));
+
+    createClientMock.mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === "document_templates") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: templateMaybeSingleMock,
+                })),
+              })),
+            })),
+          };
+        }
+
+        if (table === "documents") {
+          return {
+            update: documentsUpdateMock,
+          };
+        }
+
+        throw new Error(`Table inattendue: ${table}`);
+      }),
+    });
+    loadServerOrganizationScopeMock.mockResolvedValue({
+      accessibleOrganizationIds: ["org_001"],
+    });
+
+    const formData = new FormData();
+    formData.set("documentId", "document_001");
+    formData.set("templateId", "template_001");
+    formData.set("organizationId", "org_001");
+    formData.set("recipientName", "MOE Kaweni");
+    formData.set("projectName", "College de Kaweni");
+
+    const result = await regenerateDocumentAction(initialDocumentMutationState, formData);
+
+    expect(result).toEqual({
+      status: "success",
+      mode: "supabase",
+      message: "Document regenere dans Supabase et apercu revalide.",
+    });
+    expect(documentsUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringContaining("College de Kaweni"),
+        subject: expect.stringContaining("College de Kaweni"),
+        body_rendered: expect.stringContaining("MOE Kaweni"),
+        metadata: {
+          variables: expect.objectContaining({
+            recipient_name: "MOE Kaweni",
+            project_name: "College de Kaweni",
+          }),
+        },
+      }),
+    );
+    expect(revalidatePathMock).toHaveBeenCalledWith("/documents");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/signatures");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/client-space");
+  });
+
+  it("refuse la regeneration si le projet sort du scope serveur", async () => {
+    const formData = new FormData();
+    formData.set("documentId", "document_001");
+    formData.set("templateId", "template_001");
+    formData.set("organizationId", "org_001");
+    formData.set("projectId", "project_hors_scope");
+
+    createClientMock.mockResolvedValue({
+      from: vi.fn(),
+    });
+    loadServerOrganizationScopeMock.mockResolvedValue({
+      accessibleOrganizationIds: ["org_001"],
+    });
+    loadServerProjectScopeMock.mockResolvedValue({
+      manageableProjectIds: ["project_autorise"],
+    });
+    assertProjectAccessMock.mockImplementation(() => {
+      throw new ScopeGuardError(
+        "project_access_denied",
+        "Le scope projet courant ne couvre pas ce chantier.",
+      );
+    });
+
+    const result = await regenerateDocumentAction(initialDocumentMutationState, formData);
+
+    expect(result).toEqual({
+      status: "error",
+      mode: "supabase",
+      message: "Le scope projet courant ne couvre pas ce chantier.",
+    });
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 });

@@ -1,8 +1,10 @@
 import type {
   AuditActionType,
   AuditLogEntry,
+  SignatureProfile,
   SignatureRequest,
   SignatureRequestStatus,
+  SignatureWhatsappPayload,
 } from "@/modules/signatures/types/signature";
 
 const allowedTransitions: Record<SignatureRequestStatus, SignatureRequestStatus[]> = {
@@ -37,10 +39,42 @@ export function buildAuditLogEntry(
   };
 }
 
-export function prepareWhatsappValidationMessage(request: SignatureRequest) {
+type PrepareWhatsappValidationMessageOptions = {
+  profile?: Pick<
+    SignatureProfile,
+    "label" | "signerName" | "signerRole" | "whatsappEnabled"
+  > | null;
+  preparedAt?: string;
+};
+
+export function prepareWhatsappValidationMessage(
+  request: SignatureRequest,
+  options?: PrepareWhatsappValidationMessageOptions,
+): SignatureWhatsappPayload {
+  const preparedAt = options?.preparedAt ?? new Date().toISOString();
+  const profile = options?.profile;
+  const documentLabel = request.documentTitle ?? request.documentId;
+  const message = `Validation requise pour ${documentLabel}. Statut courant : ${request.status}.`;
+  const signatureContext =
+    profile ?
+      ` Signature cible : ${profile.signerName} (${profile.signerRole}).`
+    : "";
+
   return {
     channel: "whatsapp",
     destination: "a-renseigner",
-    body: `Validation requise pour la demande ${request.id}. Statut courant : ${request.status}.`,
+    destinationStatus: profile?.whatsappEnabled === false ? "disabled" : "pending_configuration",
+    template: "signature_validation_v1",
+    requestId: request.id,
+    organizationId: request.organizationId,
+    documentId: request.documentId,
+    documentTitle: request.documentTitle,
+    documentStatus: request.documentStatus,
+    signatureProfileLabel: profile?.label,
+    signerName: profile?.signerName,
+    signerRole: profile?.signerRole,
+    preparedAt,
+    message,
+    body: `${message}${signatureContext} Merci de confirmer la validation.`,
   };
 }

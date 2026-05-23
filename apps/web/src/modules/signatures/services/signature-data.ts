@@ -10,6 +10,7 @@ import type {
   AuditLogEntry,
   SignatureProfile,
   SignatureRequest,
+  SignatureWhatsappPayload,
 } from "@/modules/signatures/types/signature";
 import type { Json, SupabaseDatabase, Tables } from "@/types/supabase";
 
@@ -53,6 +54,7 @@ export function mapSignatureRequestRow(
     approverId: row.approver_id ?? undefined,
     status: row.status,
     validationNotes: normalizeOptionalText(row.validation_notes),
+    whatsappPayload: normalizeWhatsappPayload(row.whatsapp_payload, row, documentRow),
   };
 }
 
@@ -76,6 +78,16 @@ export function mapAuditLogRow(row: AuditLogRow): AuditLogEntry {
 }
 
 export function extractWhatsappSummary(payload: Json): string | null {
+  const normalizedPayload = normalizeWhatsappPayload(payload);
+
+  if (normalizedPayload?.message) {
+    return normalizedPayload.message;
+  }
+
+  if (normalizedPayload?.body) {
+    return normalizedPayload.body;
+  }
+
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return null;
   }
@@ -92,6 +104,80 @@ export function extractWhatsappSummary(payload: Json): string | null {
   }
 
   return null;
+}
+
+export function normalizeWhatsappPayload(
+  payload: Json,
+  requestRow?: SignatureRequestRow,
+  documentRow?: DocumentRow | null,
+): SignatureWhatsappPayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const record = payload as Record<string, Json>;
+  const channel = typeof record.channel === "string" ? record.channel.trim() : "";
+  const destination = typeof record.destination === "string" ? record.destination.trim() : "";
+  const message = typeof record.message === "string" ? record.message.trim() : "";
+  const body = typeof record.body === "string" ? record.body.trim() : "";
+  const preparedAt =
+    typeof record.preparedAt === "string" && record.preparedAt.trim().length > 0 ?
+      record.preparedAt.trim()
+    : requestRow?.updated_at ?? null;
+
+  if (channel !== "whatsapp" || !destination || !message || !body || !preparedAt) {
+    return null;
+  }
+
+  const destinationStatus =
+    record.destinationStatus === "disabled" ? "disabled" : "pending_configuration";
+  const template =
+    record.template === "signature_validation_v1" ?
+      "signature_validation_v1"
+    : "signature_validation_v1";
+
+  return {
+    channel: "whatsapp",
+    destination,
+    destinationStatus,
+    template,
+    requestId:
+      typeof record.requestId === "string" && record.requestId.trim().length > 0 ?
+        record.requestId.trim()
+      : requestRow?.id ?? "",
+    organizationId:
+      typeof record.organizationId === "string" && record.organizationId.trim().length > 0 ?
+        record.organizationId.trim()
+      : requestRow?.organization_id ?? "",
+    documentId:
+      typeof record.documentId === "string" && record.documentId.trim().length > 0 ?
+        record.documentId.trim()
+      : requestRow?.document_id ?? "",
+    documentTitle:
+      typeof record.documentTitle === "string" && record.documentTitle.trim().length > 0 ?
+        record.documentTitle.trim()
+      : documentRow?.title?.trim() || undefined,
+    documentStatus:
+      typeof record.documentStatus === "string" && record.documentStatus.trim().length > 0 ?
+        record.documentStatus.trim()
+      : documentRow?.status ?? undefined,
+    signatureProfileLabel:
+      typeof record.signatureProfileLabel === "string" &&
+      record.signatureProfileLabel.trim().length > 0 ?
+        record.signatureProfileLabel.trim()
+      : undefined,
+    signerName:
+      typeof record.signerName === "string" && record.signerName.trim().length > 0 ?
+        record.signerName.trim()
+      : undefined,
+    signerRole:
+      typeof record.signerRole === "string" && record.signerRole.trim().length > 0 ?
+        record.signerRole.trim()
+      : undefined,
+    preparedAt,
+    message,
+    body,
+  };
 }
 
 export function buildSignatureWorkflowDataFromRows(

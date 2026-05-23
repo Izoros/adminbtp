@@ -17,7 +17,9 @@
 
 La page `/consulting` expose une demande d'expertise reliee a un chantier,
 sa mission de conseil associee, le suivi des heures et l'avis technique
-produit par l'expert assigne.
+produit par l'expert assigne. La transformation d'une demande en mission
+et la saisie d'heures de conseil sont maintenant persistees dans Supabase
+avec controle de scope organisation serveur.
 
 ## Points de securite
 

@@ -5,6 +5,7 @@ import {
   mapAuditLogRow,
   mapSignatureProfileRow,
   mapSignatureRequestRow,
+  normalizeWhatsappPayload,
 } from "@/modules/signatures/services/signature-data";
 import type { Tables } from "@/types/supabase";
 
@@ -48,6 +49,7 @@ describe("alimentation signatures", () => {
       id: "signature_request_supabase_001",
       approverId: "user_002",
       status: "pending_signature",
+      whatsappPayload: null,
     });
   });
 
@@ -108,6 +110,35 @@ describe("alimentation signatures", () => {
         message: "Merci de valider le document avant 18h.",
       }),
     ).toBe("Merci de valider le document avant 18h.");
+  });
+
+  it("normalise un payload WhatsApp persiste en objet metier fiable", () => {
+    const normalized = normalizeWhatsappPayload(
+      {
+        channel: "whatsapp",
+        destination: "+262639000000",
+        destinationStatus: "pending_configuration",
+        template: "signature_validation_v1",
+        requestId: "signature_request_supabase_009",
+        organizationId: "org_001",
+        documentId: "document_009",
+        documentTitle: "Ordre de service",
+        documentStatus: "validated",
+        signatureProfileLabel: "Visa chantier",
+        signerName: "Alice Martin",
+        signerRole: "Architecte HMONP",
+        preparedAt: "2026-05-23T10:00:00.000Z",
+        message: "Validation requise pour Ordre de service.",
+        body: "Validation requise pour Ordre de service. Merci de confirmer la validation.",
+      },
+    );
+
+    expect(normalized).toMatchObject({
+      destination: "+262639000000",
+      signatureProfileLabel: "Visa chantier",
+      signerName: "Alice Martin",
+      preparedAt: "2026-05-23T10:00:00.000Z",
+    });
   });
 
   it("construit l'etat Supabase complet si le profil et la demande existent", () => {
@@ -207,6 +238,38 @@ describe("alimentation signatures", () => {
     expect(workflowData?.request.validationNotes).toBe(
       "Validation a lancer avant envoi client.",
     );
+  });
+
+  it("remonte le payload WhatsApp persiste dans la demande UI", () => {
+    const row: Tables<"signature_requests"> = {
+      id: "signature_request_supabase_010",
+      document_id: "document_010",
+      organization_id: "org_001",
+      requested_by: "user_001",
+      approver_id: null,
+      signature_profile_id: "signature_profile_supabase_010",
+      status: "pending_signature",
+      validation_notes: "Pret pour envoi WhatsApp",
+      whatsapp_payload: {
+        channel: "whatsapp",
+        destination: "+262639000001",
+        destinationStatus: "pending_configuration",
+        template: "signature_validation_v1",
+        requestId: "signature_request_supabase_010",
+        organizationId: "org_001",
+        documentId: "document_010",
+        preparedAt: "2026-05-23T11:15:00.000Z",
+        message: "Validation requise pour DGD chantier.",
+        body: "Validation requise pour DGD chantier. Merci de confirmer la validation.",
+      },
+      created_at: "2026-05-22T00:00:00.000Z",
+      updated_at: "2026-05-23T11:15:00.000Z",
+    };
+
+    expect(mapSignatureRequestRow(row).whatsappPayload).toMatchObject({
+      destination: "+262639000001",
+      preparedAt: "2026-05-23T11:15:00.000Z",
+    });
   });
 
   it("retombe sur la demo avec un message explicite", () => {

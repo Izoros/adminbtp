@@ -39,6 +39,8 @@ describe("circuit de validation signature", () => {
     const payload = prepareWhatsappValidationMessage(demoSignatureRequests[0]!);
 
     expect(payload.channel).toBe("whatsapp");
-    expect(payload.body).toContain("signature_request_001");
+    expect(payload.requestId).toBe("signature_request_001");
+    expect(payload.template).toBe("signature_validation_v1");
+    expect(payload.body).toContain("Merci de confirmer la validation.");
   });
 });

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   createDocumentAction,
   initialDocumentMutationState,
+  regenerateDocumentAction,
   updateDocumentStatusAction,
   type DocumentMutationState,
 } from "@/modules/documents/services/document-actions";
@@ -25,12 +26,17 @@ type DocumentPreviewProps = {
     state: DocumentMutationState,
     formData: FormData,
   ) => Promise<DocumentMutationState>;
+  regenerateAction?: (
+    state: DocumentMutationState,
+    formData: FormData,
+  ) => Promise<DocumentMutationState>;
 };
 
 export function DocumentPreview({
   previewData,
   createAction = createDocumentAction,
   updateStatusAction = updateDocumentStatusAction,
+  regenerateAction = regenerateDocumentAction,
 }: DocumentPreviewProps) {
   const { template, document, source, sourceMessage, variableSource, variables } = previewData;
   const [message, setMessage] = useState<string | null>(null);
@@ -40,6 +46,10 @@ export function DocumentPreview({
   );
   const [statusState, statusFormAction, isStatusPending] = useActionState(
     updateStatusAction,
+    initialDocumentMutationState,
+  );
+  const [regenerateState, regenerateFormAction, isRegeneratePending] = useActionState(
+    regenerateAction,
     initialDocumentMutationState,
   );
 
@@ -219,6 +229,42 @@ export function DocumentPreview({
                 }`}
               >
                 {createState.message}
+              </p>
+            ) : null}
+          </form>
+
+          <form action={regenerateFormAction} className="mt-6 space-y-4 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
+            <input type="hidden" name="documentId" value={document.id} />
+            <input type="hidden" name="templateId" value={template.id} />
+            <input type="hidden" name="organizationId" value={document.organizationId ?? template.organizationId} />
+            <input type="hidden" name="projectId" value={document.projectId ?? ""} />
+            <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+              Regenerer le document courant
+            </p>
+            <p className="text-sm leading-6 text-stone-600">
+              Ce formulaire met a jour le titre, l&apos;objet, le corps et les variables stockees du document affiche.
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input name="recipientName" defaultValue={variables.recipient_name} placeholder="Destinataire" />
+              <Input name="projectName" defaultValue={variables.project_name} placeholder="Nom du projet" />
+              <Input name="meetingDate" defaultValue={variables.meeting_date} placeholder="Date de reunion" />
+              <Input name="nextDeadline" defaultValue={variables.next_deadline} placeholder="Prochaine echeance" />
+            </div>
+            <Input name="progressSummary" defaultValue={variables.progress_summary} placeholder="Resume d'avancement" />
+            <Input name="attentionPoint" defaultValue={variables.attention_point} placeholder="Point d'attention" />
+            <Input name="senderName" defaultValue={variables.sender_name} placeholder="Nom expediteur" />
+            <Button type="submit" variant="outline" className="h-11 rounded-full px-5 text-sm" disabled={isRegeneratePending}>
+              Regenerer dans Supabase
+            </Button>
+            {regenerateState.status !== "idle" ? (
+              <p
+                className={`rounded-2xl px-4 py-3 text-sm ${
+                  regenerateState.status === "success" ?
+                    "bg-emerald-50 text-emerald-800"
+                  : "bg-rose-50 text-rose-800"
+                }`}
+              >
+                {regenerateState.message}
               </p>
             ) : null}
           </form>

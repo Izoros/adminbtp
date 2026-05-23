@@ -9,6 +9,7 @@
 - moteur de rendu de template avec variables dynamiques
 - entete, logo, tampon et signature simple
 - generation PDF simple via `pdf-lib`
+- regeneration serveur d'un document existant depuis ses variables
 - page `/documents`
 - tests de remplacement de variables et de generation PDF
 
@@ -21,7 +22,9 @@
 
 La page `/documents` permet d'afficher un template de compte rendu chantier,
 de le rendre avec des variables de demonstration et d'ouvrir un PDF simple dans
-un nouvel onglet.
+un nouvel onglet. Elle permet aussi de regenerer un document Supabase existant
+sans recreer une nouvelle ligne, pour mettre a jour son titre, son objet, son
+corps rendu et ses variables stockees.
 
 ## Points de securite
 
@@ -37,3 +40,4 @@ un nouvel onglet.
 - `test` : OK
 - `build` : OK
 - validation locale du rendu de template et du PDF simple : OK
+- validation locale de regeneration serveur d'un document : OK

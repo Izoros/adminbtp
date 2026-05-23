@@ -7,7 +7,7 @@
 - schema SQL `audit_logs`
 - types TypeScript du module `signatures`
 - circuit local de validation interne
-- preparation d'un message de validation WhatsApp
+- preparation et persistance d'un payload de validation WhatsApp exploitable
 - journal d'audit local
 - page `/signatures`
 - tests de transitions et de tracabilite
@@ -20,7 +20,10 @@
 ## Validation locale
 
 La page `/signatures` expose une demande de validation, les transitions
-autorisées, le journal d'audit et une charge utile WhatsApp preparatoire.
+autorisees, le journal d'audit et une charge utile WhatsApp preparatoire.
+Quand une demande passe en `pending_signature`, le payload WhatsApp est
+maintenant prepare puis persiste dans `signature_requests.whatsapp_payload`
+pour pouvoir etre relu, audite et reutilise par les integrations aval.
 
 ## Points de securite
 
