@@ -47,7 +47,9 @@ function createOdooMapping(
 
 function createReader(overrides: Partial<OdooSupabaseReader> = {}): OdooSupabaseReader {
   return {
+    accessibleOrganizationIds: ["org_adminbtp_001"],
     listMappings: async () => [createOdooMapping()],
+    preferredOrganizationId: "org_adminbtp_001",
     ...overrides,
   };
 }
@@ -154,7 +156,7 @@ describe("mapping Odoo", () => {
     expect(data.invoiceMappings).toHaveLength(1);
   });
 
-  it("revient en demo si Supabase ne renvoie aucun mapping exploitable", async () => {
+  it("reste sur un etat vide Supabase si aucun mapping n'est encore disponible", async () => {
     const data = await getOdooMappingBoardData(
       {
         organizationId: "org_inconnue",
@@ -164,7 +166,27 @@ describe("mapping Odoo", () => {
       }),
     );
 
-    expect(data.dataOrigin).toBe("demo");
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.organizationId).toBe("org_inconnue");
     expect(data.fallbackReason).toContain("Aucun mapping Odoo");
+  });
+
+  it("reste en source Supabase vide si le scope est resolu mais qu'aucun mapping n'existe encore", async () => {
+    const data = await getOdooMappingBoardData(
+      {
+        organizationId: "org_adminbtp_001",
+      },
+      createReader({
+        accessibleOrganizationIds: ["org_adminbtp_001"],
+        listMappings: async () => [],
+        preferredOrganizationId: "org_adminbtp_001",
+      }),
+    );
+
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.organizationId).toBe("org_adminbtp_001");
+    expect(data.customerMapping).toBeUndefined();
+    expect(data.invoiceMappings).toHaveLength(0);
+    expect(data.fallbackReason).toContain("Aucun mapping Odoo n'a encore ete trouve");
   });
 });

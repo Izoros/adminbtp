@@ -17,6 +17,8 @@ type OdooMappingRow = Tables<"odoo_mappings">;
 
 export type OdooSupabaseReader = {
   listMappings: (query?: OdooMappingQuery) => Promise<OdooMappingRow[]>;
+  accessibleOrganizationIds: string[];
+  preferredOrganizationId: string | null;
 };
 
 function mapOdooMappingRow(row: OdooMappingRow): OdooMapping {
@@ -61,6 +63,21 @@ function buildOdooMappingBoardData(
   };
 }
 
+function buildEmptyOdooMappingBoardData(
+  organizationId: string,
+  fallbackReason?: string,
+): OdooMappingBoardData {
+  return {
+    organizationId,
+    customerMapping: undefined,
+    invoiceMappings: [],
+    subscriptionMappings: [],
+    consultingMappings: [],
+    dataOrigin: "supabase",
+    fallbackReason,
+  };
+}
+
 export async function createOdooSupabaseReader(): Promise<OdooSupabaseReader | null> {
   const supabase = await createClient();
 
@@ -77,6 +94,8 @@ export async function createOdooSupabaseReader(): Promise<OdooSupabaseReader | n
   const accessibleOrganizationIds = organizationScope.accessibleOrganizationIds;
 
   return {
+    accessibleOrganizationIds,
+    preferredOrganizationId: organizationScope.preferredOrganizationId,
     async listMappings(query) {
       let request = supabase
         .from("odoo_mappings")
@@ -119,9 +138,19 @@ export async function getOdooMappingBoardData(
     const boardData = buildOdooMappingBoardData(mappings, query?.organizationId);
 
     if (!boardData) {
+      const targetOrganizationId =
+        query?.organizationId ?? resolvedReader.preferredOrganizationId ?? resolvedReader.accessibleOrganizationIds[0];
+
+      if (targetOrganizationId) {
+        return buildEmptyOdooMappingBoardData(
+          targetOrganizationId,
+          "Aucun mapping Odoo n'a encore ete trouve en base pour ce perimetre.",
+        );
+      }
+
       return {
         ...getDemoOdooMappingBoardData(),
-        fallbackReason: "Aucun mapping Odoo n'a ete trouve en base pour ce perimetre.",
+        fallbackReason: "Aucune organisation accessible n'a pu etre resolue pour Odoo.",
       };
     }
 

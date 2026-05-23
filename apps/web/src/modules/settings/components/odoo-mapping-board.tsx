@@ -2,9 +2,13 @@ import type { OdooMappingBoardData } from "@/modules/settings/types/odoo";
 
 type OdooMappingBoardProps = {
   initialData: OdooMappingBoardData;
+  upsertCustomerMappingAction: (formData: FormData) => Promise<void>;
 };
 
-export function OdooMappingBoard({ initialData }: OdooMappingBoardProps) {
+export function OdooMappingBoard({
+  initialData,
+  upsertCustomerMappingAction,
+}: OdooMappingBoardProps) {
   const {
     organizationId,
     customerMapping,
@@ -14,6 +18,7 @@ export function OdooMappingBoard({ initialData }: OdooMappingBoardProps) {
     dataOrigin,
     fallbackReason,
   } = initialData;
+  const canWrite = dataOrigin === "supabase";
 
   return (
     <section className="space-y-6">
@@ -52,6 +57,49 @@ export function OdooMappingBoard({ initialData }: OdooMappingBoardProps) {
             <p>Contact lie : {customerMapping?.odooRecordId ?? "Aucune liaison active"}</p>
             <p>Statut : {customerMapping?.syncStatus ?? "non_lie"}</p>
           </div>
+          <form action={upsertCustomerMappingAction} className="mt-4 space-y-4">
+            <input type="hidden" name="organizationId" value={organizationId} />
+            <label className="space-y-2 text-sm text-stone-700">
+              <span>Modele Odoo</span>
+              <input
+                name="odooModel"
+                defaultValue={customerMapping?.odooModel ?? "res.partner"}
+                className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                disabled={!canWrite}
+              />
+            </label>
+            <label className="space-y-2 text-sm text-stone-700">
+              <span>Identifiant contact Odoo</span>
+              <input
+                name="odooRecordId"
+                defaultValue={customerMapping?.odooRecordId ?? ""}
+                placeholder="odoo_partner_1042"
+                className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                disabled={!canWrite}
+              />
+            </label>
+            <label className="space-y-2 text-sm text-stone-700">
+              <span>Statut de synchro</span>
+              <input
+                name="syncStatus"
+                defaultValue={customerMapping?.syncStatus ?? "linked"}
+                className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 outline-none transition focus:border-stone-400"
+                disabled={!canWrite}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={!canWrite}
+              className="rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+            >
+              {customerMapping ? "Mettre a jour la liaison client" : "Creer la liaison client"}
+            </button>
+            {!canWrite ? (
+              <p className="text-sm text-stone-500">
+                Le formulaire reste visible pour cadrer le parcours, mais l&apos;ecriture reelle exige un scope Supabase resolu.
+              </p>
+            ) : null}
+          </form>
         </article>
 
         <article className="space-y-5">
