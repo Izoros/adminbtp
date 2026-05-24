@@ -5,6 +5,7 @@ import {
   FileText,
   FolderKanban,
   HandHelping,
+  LayoutDashboard,
   LayoutPanelTop,
   Mail,
   Milestone,
@@ -25,6 +26,13 @@ type NavigationDefinition = {
 };
 
 const coreItems: NavigationDefinition[] = [
+  {
+    label: "Dashboard admin",
+    description: "Cockpit de pilotage global AdminBTP.",
+    href: "/admin",
+    phase: "OPS",
+    icon: LayoutDashboard,
+  },
   {
     label: "Auth",
     description: "Connexion et controle d'acces multi-tenant.",

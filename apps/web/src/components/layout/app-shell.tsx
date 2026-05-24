@@ -6,9 +6,15 @@ import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 type AppShellProps = {
   children: React.ReactNode;
+  eyebrow?: string;
+  title?: string;
 };
 
-export async function AppShell({ children }: AppShellProps) {
+export async function AppShell({
+  children,
+  eyebrow = "Plateforme administrative et technique",
+  title = "Tableau de lancement",
+}: AppShellProps) {
   const user = await getAuthenticatedUser();
 
   return (
@@ -77,9 +83,9 @@ export async function AppShell({ children }: AppShellProps) {
                   <LayoutDashboard className="size-4" />
                 </div>
                 <div>
-                  <p className="text-sm text-stone-500">Plateforme administrative et technique</p>
+                  <p className="text-sm text-stone-500">{eyebrow}</p>
                   <h1 className="text-2xl font-semibold tracking-[-0.04em] text-stone-950">
-                    Tableau de lancement
+                    {title}
                   </h1>
                 </div>
               </div>

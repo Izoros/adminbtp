@@ -8,7 +8,7 @@ import { dashboardHighlights, validationChecklist } from "@/config/dashboard";
 
 export default function Home() {
   return (
-    <AppShell>
+    <AppShell eyebrow="Plateforme administrative et technique" title="Tableau de lancement">
       <div className="space-y-8">
         <section className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
           <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-[radial-gradient(circle_at_top_left,_rgba(224,122,95,0.18),_transparent_32%),linear-gradient(135deg,#fffaf3_0%,#f7efe5_42%,#f1e4d1_100%)] p-8 shadow-[0_24px_80px_rgba(89,65,40,0.14)]">
@@ -30,10 +30,10 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/login"
+                  href="/admin"
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[0_14px_28px_rgba(224,122,95,0.25)] transition hover:brightness-95"
                 >
-                  Ouvrir la connexion
+                  Ouvrir le cockpit admin
                   <ArrowRight className="size-4" />
                 </Link>
                 <Link
