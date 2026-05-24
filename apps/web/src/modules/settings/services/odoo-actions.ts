@@ -9,22 +9,47 @@ import {
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import type { OdooMutationState } from "@/modules/settings/services/odoo-action-state";
+import type { OdooBindingType } from "@/modules/settings/types/odoo";
 
 function readRequiredField(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-export async function upsertCustomerOdooMappingAction(
+function isOdooBindingType(value: string | null): value is OdooBindingType {
+  return (
+    value === "customer" ||
+    value === "invoice" ||
+    value === "subscription" ||
+    value === "consulting_service"
+  );
+}
+
+function buildSuccessMessage(bindingType: OdooBindingType, mode: "create" | "update") {
+  const subject =
+    bindingType === "customer"
+      ? "Mapping client Odoo"
+      : bindingType === "invoice"
+        ? "Mapping facture Odoo"
+        : bindingType === "subscription"
+          ? "Mapping abonnement Odoo"
+          : "Mapping prestation conseil Odoo";
+
+  return `${subject} ${mode === "create" ? "cree" : "mis a jour"} dans Supabase.`;
+}
+
+export async function upsertOdooMappingAction(
   _previousState: OdooMutationState,
   formData: FormData,
 ): Promise<OdooMutationState> {
   const organizationId = readRequiredField(formData, "organizationId");
+  const bindingTypeValue = readRequiredField(formData, "bindingType");
+  const adminbtpEntityId = readRequiredField(formData, "adminbtpEntityId");
   const odooModel = readRequiredField(formData, "odooModel");
   const odooRecordId = readRequiredField(formData, "odooRecordId");
   const syncStatus = readRequiredField(formData, "syncStatus") ?? "linked";
 
-  if (!organizationId || !odooModel || !odooRecordId) {
+  if (!organizationId || !bindingTypeValue || !adminbtpEntityId || !odooModel || !odooRecordId) {
     return {
       status: "error",
       mode: "demo",
@@ -32,6 +57,15 @@ export async function upsertCustomerOdooMappingAction(
     };
   }
 
+  if (!isOdooBindingType(bindingTypeValue)) {
+    return {
+      status: "error",
+      mode: "demo",
+      message: "Le type de mapping Odoo demande n'est pas supporte.",
+    };
+  }
+
+  const bindingType = bindingTypeValue;
   const supabaseClient = await createClient();
 
   if (!supabaseClient) {
@@ -81,13 +115,11 @@ export async function upsertCustomerOdooMappingAction(
     };
   }
 
-  const adminbtpEntityId = organizationId;
-
   const { data: existingRow, error: existingError } = await supabaseClient
     .from("odoo_mappings")
     .select("id")
     .eq("organization_id", organizationId)
-    .eq("binding_type", "customer")
+    .eq("binding_type", bindingType)
     .eq("adminbtp_entity_id", adminbtpEntityId)
     .maybeSingle();
 
@@ -124,13 +156,13 @@ export async function upsertCustomerOdooMappingAction(
     return {
       status: "success",
       mode: "supabase",
-      message: "Mapping client Odoo mis a jour dans Supabase.",
+      message: buildSuccessMessage(bindingType, "update"),
     };
   }
 
   const { error: insertError } = await supabaseClient.from("odoo_mappings").insert({
     organization_id: organizationId,
-    binding_type: "customer",
+    binding_type: bindingType,
     adminbtp_entity_id: adminbtpEntityId,
     odoo_model: odooModel,
     odoo_record_id: odooRecordId,
@@ -151,6 +183,29 @@ export async function upsertCustomerOdooMappingAction(
   return {
     status: "success",
     mode: "supabase",
-    message: "Mapping client Odoo cree dans Supabase.",
+    message: buildSuccessMessage(bindingType, "create"),
   };
+}
+
+export async function upsertCustomerOdooMappingAction(
+  _previousState: OdooMutationState,
+  formData: FormData,
+): Promise<OdooMutationState> {
+  const nextFormData = new FormData();
+
+  for (const [key, value] of formData.entries()) {
+    nextFormData.set(key, value);
+  }
+
+  nextFormData.set("bindingType", "customer");
+
+  if (!readRequiredField(nextFormData, "adminbtpEntityId")) {
+    const organizationId = readRequiredField(nextFormData, "organizationId");
+
+    if (organizationId) {
+      nextFormData.set("adminbtpEntityId", organizationId);
+    }
+  }
+
+  return upsertOdooMappingAction(_previousState, nextFormData);
 }

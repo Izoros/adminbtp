@@ -1,6 +1,6 @@
 import { OdooMappingBoard } from "@/modules/settings/components/odoo-mapping-board";
 import { buildInitialOdooMutationState } from "@/modules/settings/services/odoo-action-state";
-import { upsertCustomerOdooMappingAction } from "@/modules/settings/services/odoo-actions";
+import { upsertOdooMappingAction } from "@/modules/settings/services/odoo-actions";
 import { getOdooMappingBoardData } from "@/modules/settings/services/supabase-odoo-data";
 
 type OdooPageProps = {
@@ -15,10 +15,10 @@ export default async function OdooPage({ searchParams }: OdooPageProps) {
     organizationId: resolvedSearchParams?.organizationId,
   });
 
-  async function upsertCustomerMappingPageAction(formData: FormData) {
+  async function upsertMappingPageAction(formData: FormData) {
     "use server";
 
-    await upsertCustomerOdooMappingAction(buildInitialOdooMutationState(), formData);
+    await upsertOdooMappingAction(buildInitialOdooMutationState(), formData);
   }
 
   return (
@@ -26,7 +26,7 @@ export default async function OdooPage({ searchParams }: OdooPageProps) {
       <div className="mx-auto max-w-6xl">
         <OdooMappingBoard
           initialData={odooMappingBoardData}
-          upsertCustomerMappingAction={upsertCustomerMappingPageAction}
+          upsertMappingAction={upsertMappingPageAction}
         />
       </div>
     </main>

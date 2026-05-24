@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ScopeGuardError } from "@/lib/permissions";
 import { buildInitialOdooMutationState } from "@/modules/settings/services/odoo-action-state";
-import { upsertCustomerOdooMappingAction } from "@/modules/settings/services/odoo-actions";
+import {
+  upsertCustomerOdooMappingAction,
+  upsertOdooMappingAction,
+} from "@/modules/settings/services/odoo-actions";
 
 const createClientMock = vi.fn();
 const loadServerOrganizationScopeMock = vi.fn();
@@ -197,5 +200,122 @@ describe("actions odoo", () => {
       mode: "supabase",
       message: "Le scope serveur courant ne couvre pas cette organisation.",
     });
+  });
+
+  it("cree un mapping facture Odoo via l'action generique", async () => {
+    const existingMaybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === "odoo_mappings") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: existingMaybeSingle,
+                })),
+              })),
+            })),
+          })),
+          insert,
+        };
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    createClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user_admin_001" } },
+          error: null,
+        }),
+      },
+      from,
+    });
+
+    const formData = new FormData();
+    formData.set("organizationId", "org_adminbtp_001");
+    formData.set("bindingType", "invoice");
+    formData.set("adminbtpEntityId", "invoice_adminbtp_001");
+    formData.set("odooModel", "account.move");
+    formData.set("odooRecordId", "odoo_invoice_8891");
+    formData.set("syncStatus", "linked");
+
+    const result = await upsertOdooMappingAction(
+      buildInitialOdooMutationState(),
+      formData,
+    );
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization_id: "org_adminbtp_001",
+        binding_type: "invoice",
+        adminbtp_entity_id: "invoice_adminbtp_001",
+        odoo_model: "account.move",
+        odoo_record_id: "odoo_invoice_8891",
+      }),
+    );
+    expect(result).toEqual({
+      status: "success",
+      mode: "supabase",
+      message: "Mapping facture Odoo cree dans Supabase.",
+    });
+  });
+
+  it("complete automatiquement l'entite AdminBTP pour le mapping client delegue", async () => {
+    const existingMaybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === "odoo_mappings") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: existingMaybeSingle,
+                })),
+              })),
+            })),
+          })),
+          insert,
+        };
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    createClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user_admin_001" } },
+          error: null,
+        }),
+      },
+      from,
+    });
+
+    const formData = new FormData();
+    formData.set("organizationId", "org_adminbtp_001");
+    formData.set("odooModel", "res.partner");
+    formData.set("odooRecordId", "odoo_partner_2048");
+
+    await upsertCustomerOdooMappingAction(
+      buildInitialOdooMutationState(),
+      formData,
+    );
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        binding_type: "customer",
+        adminbtp_entity_id: "org_adminbtp_001",
+      }),
+    );
   });
 });
