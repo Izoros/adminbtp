@@ -1,17 +1,18 @@
 import { resolveProjectDashboardData } from "@/modules/projects/services/project-source";
 
 describe("source des projets", () => {
-  it("bascule sur la demonstration quand aucun chantier n'est exploitable", () => {
+  it("retourne un etat vide Supabase quand aucun chantier n'est exploitable", () => {
     const result = resolveProjectDashboardData({
       projects: [],
       projectOrganizations: [],
     });
 
-    expect(result.source).toBe("demo");
-    expect(result.projects.length).toBeGreaterThan(0);
+    expect(result.source).toBe("supabase");
+    expect(result.projects).toHaveLength(0);
+    expect(result.sourceDetail).toContain("Aucun chantier");
   });
 
-  it("bascule sur la demonstration quand les roles chantier sont absents", () => {
+  it("retourne un etat vide Supabase quand les roles chantier sont absents", () => {
     const result = resolveProjectDashboardData({
       projects: [
         {
@@ -28,7 +29,8 @@ describe("source des projets", () => {
       projectOrganizations: [],
     });
 
-    expect(result.source).toBe("demo");
+    expect(result.source).toBe("supabase");
+    expect(result.sourceDetail).toContain("Aucun role chantier exploitable");
   });
 
   it("conserve les donnees Supabase quand les chantiers sont complets", () => {
@@ -94,7 +96,7 @@ describe("source des projets", () => {
     expect(result.projectOrganizations[0]?.projectId).toBe("project_real_001");
   });
 
-  it("repasse en demonstration quand les affectations restantes ne pointent sur aucun chantier reel", () => {
+  it("retourne un etat vide Supabase quand les affectations restantes ne pointent sur aucun chantier reel", () => {
     const result = resolveProjectDashboardData({
       projects: [
         {
@@ -118,6 +120,7 @@ describe("source des projets", () => {
       ],
     });
 
-    expect(result.source).toBe("demo");
+    expect(result.source).toBe("supabase");
+    expect(result.projects).toHaveLength(0);
   });
 });

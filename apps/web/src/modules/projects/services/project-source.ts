@@ -50,6 +50,17 @@ function buildDemoProjectDashboardData(sourceDetail: string): ProjectDashboardDa
   };
 }
 
+function buildEmptySupabaseProjectDashboardData(
+  sourceDetail: string,
+): ProjectDashboardData {
+  return {
+    projects: [],
+    projectOrganizations: [],
+    source: "supabase",
+    sourceDetail,
+  };
+}
+
 function normalizeProjectSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {
   const availableProjectIds = new Set(snapshot.projects.map((project) => project.id));
 
@@ -66,12 +77,15 @@ export function resolveProjectDashboardData(
 ): ProjectDashboardData {
   const normalizedSnapshot = normalizeProjectSnapshot(snapshot);
 
-  if (
-    normalizedSnapshot.projects.length === 0 ||
-    normalizedSnapshot.projectOrganizations.length === 0
-  ) {
-    return buildDemoProjectDashboardData(
-      "Base vide ou non exploitable pour les chantiers, bascule sur les donnees de demonstration.",
+  if (normalizedSnapshot.projects.length === 0) {
+    return buildEmptySupabaseProjectDashboardData(
+      "Aucun chantier n'a encore ete cree ou rattache sur le perimetre Supabase courant.",
+    );
+  }
+
+  if (normalizedSnapshot.projectOrganizations.length === 0) {
+    return buildEmptySupabaseProjectDashboardData(
+      "Aucun role chantier exploitable n'a encore ete rattache sur le perimetre Supabase courant.",
     );
   }
 

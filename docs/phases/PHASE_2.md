@@ -8,6 +8,7 @@
 - politiques RLS d'acces chantier
 - types TypeScript du module `projects`
 - service local de demonstration des chantiers
+- reader Supabase conserve maintenant un vrai etat vide quand aucun chantier n'existe encore
 - logique de vues differentes selon le role chantier
 - page `/projects`
 - tests de filtrage chantier et de variation de vue
@@ -19,9 +20,10 @@
 
 ## Validation locale
 
-La validation locale repose sur un chantier de demonstration relie a plusieurs
-organisations, avec affichage adapte au role accessible pour l'utilisateur de
-session locale.
+La validation locale couvre maintenant deux parcours distincts : un chantier de
+demonstration relie a plusieurs organisations pour l'affichage par role, et un
+etat vide Supabase reel quand aucun chantier exploitable n'existe encore sur le
+perimetre courant.
 
 ## Points de securite
 
@@ -29,6 +31,7 @@ session locale.
 - RLS active sur `projects` et `project_organizations`
 - creation et mise a jour de chantier reservees aux gestionnaires de l'organisation proprietaire
 - aucun chantier non rattache n'est expose dans la demo locale
+- un perimetre Supabase vide n'est plus masque par un faux chantier de demonstration
 
 ## Resultat d'execution
 
@@ -37,3 +40,4 @@ session locale.
 - `test` : OK
 - `build` : OK
 - validation locale des vues par role chantier : OK
+- validation locale de l'etat vide Supabase pour les chantiers : OK
