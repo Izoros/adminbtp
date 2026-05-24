@@ -91,11 +91,14 @@ describe("routes n8n", () => {
     resolveMailboxForInboundWebhook.mockResolvedValue({
       mailboxId: "mailbox_001",
       dataOrigin: "supabase",
+      mailboxCreated: false,
     });
     persistInboundEmail.mockResolvedValue({
       persisted: true,
       dataOrigin: "supabase",
       emailId: "email_001",
+      mailboxId: "mailbox_001",
+      mailboxCreated: false,
     });
 
     const { POST } = await import("@/app/api/n8n/inbound-task/route");
@@ -123,6 +126,7 @@ describe("routes n8n", () => {
     expect(body.authorization.protectionEnabled).toBe(false);
     expect(body.task.source).toBe("n8n");
     expect(body.mailboxResolution.mailboxId).toBe("mailbox_001");
+    expect(body.mailboxResolution.mailboxCreated).toBe(false);
     expect(body.persistence.emailId).toBe("email_001");
   });
 
@@ -131,11 +135,14 @@ describe("routes n8n", () => {
     resolveMailboxForInboundWebhook.mockResolvedValue({
       mailboxId: "mailbox_001",
       dataOrigin: "supabase",
+      mailboxCreated: false,
     });
     persistInboundEmail.mockResolvedValue({
       persisted: true,
       dataOrigin: "supabase",
       emailId: "email_001",
+      mailboxId: "mailbox_001",
+      mailboxCreated: false,
     });
 
     const { POST } = await import("@/app/api/n8n/inbound-task/route");
@@ -214,6 +221,49 @@ describe("routes n8n", () => {
     expect(response.status).toBe(502);
     expect(body.ok).toBe(false);
     expect(body.errors).toContain("Le traitement du webhook entrant a echoue.");
+  });
+
+  it("remonte la creation automatique de boite si la persistance l'a declenchee", async () => {
+    resolveMailboxForInboundWebhook.mockResolvedValue({
+      mailboxId: null,
+      dataOrigin: "supabase",
+      mailboxCreated: false,
+    });
+    persistInboundEmail.mockResolvedValue({
+      persisted: true,
+      dataOrigin: "supabase",
+      emailId: "email_002",
+      mailboxId: "mailbox_created_001",
+      mailboxCreated: true,
+    });
+
+    const { POST } = await import("@/app/api/n8n/inbound-task/route");
+
+    const response = await POST(
+      new Request("http://localhost/api/n8n/inbound-task", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: "org_adminbtp_001",
+          sourceEmail: "client@adminbtp.yt",
+          subject: "Document manquant",
+          bodyText: "Relancer le sous-traitant",
+          autoCreateMailbox: true,
+          mailboxDisplayName: "Boite client AdminBTP",
+          mailboxProvider: "internal",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.mailboxResolution.mailboxId).toBe("mailbox_created_001");
+    expect(body.mailboxResolution.mailboxCreated).toBe(true);
+    expect(body.persistence.mailboxCreated).toBe(true);
   });
 
   it("retourne 400 si la demande de validation est invalide", async () => {

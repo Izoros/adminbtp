@@ -80,11 +80,16 @@ export async function POST(request: Request) {
   try {
     const payload = validationResult.data;
     const task = createTaskFromInboundWebhook(payload);
-    const mailboxResolution = await resolveMailboxForInboundWebhook(
+    const initialMailboxResolution = await resolveMailboxForInboundWebhook(
       payload.organizationId,
       payload.mailboxAddress,
     );
     const persistence = await persistInboundEmail(payload);
+    const mailboxResolution = {
+      ...initialMailboxResolution,
+      mailboxId: persistence.mailboxId ?? initialMailboxResolution.mailboxId,
+      mailboxCreated: persistence.mailboxCreated ?? false,
+    };
 
     return NextResponse.json({
       ok: true,

@@ -21,6 +21,7 @@ export default async function N8nPage({ searchParams }: N8nPageProps) {
         <N8nWorkflowBoard
           dataOrigin={mailboxResolution.dataOrigin}
           mailboxId={mailboxResolution.mailboxId}
+          mailboxCreated={mailboxResolution.mailboxCreated}
           fallbackReason={
             mailboxResolution.mailboxId
               ? undefined

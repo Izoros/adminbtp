@@ -23,6 +23,12 @@ function isE164PhoneNumber(value: string) {
   return /^\+[1-9]\d{6,14}$/.test(value);
 }
 
+function isMailboxProvider(
+  value: unknown,
+): value is "internal" | "gmail" | "outlook" {
+  return value === "internal" || value === "gmail" || value === "outlook";
+}
+
 function createTaskSlug(value: string) {
   return normalizeWhitespace(value)
     .toLowerCase()
@@ -84,6 +90,20 @@ export function validateInboundEmailWebhookPayload(
     !isEmailAddress(payload.mailboxAddress.trim())
   ) {
     errors.push("mailboxAddress doit etre une adresse email valide s'il est fourni.");
+  }
+
+  if (
+    payload.mailboxDisplayName !== undefined &&
+    !isNonEmptyString(payload.mailboxDisplayName)
+  ) {
+    errors.push("mailboxDisplayName doit etre une chaine non vide s'il est fourni.");
+  }
+
+  if (
+    payload.mailboxProvider !== undefined &&
+    !isMailboxProvider(payload.mailboxProvider)
+  ) {
+    errors.push("mailboxProvider doit etre egal a internal, gmail ou outlook.");
   }
 
   const titleCandidate =
@@ -155,6 +175,13 @@ export function validateInboundEmailWebhookPayload(
         ? normalizeWhitespace(payload.relatedTaskId)
         : undefined,
       persistEmail: payload.persistEmail ?? true,
+      autoCreateMailbox: payload.autoCreateMailbox ?? false,
+      mailboxDisplayName: isNonEmptyString(payload.mailboxDisplayName)
+        ? normalizeWhitespace(payload.mailboxDisplayName)
+        : undefined,
+      mailboxProvider: isMailboxProvider(payload.mailboxProvider)
+        ? payload.mailboxProvider
+        : undefined,
     },
   };
 }

@@ -17,6 +17,9 @@ const inboundExample = {
   externalMessageId: "msg_demo_001",
   classification: "payment_followup" as const,
   persistEmail: true,
+  autoCreateMailbox: true,
+  mailboxDisplayName: "Boite client AdminBTP",
+  mailboxProvider: "internal" as const,
 };
 
 const outboundExample = createValidationWebhookPayload(
@@ -28,12 +31,14 @@ const outboundExample = createValidationWebhookPayload(
 type N8nWorkflowBoardProps = {
   dataOrigin: DataOrigin;
   mailboxId: string | null;
+  mailboxCreated?: boolean;
   fallbackReason?: string;
 };
 
 export function N8nWorkflowBoard({
   dataOrigin,
   mailboxId,
+  mailboxCreated,
   fallbackReason,
 }: N8nWorkflowBoardProps) {
   const normalizedInbound = validateInboundEmailWebhookPayload(inboundExample);
@@ -60,6 +65,9 @@ export function N8nWorkflowBoard({
           </span>
           <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1">
             Mailbox id : {mailboxId ?? "non resolue"}
+          </span>
+          <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1">
+            Creation auto : {mailboxCreated ? "declenchee" : "non"}
           </span>
           {fallbackReason ? (
             <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900">

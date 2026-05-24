@@ -44,6 +44,7 @@ export type MailboxBoardData = {
 export type MailboxResolution = {
   mailboxId: string | null;
   dataOrigin: DataOrigin;
+  mailboxCreated?: boolean;
 };
 
 export type MailboxBoardQuery = {

@@ -65,6 +65,7 @@ function createReader(overrides: Partial<EmailSupabaseReader> = {}): EmailSupaba
   return {
     accessibleOrganizationIds: ["org_adminbtp_001"],
     preferredOrganizationId: "org_adminbtp_001",
+    currentUserId: "user_001",
     listActiveMailboxes: async () => [createMailbox()],
     listEmailsByMailbox: async () => [createEmail()],
     findMailboxByOrganizationAndAddress: async () => createMailbox(),
@@ -115,6 +116,11 @@ describe("chargement emails via Supabase", () => {
     });
 
     vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user_001" } },
+        }),
+      },
       from,
     } as never);
     vi.mocked(loadServerOrganizationScope).mockResolvedValue({
@@ -152,6 +158,11 @@ describe("chargement emails via Supabase", () => {
     });
 
     vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user_001" } },
+        }),
+      },
       from,
     } as never);
     vi.mocked(loadServerOrganizationScope).mockResolvedValue({
@@ -183,6 +194,11 @@ describe("chargement emails via Supabase", () => {
     });
 
     vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user_001" } },
+        }),
+      },
       from,
     } as never);
     vi.mocked(loadServerOrganizationScope).mockResolvedValue({
@@ -295,6 +311,7 @@ describe("chargement emails via Supabase", () => {
 
     expect(result.persisted).toBe(true);
     expect(result.emailId).toBe("email_001");
+    expect(result.mailboxId).toBe("mailbox_001");
   });
 
   it("evite de persister un doublon base sur externalMessageId", async () => {
@@ -322,6 +339,40 @@ describe("chargement emails via Supabase", () => {
 
     expect(result.persisted).toBe(false);
     expect(result.duplicateOfEmailId).toBe("email_001");
+    expect(result.mailboxId).toBe("mailbox_001");
+  });
+
+  it("peut creer automatiquement une boite puis persister l'email entrant", async () => {
+    const payload = validateInboundEmailWebhookPayload({
+      organizationId: "org_adminbtp_001",
+      sourceEmail: "client@adminbtp.yt",
+      mailboxAddress: "client@adminbtp.yt",
+      mailboxDisplayName: "Boite client AdminBTP",
+      mailboxProvider: "internal",
+      autoCreateMailbox: true,
+      subject: "Pieces manquantes",
+      bodyText: "Merci de transmettre la piece.",
+      senderEmail: "conducteur@groupement-tce.fr",
+      externalMessageId: "msg_002",
+    });
+
+    expect(payload.success).toBe(true);
+    if (!payload.success) {
+      return;
+    }
+
+    const result = await persistInboundEmail(
+      payload.data,
+      createReader({
+        findMailboxByOrganizationAndAddress: async () => null,
+        insertMailbox: async () => createMailbox({ id: "mailbox_created_001" }),
+      }),
+    );
+
+    expect(result.persisted).toBe(true);
+    expect(result.mailboxCreated).toBe(true);
+    expect(result.mailboxId).toBe("mailbox_created_001");
+    expect(result.emailId).toBe("email_001");
   });
 
   it("retourne une raison explicite si la persistance echoue cote Supabase", async () => {

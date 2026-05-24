@@ -19,12 +19,15 @@ export type PersistedInboundEmailResult = {
   dataOrigin: "demo" | "supabase";
   emailId?: string;
   duplicateOfEmailId?: string;
+  mailboxId?: string;
+  mailboxCreated?: boolean;
   reason?: string;
 };
 
 export type EmailSupabaseReader = {
   accessibleOrganizationIds: string[];
   preferredOrganizationId: string | null;
+  currentUserId: string | null;
   listActiveMailboxes: (query?: MailboxBoardQuery) => Promise<MailboxRow[]>;
   listEmailsByMailbox: (mailboxId: string) => Promise<EmailRow[]>;
   findMailboxByOrganizationAndAddress: (
@@ -97,11 +100,18 @@ export async function createEmailSupabaseReader(): Promise<EmailSupabaseReader |
     return null;
   }
 
+  const userResult =
+    "auth" in supabase && supabase.auth && "getUser" in supabase.auth
+      ? await supabase.auth.getUser()
+      : { data: { user: null } };
+  const user = userResult.data.user;
+
   const accessibleOrganizationIds = organizationScope.accessibleOrganizationIds;
 
   return {
     accessibleOrganizationIds,
     preferredOrganizationId: organizationScope.preferredOrganizationId,
+    currentUserId: user?.id ?? null,
     async listActiveMailboxes(query) {
       let request = supabase
         .from("mailboxes")
@@ -224,7 +234,8 @@ export async function getMailboxBoardData(
   query?: MailboxBoardQuery,
   reader?: EmailSupabaseReader | null,
 ): Promise<MailboxBoardData> {
-  const resolvedReader = reader ?? (await createEmailSupabaseReader());
+  const resolvedReader =
+    reader === undefined ? await createEmailSupabaseReader() : reader;
 
   if (!resolvedReader) {
     return getDemoMailboxBoardData();
@@ -269,7 +280,8 @@ export async function persistInboundEmail(
   payload: NormalizedInboundEmailWebhookPayload,
   reader?: EmailSupabaseReader | null,
 ): Promise<PersistedInboundEmailResult> {
-  const resolvedReader = reader ?? (await createEmailSupabaseReader());
+  const resolvedReader =
+    reader === undefined ? await createEmailSupabaseReader() : reader;
 
   if (!payload.persistEmail) {
     return {
@@ -297,10 +309,33 @@ export async function persistInboundEmail(
   }
 
   try {
-    const mailbox = await resolvedReader.findMailboxByOrganizationAndAddress(
+    let mailbox = await resolvedReader.findMailboxByOrganizationAndAddress(
       payload.organizationId,
       payload.mailboxAddress,
     );
+    let mailboxCreated = false;
+
+    if (!mailbox && payload.autoCreateMailbox) {
+      if (!resolvedReader.currentUserId) {
+        return {
+          persisted: false,
+          dataOrigin: "supabase",
+          reason:
+            "La creation automatique de boite exige une session utilisateur resolue cote serveur.",
+        };
+      }
+
+      mailbox = await resolvedReader.insertMailbox({
+        organization_id: payload.organizationId,
+        address: payload.mailboxAddress,
+        display_name:
+          payload.mailboxDisplayName ??
+          `Boite ${payload.mailboxAddress}`,
+        provider: payload.mailboxProvider ?? "internal",
+        created_by: resolvedReader.currentUserId,
+      });
+      mailboxCreated = true;
+    }
 
     if (!mailbox) {
       return {
@@ -321,6 +356,8 @@ export async function persistInboundEmail(
           persisted: false,
           dataOrigin: "supabase",
           duplicateOfEmailId: existingEmail.id,
+          mailboxId: mailbox.id,
+          mailboxCreated,
           reason: "Un email avec le meme externalMessageId existe deja.",
         };
       }
@@ -344,6 +381,8 @@ export async function persistInboundEmail(
       persisted: true,
       dataOrigin: "supabase",
       emailId: insertedEmail.id,
+      mailboxId: mailbox.id,
+      mailboxCreated,
     };
   } catch {
     return {
@@ -359,7 +398,8 @@ export async function resolveMailboxForInboundWebhook(
   sourceEmail: string,
   reader?: EmailSupabaseReader | null,
 ): Promise<MailboxResolution> {
-  const resolvedReader = reader ?? (await createEmailSupabaseReader());
+  const resolvedReader =
+    reader === undefined ? await createEmailSupabaseReader() : reader;
 
   if (!resolvedReader) {
     return {

@@ -16,6 +16,9 @@ export type InboundEmailWebhookPayload = {
   classification?: EmailClassification;
   relatedTaskId?: string;
   persistEmail?: boolean;
+  autoCreateMailbox?: boolean;
+  mailboxDisplayName?: string;
+  mailboxProvider?: "internal" | "gmail" | "outlook";
 };
 
 export type ValidationRequestWebhookPayload = {
@@ -41,6 +44,9 @@ export type NormalizedInboundEmailWebhookPayload = {
   classification: EmailClassification;
   relatedTaskId?: string;
   persistEmail: boolean;
+  autoCreateMailbox: boolean;
+  mailboxDisplayName?: string;
+  mailboxProvider?: "internal" | "gmail" | "outlook";
 };
 
 export type NormalizedValidationRequestWebhookPayload = {
