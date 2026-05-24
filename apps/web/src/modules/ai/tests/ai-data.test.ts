@@ -18,6 +18,7 @@ describe("ai-data", () => {
 
     expect(data.source).toBe("demo");
     expect(data.suggestions.length).toBeGreaterThan(0);
+    expect(data.sourceMessage).toContain("Supabase est indisponible");
   });
 
   it("reconstruit un resume depuis le payload Supabase", () => {
@@ -72,6 +73,7 @@ describe("ai-data", () => {
     expect(data.source).toBe("supabase");
     expect(data.currentOrganizationId).toBe("org_001");
     expect(data.suggestions).toHaveLength(0);
+    expect(data.sourceMessage).toContain("Aucune suggestion IA");
   });
 
   it("enrichit les suggestions avec la gouvernance et l audit", () => {

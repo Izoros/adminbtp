@@ -22,6 +22,10 @@ documentaire, de projet de courrier et de recherche intelligente, avec un
 etat de validation humaine et un journal d'audit associe. Les suggestions
 approuvees peuvent maintenant etre appliquees depuis l'interface, avec
 controle de scope organisation, relecture de gouvernance et ecriture d'audit.
+Quand Supabase est joignable mais que les suggestions ou les logs sont vides
+ou partiellement indisponibles, le module conserve maintenant un etat
+`supabase` honnete avec message explicite au lieu de rebasculer vers la
+demonstration.
 
 ## Points de securite
 

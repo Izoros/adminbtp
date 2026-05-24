@@ -50,6 +50,7 @@ export function AiGovernanceBoard({
         <p className="mt-3 text-sm text-stone-600">
           Organisation courante : {data.currentOrganizationId ?? "mode demo"}
         </p>
+        <p className="mt-2 text-sm text-stone-600">{data.sourceMessage}</p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">

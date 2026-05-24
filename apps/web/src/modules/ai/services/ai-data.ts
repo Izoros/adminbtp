@@ -27,6 +27,7 @@ export type AiGovernanceData = {
   currentOrganizationId: string | null;
   suggestions: AiSuggestion[];
   auditLogs: AiSuggestionAuditLog[];
+  sourceMessage: string;
 };
 
 function isRecord(value: Json): value is Record<string, Json> {
@@ -137,17 +138,21 @@ export function buildDemoAiGovernanceData(): AiGovernanceData {
       demoAiAuditLogs,
     ),
     auditLogs: demoAiAuditLogs,
+    sourceMessage:
+      "Supabase est indisponible pour le module IA. Les donnees de demonstration restent affichees.",
   };
 }
 
 export function buildEmptyAiGovernanceData(
   currentOrganizationId: string | null,
+  sourceMessage = "Aucune suggestion IA reelle n'est encore disponible pour cette organisation.",
 ): AiGovernanceData {
   return {
     source: "supabase",
     currentOrganizationId,
     suggestions: [],
     auditLogs: [],
+    sourceMessage,
   };
 }
 
@@ -172,11 +177,17 @@ export async function loadAiGovernanceData(
     .limit(20);
 
   if (suggestionError) {
-    return buildDemoAiGovernanceData();
+    return buildEmptyAiGovernanceData(
+      userScope.preferredOrganizationId,
+      "Supabase est accessible, mais la lecture des suggestions IA a echoue.",
+    );
   }
 
   if (!suggestionRows?.length) {
-    return buildEmptyAiGovernanceData(userScope.preferredOrganizationId);
+    return buildEmptyAiGovernanceData(
+      userScope.preferredOrganizationId,
+      "Supabase est accessible, mais aucune suggestion IA n'est encore disponible sur ce perimetre.",
+    );
   }
 
   const suggestionIds = suggestionRows.map((row) => row.id);
@@ -187,7 +198,24 @@ export async function loadAiGovernanceData(
     .order("created_at", { ascending: false });
 
   if (logError) {
-    return buildDemoAiGovernanceData();
+    const preferredSuggestions = suggestionRows.filter(
+      (row) => row.organization_id === userScope.preferredOrganizationId,
+    );
+    const rowsToRender =
+      preferredSuggestions.length > 0 ? preferredSuggestions : suggestionRows;
+
+    return {
+      source: "supabase",
+      currentOrganizationId:
+        rowsToRender[0]?.organization_id ?? userScope.preferredOrganizationId,
+      suggestions: enrichSuggestionsWithGovernance(
+        rowsToRender.map(mapAiSuggestionRow),
+        [],
+      ),
+      auditLogs: [],
+      sourceMessage:
+        "Les suggestions IA sont chargees depuis Supabase, mais le journal d'audit est indisponible.",
+    };
   }
 
   const auditLogs = (logRows ?? []).map(mapAiSuggestionAuditLogRow);
@@ -206,5 +234,6 @@ export async function loadAiGovernanceData(
       auditLogs,
     ),
     auditLogs,
+    sourceMessage: `${rowsToRender.length} suggestion(s) IA chargee(s) depuis Supabase.`,
   };
 }
