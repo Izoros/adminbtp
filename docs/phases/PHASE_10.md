@@ -19,7 +19,10 @@ La page `/consulting` expose une demande d'expertise reliee a un chantier,
 sa mission de conseil associee, le suivi des heures et l'avis technique
 produit par l'expert assigne. La transformation d'une demande en mission
 et la saisie d'heures de conseil sont maintenant persistees dans Supabase
-avec controle de scope organisation serveur.
+avec controle de scope organisation serveur. Quand Supabase est accessible
+mais qu'aucune demande n'existe encore sur l'organisation courante, le module
+reste maintenant en etat Supabase vide au lieu de rebasculer ou de melanger
+des donnees d'une autre organisation accessible.
 
 ## Points de securite
 

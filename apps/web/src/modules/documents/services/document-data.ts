@@ -25,6 +25,8 @@ export type DocumentPreviewData = {
   variableSource: DocumentVariableSource;
   source: "supabase" | "demo";
   sourceMessage: string;
+  hasPersistedTemplate: boolean;
+  hasPersistedDocument: boolean;
 };
 
 export function mapTemplateRowToDocumentTemplate(row: DocumentTemplateRow): DocumentTemplate {
@@ -91,22 +93,27 @@ export function buildDocumentPreviewDataFromRows(
   const template =
     templateRow ?
       mapTemplateRowToDocumentTemplate(templateRow)
-    : demoDocumentTemplates[0]!;
+    : buildMissingTemplatePreview(documentRow);
   const mappedDocument = documentRow ? mapDocumentRowToGeneratedDocument(documentRow) : null;
   const supabaseVariables =
     documentRow ? extractDocumentVariables(documentRow.metadata) : null;
-  const variables = supabaseVariables ?? demoDocumentVariables;
+  const variables = supabaseVariables ?? {};
   const variableSource: DocumentVariableSource =
-    supabaseVariables ? "supabase_metadata" : "demo";
+    supabaseVariables ? "supabase_metadata" : "supabase_placeholder";
 
   const document =
-    mappedDocument ?? renderTemplate(template, variables);
+    mappedDocument ??
+    buildSupabasePreviewDocument(template, {
+      organizationId: template.organizationId,
+      projectId: documentRow?.project_id ?? undefined,
+      variables,
+    });
 
   const sourceMessage = buildDocumentSourceMessage({
     hasSupabaseTemplate: Boolean(templateRow),
     hasSupabaseDocument: Boolean(documentRow),
     hasSupabaseVariables: Boolean(supabaseVariables),
-    usesDemoTemplate: !templateRow,
+    usesPlaceholderTemplate: !templateRow,
   });
 
   return {
@@ -116,6 +123,8 @@ export function buildDocumentPreviewDataFromRows(
     variableSource,
     source: "supabase",
     sourceMessage,
+    hasPersistedTemplate: Boolean(templateRow),
+    hasPersistedDocument: Boolean(documentRow),
   };
 }
 
@@ -130,6 +139,8 @@ export function buildDemoDocumentPreviewData(reason: string): DocumentPreviewDat
     variableSource: "demo",
     source: "demo",
     sourceMessage: reason,
+    hasPersistedTemplate: false,
+    hasPersistedDocument: false,
   };
 }
 
@@ -185,9 +196,7 @@ export async function getDocumentPreviewData(): Promise<DocumentPreviewData> {
       return templateOnlyPreview;
     }
 
-    return buildDemoDocumentPreviewData(
-      "Base disponible mais vide pour le module documentaire. Repli sur les donnees de demonstration.",
-    );
+    return buildEmptySupabaseDocumentPreviewData();
   } catch {
     return buildDemoDocumentPreviewData(
       "Base indisponible pour le module documentaire. Repli sur les donnees de demonstration.",
@@ -241,30 +250,100 @@ function buildDocumentSourceMessage({
   hasSupabaseTemplate,
   hasSupabaseDocument,
   hasSupabaseVariables,
-  usesDemoTemplate,
+  usesPlaceholderTemplate,
 }: {
   hasSupabaseTemplate: boolean;
   hasSupabaseDocument: boolean;
   hasSupabaseVariables: boolean;
-  usesDemoTemplate: boolean;
+  usesPlaceholderTemplate: boolean;
 }): string {
   if (hasSupabaseDocument && hasSupabaseTemplate && hasSupabaseVariables) {
     return "Document, template et variables charges depuis Supabase.";
   }
 
   if (hasSupabaseDocument && hasSupabaseTemplate) {
-    return "Document et template charges depuis Supabase. Les variables d'aperçu restent en demonstration faute de metadonnees exploitables.";
+    return "Document et template charges depuis Supabase. Les variables stockees ne sont pas exploitables, l'aperçu affiche donc le corps rendu tel qu'il existe en base.";
   }
 
-  if (hasSupabaseDocument && usesDemoTemplate) {
-    return "Document charge depuis Supabase, mais son template associe est introuvable. Le gabarit visuel de demonstration est utilise pour conserver un apercu lisible.";
+  if (hasSupabaseDocument && usesPlaceholderTemplate) {
+    return "Document charge depuis Supabase, mais son template associe est introuvable. Un gabarit neutre est reconstruit localement pour afficher l'aperçu sans injecter de donnees de demonstration.";
   }
 
   if (hasSupabaseTemplate) {
-    return "Template charge depuis Supabase. Apercu genere avec les variables de demonstration.";
+    return "Template charge depuis Supabase. Aucun document n'est encore stocke pour ce template, l'aperçu affiche donc des variables non renseignees.";
   }
 
-  return "Apercu reconstruit a partir des donnees disponibles dans Supabase.";
+  return "Supabase est accessible, mais aucun template ni document n'est encore disponible pour la base documentaire.";
+}
+
+function buildSupabasePreviewDocument(
+  template: DocumentTemplate,
+  options: {
+    organizationId?: string;
+    projectId?: string;
+    variables: DocumentVariableMap;
+  },
+): GeneratedDocument {
+  return {
+    ...renderTemplate(template, options.variables),
+    organizationId: options.organizationId,
+    projectId: options.projectId,
+  };
+}
+
+function buildMissingTemplatePreview(documentRow: DocumentRow | null): DocumentTemplate {
+  return {
+    id: documentRow?.template_id ?? "",
+    organizationId: documentRow?.organization_id ?? "",
+    code: documentRow?.template_id ?? "template_introuvable",
+    name: "Template Supabase introuvable",
+    subject: documentRow?.subject ?? "Document sans template associe",
+    bodyTemplate:
+      documentRow?.body_rendered ??
+      "Le template de ce document n'est plus disponible dans Supabase.",
+    letterheadName: "Template introuvable dans Supabase",
+    logoLabel: "Logo non renseigne",
+    stampLabel: "Tampon non renseigne",
+    signatureLabel: "Signature non renseignee",
+  };
+}
+
+function buildEmptySupabaseDocumentPreviewData(): DocumentPreviewData {
+  const template: DocumentTemplate = {
+    id: "",
+    organizationId: "",
+    code: "template_absent",
+    name: "Aucun template disponible",
+    subject: "Document en attente de configuration",
+    bodyTemplate:
+      "Ajoutez d'abord un template dans Supabase pour generer un premier document.",
+    letterheadName: "Base documentaire vide",
+    logoLabel: "Logo non renseigne",
+    stampLabel: "Tampon non renseigne",
+    signatureLabel: "Signature non renseignee",
+  };
+  const document: GeneratedDocument = {
+    id: "",
+    templateId: "",
+    organizationId: "",
+    title: "Aucun document disponible",
+    subject: "Document en attente de configuration",
+    bodyRendered:
+      "La base Supabase est accessible, mais aucun template ni document n'est encore disponible pour ce module.",
+    status: "draft",
+  };
+
+  return {
+    template,
+    document,
+    variables: {},
+    variableSource: "supabase_placeholder",
+    source: "supabase",
+    sourceMessage:
+      "Supabase est accessible, mais aucun template ni document n'est encore disponible pour la base documentaire.",
+    hasPersistedTemplate: false,
+    hasPersistedDocument: false,
+  };
 }
 
 function normalizeLabel(value: string | null, fallback: string): string {

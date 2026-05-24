@@ -235,6 +235,13 @@ export async function loadClientSpaceData(
     return buildDemoClientSpaceData();
   }
 
+  if (userScope.organizationIds.length === 0) {
+    return buildEmptyClientSpaceData(
+      userScope.viewerMode,
+      userScope.preferredOrganizationId,
+    );
+  }
+
   // On recharge les acces actifs puis on applique un filtrage metier strict cote module.
   const { data: accessRows, error: accessError } = await supabase
     .from("client_portal_accesses")
@@ -247,8 +254,15 @@ export async function loadClientSpaceData(
     return buildDemoClientSpaceData();
   }
 
+  if (!accessRows || accessRows.length === 0) {
+    return buildEmptyClientSpaceData(
+      userScope.viewerMode,
+      userScope.preferredOrganizationId,
+    );
+  }
+
   const visibleWorkspaceItems = filterWorkspaceItemsForViewer(
-    (accessRows ?? []).map(mapClientPortalAccessRow),
+    accessRows.map(mapClientPortalAccessRow),
     userScope.organizationIds,
     userScope.viewerMode,
   );

@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildDemoClientSpaceData,
   buildEmptyClientSpaceData,
   formatClientDecisionMessage,
   inferWorkspaceItemType,
+  loadClientSpaceData,
   mapClientFeedbackThreadRow,
   mapClientPortalAccessRow,
   parseClientDecisionMessage,
@@ -15,7 +16,24 @@ import type { SupabaseDatabase } from "@/types/supabase";
 
 type ClientSpaceTables = SupabaseDatabase["public"]["Tables"];
 
+const loadServerOrganizationScopeMock = vi.fn();
+
+vi.mock("@/lib/permissions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/permissions")>("@/lib/permissions");
+
+  return {
+    ...actual,
+    loadServerOrganizationScope: (...args: unknown[]) =>
+      loadServerOrganizationScopeMock(...args),
+  };
+});
+
 describe("client-space-data", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    loadServerOrganizationScopeMock.mockReset();
+  });
+
   it("replie sur le client de demonstration", () => {
     const data = buildDemoClientSpaceData();
 
@@ -80,6 +98,82 @@ describe("client-space-data", () => {
     expect(data.workspaceItems).toHaveLength(0);
   });
 
+  it("retourne un etat Supabase vide honnete quand aucun acces actif n'existe", async () => {
+    loadServerOrganizationScopeMock.mockResolvedValue({
+      preferredOrganizationId: "org_adminbtp_001",
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+    });
+
+    const supabase = createSupabaseClientMock({
+      user: {
+        id: "user_001",
+      },
+      profile: {
+        created_at: "2026-05-22T08:00:00.000Z",
+        default_organization_id: "org_adminbtp_001",
+        email: "user@example.com",
+        full_name: "User",
+        id: "user_001",
+        internal_role: "member",
+        updated_at: "2026-05-22T08:00:00.000Z",
+      },
+      accessRows: [],
+    });
+
+    const data = await loadClientSpaceData(supabase);
+
+    expect(data).toEqual({
+      source: "supabase",
+      clientOrganizationId: "org_adminbtp_001",
+      viewerMode: "internal",
+      workspaceItems: [],
+      comments: [],
+    });
+  });
+
+  it("retourne un etat Supabase vide honnete quand le scope authentifie ne voit rien", async () => {
+    loadServerOrganizationScopeMock.mockResolvedValue({
+      preferredOrganizationId: "org_adminbtp_001",
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+    });
+
+    const supabase = createSupabaseClientMock({
+      user: {
+        id: "user_001",
+      },
+      profile: {
+        created_at: "2026-05-22T08:00:00.000Z",
+        default_organization_id: "org_adminbtp_001",
+        email: "user@example.com",
+        full_name: "User",
+        id: "user_001",
+        internal_role: "member",
+        updated_at: "2026-05-22T08:00:00.000Z",
+      },
+      accessRows: [
+        {
+          access_scope: "validation_document",
+          client_organization_id: "org_client_010",
+          created_at: "2026-05-22T08:00:00.000Z",
+          id: "access_001",
+          is_active: true,
+          organization_id: "org_hors_scope",
+          project_id: "project_001",
+        },
+      ],
+    });
+
+    const data = await loadClientSpaceData(supabase);
+
+    expect(data).toEqual({
+      source: "supabase",
+      clientOrganizationId: "org_adminbtp_001",
+      viewerMode: "internal",
+      workspaceItems: [],
+      comments: [],
+    });
+  });
+
   it("priorise l organisation par defaut si elle reste accessible", () => {
     expect(
       resolvePreferredOrganizationId(
@@ -106,3 +200,67 @@ describe("client-space-data", () => {
     expect(sanitizeClientCommentDraft({ message: "   " })).toBeNull();
   });
 });
+
+function createSupabaseClientMock(input: {
+  user: { id: string } | null;
+  profile: ClientSpaceTables["user_profiles"]["Row"] | null;
+  accessRows: ClientSpaceTables["client_portal_accesses"]["Row"][];
+  feedbackRows?: ClientSpaceTables["client_feedback_threads"]["Row"][];
+}) {
+  return {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: {
+          user: input.user,
+        },
+        error: null,
+      }),
+    },
+    from: vi.fn((table: string) => {
+      if (table === "user_profiles") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: input.profile,
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
+
+      if (table === "client_portal_accesses") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue({
+                  data: input.accessRows,
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        };
+      }
+
+      if (table === "client_feedback_threads") {
+        return {
+          select: vi.fn(() => ({
+            in: vi.fn(() => ({
+              order: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue({
+                  data: input.feedbackRows ?? [],
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        };
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    }),
+  } as unknown as Parameters<typeof loadClientSpaceData>[0];
+}

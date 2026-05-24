@@ -20,11 +20,13 @@
 
 ## Validation locale
 
-La page `/documents` permet d'afficher un template de compte rendu chantier,
-de le rendre avec des variables de demonstration et d'ouvrir un PDF simple dans
-un nouvel onglet. Elle permet aussi de regenerer un document Supabase existant
-sans recreer une nouvelle ligne, pour mettre a jour son titre, son objet, son
-corps rendu et ses variables stockees.
+La page `/documents` permet d'afficher un template ou un document reel depuis
+Supabase, d'ouvrir un PDF simple dans un nouvel onglet et de conserver un etat
+`supabase` honnete meme si la base reste vide ou partiellement incomplete. Quand
+un template ou des variables manquent encore, l'interface utilise des
+placeholders neutres plutot que des exemples demo metier. Elle permet aussi de
+regenerer un document Supabase existant sans recreer une nouvelle ligne, pour
+mettre a jour son titre, son objet, son corps rendu et ses variables stockees.
 
 ## Points de securite
 

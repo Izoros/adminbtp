@@ -39,7 +39,7 @@ export type FollowupFeedback = {
 };
 
 export type FollowupDashboardData = {
-  situation: Situation;
+  situation?: Situation;
   followups: PaymentFollowup[];
   dataOrigin: FollowupDataOrigin;
   persistenceMode: FollowupPersistenceMode;

@@ -1,4 +1,5 @@
 import {
+  buildEmptySupabaseSignatureWorkflowData,
   buildDemoSignatureWorkflowData,
   buildSignatureWorkflowDataFromRows,
   extractWhatsappSummary,
@@ -199,9 +200,53 @@ describe("alimentation signatures", () => {
       documentRow,
     );
 
+    expect(workflowData).not.toBeNull();
     expect(workflowData?.source).toBe("supabase");
     expect(workflowData?.auditEntries).toHaveLength(1);
-    expect(workflowData?.request.documentTitle).toBe("Compte rendu chantier");
+    expect(workflowData?.request?.documentTitle).toBe("Compte rendu chantier");
+  });
+
+  it("conserve un etat Supabase partiel si le profil est introuvable", () => {
+    const requestRow: Tables<"signature_requests"> = {
+      id: "signature_request_supabase_003",
+      document_id: "document_003",
+      organization_id: "org_001",
+      requested_by: "user_001",
+      approver_id: null,
+      signature_profile_id: "signature_profile_missing",
+      status: "pending_internal_validation",
+      validation_notes: null,
+      whatsapp_payload: {},
+      created_at: "2026-05-22T00:00:00.000Z",
+      updated_at: "2026-05-22T00:00:00.000Z",
+    };
+    const documentRow: Tables<"documents"> = {
+      id: "document_003",
+      template_id: "template_003",
+      title: "Visa facade",
+      subject: "Objet facade",
+      body_rendered: "Contenu",
+      status: "generated",
+      organization_id: "org_001",
+      project_id: null,
+      metadata: {},
+      created_at: "2026-05-22T00:00:00.000Z",
+      created_by: "user_001",
+      updated_at: "2026-05-22T00:00:00.000Z",
+    };
+
+    const workflowData = buildSignatureWorkflowDataFromRows(
+      null,
+      requestRow,
+      [],
+      documentRow,
+    );
+
+    expect(workflowData?.source).toBe("supabase");
+    expect(workflowData?.profile).toBeNull();
+    expect(workflowData?.request?.documentTitle).toBe("Visa facade");
+    expect(workflowData?.auditEntries).toEqual([]);
+    expect(workflowData?.sourceMessage).toContain("profil de signature est introuvable");
   });
 
   it("remplace les notes vides par le contexte WhatsApp si disponible", () => {
@@ -235,7 +280,8 @@ describe("alimentation signatures", () => {
 
     const workflowData = buildSignatureWorkflowDataFromRows(profileRow, requestRow, []);
 
-    expect(workflowData?.request.validationNotes).toBe(
+    expect(workflowData).not.toBeNull();
+    expect(workflowData?.request?.validationNotes).toBe(
       "Validation a lancer avant envoi client.",
     );
   });
@@ -270,6 +316,18 @@ describe("alimentation signatures", () => {
       destination: "+262639000001",
       preparedAt: "2026-05-23T11:15:00.000Z",
     });
+  });
+
+  it("retourne un etat Supabase vide honnete sans injecter de demo", () => {
+    const workflowData = buildEmptySupabaseSignatureWorkflowData(
+      "Supabase est accessible, mais aucune demande n'est disponible.",
+    );
+
+    expect(workflowData.source).toBe("supabase");
+    expect(workflowData.profile).toBeNull();
+    expect(workflowData.request).toBeNull();
+    expect(workflowData.auditEntries).toEqual([]);
+    expect(workflowData.sourceMessage).toContain("aucune demande");
   });
 
   it("retombe sur la demo avec un message explicite", () => {

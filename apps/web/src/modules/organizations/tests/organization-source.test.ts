@@ -12,7 +12,7 @@ describe("source des organisations", () => {
     expect(result.organizations.length).toBeGreaterThan(0);
   });
 
-  it("bascule sur la demonstration quand les rattachements sont vides", () => {
+  it("renvoie un etat vide Supabase quand aucun rattachement exploitable n'existe encore", () => {
     const result = resolveOrganizationAccessData({
       user: {
         id: "user_real_001",
@@ -24,8 +24,35 @@ describe("source des organisations", () => {
       memberships: [],
     });
 
-    expect(result.source).toBe("demo");
-    expect(result.sourceDetail).toMatch(/Base vide/i);
+    expect(result.source).toBe("supabase");
+    expect(result.organizations).toEqual([]);
+    expect(result.memberships).toEqual([]);
+    expect(result.sourceDetail).toMatch(/aucune organisation exploitable/i);
+  });
+
+  it("renvoie un etat vide Supabase si toutes les organisations accessibles sont orphelines", () => {
+    const result = resolveOrganizationAccessData({
+      user: {
+        id: "user_real_001",
+        email: "chef@adminbtp.yt",
+        fullName: "Chef de projet",
+        internalRole: "member",
+        defaultOrganizationId: "org_missing_002",
+      },
+      organizations: [],
+      memberships: [
+        {
+          organizationId: "org_missing_002",
+          userId: "user_real_001",
+          role: "org_admin",
+        },
+      ],
+    });
+
+    expect(result.source).toBe("supabase");
+    expect(result.organizations).toEqual([]);
+    expect(result.memberships).toEqual([]);
+    expect(result.user.defaultOrganizationId).toBeUndefined();
   });
 
   it("conserve les donnees Supabase quand elles sont exploitables", () => {

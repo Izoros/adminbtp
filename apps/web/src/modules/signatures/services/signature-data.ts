@@ -20,8 +20,8 @@ type AuditLogRow = Tables<"audit_logs">;
 type DocumentRow = Tables<"documents">;
 
 export type SignatureWorkflowData = {
-  profile: SignatureProfile;
-  request: SignatureRequest;
+  profile: SignatureProfile | null;
+  request: SignatureRequest | null;
   auditEntries: AuditLogEntry[];
   source: "supabase" | "demo";
   sourceMessage: string;
@@ -189,20 +189,21 @@ export function buildSignatureWorkflowDataFromRows(
     auditFallbackReason?: string;
   },
 ): SignatureWorkflowData | null {
-  if (!profileRow || !requestRow) {
+  if (!requestRow) {
     return null;
   }
 
   const mappedRequest = mapSignatureRequestRow(requestRow, documentRow);
   const whatsappSummary = extractWhatsappSummary(requestRow.whatsapp_payload);
   const sourceMessage = buildSignatureSourceMessage({
+    profileAvailable: Boolean(profileRow),
     documentAvailable: Boolean(documentRow),
     auditFallbackReason: options?.auditFallbackReason,
     whatsappSummaryAvailable: Boolean(whatsappSummary),
   });
 
   return {
-    profile: mapSignatureProfileRow(profileRow),
+    profile: profileRow ? mapSignatureProfileRow(profileRow) : null,
     request: {
       ...mappedRequest,
       validationNotes:
@@ -210,9 +211,21 @@ export function buildSignatureWorkflowDataFromRows(
         whatsappSummary ??
         "Aucune note de validation renseignee pour cette demande.",
     },
-    auditEntries: auditRows.length > 0 ? auditRows.map(mapAuditLogRow) : demoAuditLogEntries,
+    auditEntries: auditRows.map(mapAuditLogRow),
     source: "supabase",
     sourceMessage,
+  };
+}
+
+export function buildEmptySupabaseSignatureWorkflowData(
+  reason: string,
+): SignatureWorkflowData {
+  return {
+    profile: null,
+    request: null,
+    auditEntries: [],
+    source: "supabase",
+    sourceMessage: reason,
   };
 }
 
@@ -243,16 +256,16 @@ export async function getSignatureWorkflowData(): Promise<SignatureWorkflowData>
       .limit(1);
 
     if (requestError) {
-      return buildDemoSignatureWorkflowData(
-        "Supabase a repondu avec une erreur sur les demandes de signature. Repli automatique sur les donnees de demonstration.",
+      return buildEmptySupabaseSignatureWorkflowData(
+        "Supabase est accessible, mais la lecture des demandes de signature a echoue.",
       );
     }
 
     const requestRow = requestRows?.[0] ?? null;
 
     if (!requestRow) {
-      return buildDemoSignatureWorkflowData(
-        "Base disponible mais vide pour le module signatures. Repli sur les donnees de demonstration.",
+      return buildEmptySupabaseSignatureWorkflowData(
+        "Supabase est accessible, mais aucune demande de signature n'est encore disponible.",
       );
     }
 
@@ -260,12 +273,6 @@ export async function getSignatureWorkflowData(): Promise<SignatureWorkflowData>
       resolveSignatureProfileRow(supabase, requestRow),
       resolveDocumentRow(supabase, requestRow.document_id),
     ]);
-
-    if (!profileRow) {
-      return buildDemoSignatureWorkflowData(
-        "Profil de signature introuvable dans Supabase. Repli sur les donnees de demonstration.",
-      );
-    }
 
     const { data: auditRows, error: auditError } = await supabase
       .from("audit_logs")
@@ -283,17 +290,17 @@ export async function getSignatureWorkflowData(): Promise<SignatureWorkflowData>
         {
           auditFallbackReason:
             auditError ?
-              "Le journal d'audit Supabase est indisponible. Le fil d'audit de demonstration prend le relais."
+              "La demande de signature est chargee depuis Supabase, mais le journal d'audit est indisponible."
             : undefined,
         },
       ) ??
-      buildDemoSignatureWorkflowData(
-        "Jeu de donnees incomplet dans Supabase. Repli sur les donnees de demonstration.",
+      buildEmptySupabaseSignatureWorkflowData(
+        "Supabase est accessible, mais les donnees du workflow de signature sont incompletes.",
       )
     );
   } catch {
-    return buildDemoSignatureWorkflowData(
-      "Base indisponible pour le module signatures. Repli sur les donnees de demonstration.",
+    return buildEmptySupabaseSignatureWorkflowData(
+      "Supabase est accessible, mais le workflow de signature n'a pas pu etre reconstruit.",
     );
   }
 }
@@ -346,16 +353,26 @@ async function resolveDocumentRow(
 }
 
 function buildSignatureSourceMessage({
+  profileAvailable,
   documentAvailable,
   auditFallbackReason,
   whatsappSummaryAvailable,
 }: {
+  profileAvailable: boolean;
   documentAvailable: boolean;
   auditFallbackReason?: string;
   whatsappSummaryAvailable: boolean;
 }): string {
   if (auditFallbackReason) {
     return auditFallbackReason;
+  }
+
+  if (!profileAvailable && documentAvailable) {
+    return "Demande et document associe charges depuis Supabase, mais le profil de signature est introuvable.";
+  }
+
+  if (!profileAvailable) {
+    return "Demande chargee depuis Supabase, mais le profil de signature est introuvable.";
   }
 
   if (documentAvailable && whatsappSummaryAvailable) {

@@ -24,6 +24,9 @@ autorisees, le journal d'audit et une charge utile WhatsApp preparatoire.
 Quand une demande passe en `pending_signature`, le payload WhatsApp est
 maintenant prepare puis persiste dans `signature_requests.whatsapp_payload`
 pour pouvoir etre relu, audite et reutilise par les integrations aval.
+Quand Supabase est accessible mais que le jeu de donnees est vide ou partiellement
+incomplet, la page conserve des etats `supabase` explicites et n'injecte plus de
+fausses donnees de demonstration ni de faux journal d'audit.
 
 ## Points de securite
 

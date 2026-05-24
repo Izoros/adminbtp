@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildEmptyConsultingDashboardData,
   buildDemoConsultingDashboardData,
+  loadConsultingDashboardData,
   mapConsultingHourRow,
   mapConsultingMissionRow,
   mapExpertProfileRow,
@@ -14,8 +15,23 @@ import {
 import type { SupabaseDatabase } from "@/types/supabase";
 
 type ConsultingTables = SupabaseDatabase["public"]["Tables"];
+const loadServerOrganizationScopeMock = vi.fn();
+
+vi.mock("@/lib/permissions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/permissions")>("@/lib/permissions");
+
+  return {
+    ...actual,
+    loadServerOrganizationScope: (...args: unknown[]) =>
+      loadServerOrganizationScopeMock(...args),
+  };
+});
 
 describe("consulting-data", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("replie proprement sur le jeu de demonstration", () => {
     const data = buildDemoConsultingDashboardData();
 
@@ -199,5 +215,216 @@ describe("consulting-data", () => {
         requestType: "invalide",
       }),
     ).toBeNull();
+  });
+
+  it("garde un etat Supabase vide quand l organisation courante ne contient encore aucune demande", async () => {
+    loadServerOrganizationScopeMock.mockResolvedValue({
+      accessibleOrganizationIds: ["org_001", "org_002"],
+      preferredOrganizationId: "org_001",
+    });
+
+    const supabase = {
+      from(table: string) {
+        if (table === "expert_profiles") {
+          return {
+            select: () => ({
+              eq: async () => ({
+                data: [],
+                error: null,
+              }),
+            }),
+          };
+        }
+
+        if (table === "expert_requests") {
+          return {
+            select: () => ({
+              in: () => ({
+                order: () => ({
+                  limit: async () => ({
+                    data: [
+                      {
+                        assigned_expert_id: "expert_123",
+                        closed_at: null,
+                        company_name: null,
+                        created_at: "2026-05-23T08:00:00.000Z",
+                        delivery_mode: "human",
+                        description: null,
+                        id: "request_org_002",
+                        intake_channel: "platform",
+                        organization_id: "org_002",
+                        priority: 3,
+                        qualified_at: null,
+                        related_entity_id: "project_002",
+                        related_entity_type: "project",
+                        request_number: "ER-002",
+                        request_type: "technical_question",
+                        requested_by_email: null,
+                        requested_by_name: null,
+                        requested_due_at: null,
+                        status: "submitted",
+                        title: "Question sur autre organisation",
+                        updated_at: "2026-05-23T08:00:00.000Z",
+                      },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "consulting_missions") {
+          return {
+            select: () => ({
+              in: () => ({
+                order: () => ({
+                  limit: async () => ({
+                    data: [
+                      {
+                        billing_mode: "hourly",
+                        completed_at: null,
+                        consumed_hours: 2,
+                        created_at: "2026-05-23T08:00:00.000Z",
+                        currency_code: "EUR",
+                        description: null,
+                        due_at: null,
+                        expert_request_id: "request_org_002",
+                        fixed_fee_cents: null,
+                        hourly_rate_cents: null,
+                        id: "mission_org_002",
+                        lead_expert_id: null,
+                        mission_number: "CM-002",
+                        organization_id: "org_002",
+                        related_entity_id: "project_002",
+                        related_entity_type: "project",
+                        sold_hours: 4,
+                        started_at: null,
+                        status: "approved",
+                        title: "Mission autre organisation",
+                        updated_at: "2026-05-23T08:00:00.000Z",
+                      },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "consulting_hours") {
+          return {
+            select: () => ({
+              in: () => ({
+                order: () => ({
+                  limit: async () => ({
+                    data: [
+                      {
+                        consulting_mission_id: "mission_org_002",
+                        expert_profile_id: null,
+                        work_date: "2026-05-23",
+                        hours_spent: 2,
+                        billable_hours: 2,
+                        activity_type: null,
+                        notes: null,
+                        related_entity_type: null,
+                        related_entity_id: null,
+                        created_at: "2026-05-23T08:00:00.000Z",
+                        updated_at: "2026-05-23T08:00:00.000Z",
+                        consulting_missions: {
+                          organization_id: "org_002",
+                        },
+                      },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "technical_reviews") {
+          return {
+            select: () => ({
+              in: () => ({
+                order: () => ({
+                  limit: async () => ({
+                    data: [
+                      {
+                        consulting_mission_id: "mission_org_002",
+                        created_at: "2026-05-23T08:00:00.000Z",
+                        delivered_at: null,
+                        delivery_mode: "human",
+                        expert_request_id: "request_org_002",
+                        findings: "RAS",
+                        id: "review_org_002",
+                        organization_id: "org_002",
+                        recommendations: "RAS",
+                        related_entity_id: "project_002",
+                        related_entity_type: "project",
+                        review_number: "TR-002",
+                        review_type: "technical_review",
+                        reviewed_at: null,
+                        reviewer_expert_id: null,
+                        source_document_id: null,
+                        source_document_type: null,
+                        status: "draft",
+                        summary: null,
+                        title: "Avis autre organisation",
+                        updated_at: "2026-05-23T08:00:00.000Z",
+                      },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+
+        throw new Error(`Table inattendue: ${table}`);
+      },
+    } as never;
+
+    const data = await loadConsultingDashboardData(supabase);
+
+    expect(data.source).toBe("supabase");
+    expect(data.currentOrganizationId).toBe("org_001");
+    expect(data.request).toBeNull();
+    expect(data.mission).toBeNull();
+    expect(data.missionHours).toEqual([]);
+    expect(data.review).toBeNull();
+  });
+
+  it("retient la premiere organisation accessible quand aucune organisation preferee n est definie", async () => {
+    loadServerOrganizationScopeMock.mockResolvedValue({
+      accessibleOrganizationIds: ["org_010", "org_020"],
+      preferredOrganizationId: null,
+    });
+
+    const emptyResponse = async () => ({ data: [], error: null });
+    const supabase = {
+      from() {
+        return {
+          select: () => ({
+            eq: emptyResponse,
+            in: () => ({
+              order: () => ({
+                limit: emptyResponse,
+              }),
+            }),
+          }),
+        };
+      },
+    } as never;
+
+    const data = await loadConsultingDashboardData(supabase);
+
+    expect(data.source).toBe("supabase");
+    expect(data.currentOrganizationId).toBe("org_010");
+    expect(data.request).toBeNull();
   });
 });

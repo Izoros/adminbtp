@@ -156,8 +156,31 @@ describe("chargement tresorerie via Supabase", () => {
     expect(data.followups).toHaveLength(4);
   });
 
+  it("reste en source Supabase vide si aucune situation n'existe encore", async () => {
+    const reader: FollowupSupabaseReader = {
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
+      listSituations: async () => [],
+      listFollowupsBySituation: async () => [],
+    };
+
+    const data = await getFollowupDashboardData(
+      {
+        organizationId: "org_adminbtp_001",
+      },
+      reader,
+    );
+
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.situation).toBeUndefined();
+    expect(data.followups).toHaveLength(0);
+    expect(data.fallbackReason).toContain("Aucune situation");
+  });
+
   it("retourne les relances persistantes si elles existent en base", async () => {
     const reader: FollowupSupabaseReader = {
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
       listSituations: async () => [createSituation()],
       listFollowupsBySituation: async () => [createFollowup()],
     };
@@ -173,6 +196,8 @@ describe("chargement tresorerie via Supabase", () => {
   it("transmet les filtres de recherche a la lecture Supabase", async () => {
     const listSituations = vi.fn(async () => [createSituation()]);
     const reader: FollowupSupabaseReader = {
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
       listSituations,
       listFollowupsBySituation: async () => [createFollowup()],
     };
@@ -191,11 +216,13 @@ describe("chargement tresorerie via Supabase", () => {
       projectId: "project_001",
       situationId: "situation_001",
     });
-    expect(data.situation.id).toBe("situation_001");
+    expect(data.situation?.id).toBe("situation_001");
   });
 
   it("recalcule le planning si la situation existe mais pas encore les relances", async () => {
     const reader: FollowupSupabaseReader = {
+      accessibleOrganizationIds: ["org_adminbtp_001"],
+      preferredOrganizationId: "org_adminbtp_001",
       listSituations: async () => [createSituation()],
       listFollowupsBySituation: async () => [],
     };

@@ -20,6 +20,9 @@ La page `/client-space` expose uniquement les elements lies a
 `org_client_004`, un fil de commentaires associe a une validation et,
 en mode Supabase, des decisions client reelles `valider` / `refuser` /
 `demander des ajustements` persistees dans `client_feedback_threads`.
+Quand Supabase est accessible mais qu'aucun acces reel n'est visible dans le
+scope courant, l'ecran reste maintenant en etat vide Supabase honnete au lieu
+de rebasculer vers la demonstration.
 
 ## Points de securite
 

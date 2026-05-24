@@ -8,6 +8,7 @@
 - generation automatique des relances J+7, J+15, J+30, J+45
 - page `/followups`
 - tests de calcul d'echeancier
+- etat vide Supabase conserve quand aucune situation n'existe encore
 - persistance reelle du planning de relance dans Supabase
 - mise a jour reelle du statut d'une relance depuis l'interface
 - feedback utilisateur relaie via les query params de la page
@@ -27,6 +28,7 @@ Quand la source est `supabase`, l'interface permet maintenant:
 - de persister un planning de relance genere a la volee
 - de piloter le statut des relances deja persistées
 - d'afficher un message de retour succes/erreur apres action serveur
+- et de rester sur un vrai etat vide si aucune situation n'est encore disponible
 
 ## Points de securite
 
@@ -44,3 +46,4 @@ Quand la source est `supabase`, l'interface permet maintenant:
 - `build` : OK
 - validation locale du planning J+7/J+15/J+30/J+45 : OK
 - persistance et transitions de statut des relances : OK
+- validation locale de l'etat vide Supabase cote relances : OK

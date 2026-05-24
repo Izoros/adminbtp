@@ -76,6 +76,31 @@ function buildDemoOrganizationAccessData(sourceDetail: string): OrganizationAcce
   };
 }
 
+function buildSupabaseOrganizationAccessData(
+  snapshot: OrganizationSnapshot,
+  sourceDetail: string,
+): OrganizationAccessData {
+  const availableOrganizationIds = new Set(
+    snapshot.organizations.map((organization) => organization.id),
+  );
+  const defaultOrganizationId =
+    snapshot.memberships.length > 0 &&
+    availableOrganizationIds.has(snapshot.user?.defaultOrganizationId ?? "")
+      ? snapshot.user?.defaultOrganizationId
+      : snapshot.memberships[0]?.organizationId;
+
+  return {
+    user: {
+      ...snapshot.user!,
+      defaultOrganizationId,
+    },
+    organizations: snapshot.organizations,
+    memberships: snapshot.memberships,
+    source: "supabase",
+    sourceDetail,
+  };
+}
+
 function normalizeOrganizationSnapshot(
   snapshot: OrganizationSnapshot,
 ): OrganizationSnapshot {
@@ -107,30 +132,16 @@ export function resolveOrganizationAccessData(
     normalizedSnapshot.organizations.length === 0 ||
     normalizedSnapshot.memberships.length === 0
   ) {
-    return buildDemoOrganizationAccessData(
-      "Base vide ou non exploitable pour les organisations, bascule sur les donnees de demonstration.",
+    return buildSupabaseOrganizationAccessData(
+      normalizedSnapshot,
+      "Supabase est accessible, mais aucune organisation exploitable n'est encore disponible pour cette session.",
     );
   }
 
-  const availableOrganizationIds = new Set(
-    normalizedSnapshot.organizations.map((organization) => organization.id),
+  return buildSupabaseOrganizationAccessData(
+    normalizedSnapshot,
+    `${normalizedSnapshot.organizations.length} organisation(s) chargee(s) depuis Supabase avec application des regles RLS.`,
   );
-  const defaultOrganizationId = availableOrganizationIds.has(
-    normalizedSnapshot.user.defaultOrganizationId ?? "",
-  )
-    ? normalizedSnapshot.user.defaultOrganizationId
-    : normalizedSnapshot.memberships[0]?.organizationId;
-
-  return {
-    user: {
-      ...normalizedSnapshot.user,
-      defaultOrganizationId,
-    },
-    organizations: normalizedSnapshot.organizations,
-    memberships: normalizedSnapshot.memberships,
-    source: "supabase",
-    sourceDetail: `${normalizedSnapshot.organizations.length} organisation(s) chargee(s) depuis Supabase avec application des regles RLS.`,
-  };
 }
 
 export async function loadOrganizationAccessData(

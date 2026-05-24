@@ -35,10 +35,12 @@ export function SignatureWorkflow({
 }: SignatureWorkflowProps) {
   const { auditEntries, profile, request, source, sourceMessage } = workflowData;
   const whatsappDraft =
-    request.whatsappPayload ??
-    prepareWhatsappValidationMessage(request, {
-      profile,
-    });
+    request ?
+      request.whatsappPayload ??
+      prepareWhatsappValidationMessage(request, {
+        profile: profile ?? undefined,
+      })
+    : null;
   const [createState, createFormAction, isCreatePending] = useActionState(
     createAction,
     initialSignatureMutationState,
@@ -47,6 +49,8 @@ export function SignatureWorkflow({
     transitionAction,
     initialSignatureMutationState,
   );
+  const canTransitionRequest = Boolean(request);
+  const canCreateRequest = Boolean(request && profile);
 
   return (
     <section className="space-y-6">
@@ -77,86 +81,94 @@ export function SignatureWorkflow({
           <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
             Demande
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
-            Validation de document chantier
-          </h2>
+          {request ? (
+            <>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+                Validation de document chantier
+              </h2>
 
-          <div className="mt-5 space-y-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 text-sm text-stone-700">
-            <p>Profil de signature : {profile.label}</p>
-            <p>Signataire : {profile.signerName}</p>
-            <p>Role : {profile.signerRole}</p>
-            <p>Signature WhatsApp : {profile.whatsappEnabled ? "activee" : "desactivee"}</p>
-            <p>Document lie : {request.documentTitle ?? request.documentId}</p>
-            <p>Statut document : {request.documentStatus ?? "non remonte"}</p>
-            <p>Statut courant : {request.status}</p>
-            <p>Notes : {request.validationNotes}</p>
-          </div>
+              <div className="mt-5 space-y-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5 text-sm text-stone-700">
+                <p>Profil de signature : {profile?.label ?? "profil introuvable dans Supabase"}</p>
+                <p>Signataire : {profile?.signerName ?? "non renseigne"}</p>
+                <p>Role : {profile?.signerRole ?? "non renseigne"}</p>
+                <p>Signature WhatsApp : {profile ? (profile.whatsappEnabled ? "activee" : "desactivee") : "indeterminee"}</p>
+                <p>Document lie : {request.documentTitle ?? request.documentId}</p>
+                <p>Statut document : {request.documentStatus ?? "non remonte"}</p>
+                <p>Statut courant : {request.status}</p>
+                <p>Notes : {request.validationNotes}</p>
+              </div>
 
-          <div className="mt-5 rounded-[1.5rem] border border-amber-200/70 bg-[linear-gradient(135deg,#fffaf4_0%,#f8efe0_100%)] p-5 text-sm text-stone-700">
-            <p>
-              Transition vers <strong>`pending_signature`</strong> :
-              {" "}
-              {canTransitionSignatureRequest(request.status, "pending_signature")
-                ? "autorisee"
-                : "bloquee"}
-            </p>
-            <p className="mt-3">
-              Transition vers <strong>`approved`</strong> :
-              {" "}
-              {canTransitionSignatureRequest(request.status, "approved")
-                ? "autorisee"
-                : "bloquee tant que la validation interne n'est pas terminee"}
-            </p>
-          </div>
+              <div className="mt-5 rounded-[1.5rem] border border-amber-200/70 bg-[linear-gradient(135deg,#fffaf4_0%,#f8efe0_100%)] p-5 text-sm text-stone-700">
+                <p>
+                  Transition vers <strong>`pending_signature`</strong> :
+                  {" "}
+                  {canTransitionSignatureRequest(request.status, "pending_signature")
+                    ? "autorisee"
+                    : "bloquee"}
+                </p>
+                <p className="mt-3">
+                  Transition vers <strong>`approved`</strong> :
+                  {" "}
+                  {canTransitionSignatureRequest(request.status, "approved")
+                    ? "autorisee"
+                    : "bloquee tant que la validation interne n'est pas terminee"}
+                </p>
+              </div>
 
-          <form action={transitionFormAction} className="mt-5 space-y-4 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
-            <input type="hidden" name="requestId" value={request.id} />
-            <input type="hidden" name="organizationId" value={request.organizationId} />
-            <input type="hidden" name="currentStatus" value={request.status} />
-            <input type="hidden" name="actorUserId" value={request.requestedBy} />
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="submit"
-                name="nextStatus"
-                value="pending_signature"
-                className="h-10 rounded-full px-4 text-sm"
-                disabled={isTransitionPending}
-              >
-                Lancer la signature
-              </Button>
-              <Button
-                type="submit"
-                name="nextStatus"
-                value="approved"
-                variant="outline"
-                className="h-10 rounded-full px-4 text-sm"
-                disabled={isTransitionPending}
-              >
-                Approuver
-              </Button>
-              <Button
-                type="submit"
-                name="nextStatus"
-                value="rejected"
-                variant="destructive"
-                className="h-10 rounded-full px-4 text-sm"
-                disabled={isTransitionPending}
-              >
-                Rejeter
-              </Button>
+              <form action={transitionFormAction} className="mt-5 space-y-4 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-5">
+                <input type="hidden" name="requestId" value={request.id} />
+                <input type="hidden" name="organizationId" value={request.organizationId} />
+                <input type="hidden" name="currentStatus" value={request.status} />
+                <input type="hidden" name="actorUserId" value={request.requestedBy} />
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="submit"
+                    name="nextStatus"
+                    value="pending_signature"
+                    className="h-10 rounded-full px-4 text-sm"
+                    disabled={isTransitionPending || !canTransitionRequest}
+                  >
+                    Lancer la signature
+                  </Button>
+                  <Button
+                    type="submit"
+                    name="nextStatus"
+                    value="approved"
+                    variant="outline"
+                    className="h-10 rounded-full px-4 text-sm"
+                    disabled={isTransitionPending || !canTransitionRequest}
+                  >
+                    Approuver
+                  </Button>
+                  <Button
+                    type="submit"
+                    name="nextStatus"
+                    value="rejected"
+                    variant="destructive"
+                    className="h-10 rounded-full px-4 text-sm"
+                    disabled={isTransitionPending || !canTransitionRequest}
+                  >
+                    Rejeter
+                  </Button>
+                </div>
+                {transitionState.status !== "idle" ? (
+                  <p
+                    className={`rounded-2xl px-4 py-3 text-sm ${
+                      transitionState.status === "success" ?
+                        "bg-emerald-50 text-emerald-800"
+                      : "bg-rose-50 text-rose-800"
+                    }`}
+                  >
+                    {transitionState.message}
+                  </p>
+                ) : null}
+              </form>
+            </>
+          ) : (
+            <div className="mt-4 rounded-[1.5rem] border border-dashed border-stone-200 bg-stone-50 p-5 text-sm text-stone-600">
+              Aucune demande de signature Supabase n&apos;est encore disponible pour l&apos;organisation courante.
             </div>
-            {transitionState.status !== "idle" ? (
-              <p
-                className={`rounded-2xl px-4 py-3 text-sm ${
-                  transitionState.status === "success" ?
-                    "bg-emerald-50 text-emerald-800"
-                  : "bg-rose-50 text-rose-800"
-                }`}
-              >
-                {transitionState.message}
-              </p>
-            ) : null}
-          </form>
+          )}
         </article>
 
         <article className="space-y-6">
@@ -177,6 +189,11 @@ export function SignatureWorkflow({
                   </p>
                 </div>
               ))}
+              {auditEntries.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                  Aucun journal d&apos;audit Supabase n&apos;est disponible pour cette demande.
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -184,14 +201,22 @@ export function SignatureWorkflow({
             <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
               Preparation WhatsApp
             </p>
-            <div className="mt-4 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
-              <p>Destination : {whatsappDraft.destination}</p>
-              <p>Etat : {whatsappDraft.destinationStatus}</p>
-              <p>Prepare le : {whatsappDraft.preparedAt}</p>
-            </div>
-            <pre className="mt-4 whitespace-pre-wrap rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
+            {whatsappDraft ? (
+              <>
+                <div className="mt-4 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
+                  <p>Destination : {whatsappDraft.destination}</p>
+                  <p>Etat : {whatsappDraft.destinationStatus}</p>
+                  <p>Prepare le : {whatsappDraft.preparedAt}</p>
+                </div>
+                <pre className="mt-4 whitespace-pre-wrap rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
 {JSON.stringify(whatsappDraft, null, 2)}
-            </pre>
+                </pre>
+              </>
+            ) : (
+              <div className="mt-4 rounded-[1.5rem] border border-dashed border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+                Aucun payload WhatsApp ne peut etre prepare tant qu&apos;aucune demande n&apos;est visible.
+              </div>
+            )}
           </div>
 
           <form action={createFormAction} className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
@@ -199,18 +224,27 @@ export function SignatureWorkflow({
               Nouvelle demande
             </p>
             <div className="mt-4 space-y-3">
-              <input type="hidden" name="documentId" value={request.documentId} />
-              <input type="hidden" name="organizationId" value={request.organizationId} />
-              <input type="hidden" name="signatureProfileId" value={profile.id} />
-              <input type="hidden" name="requestedBy" value={request.requestedBy} />
+              <input type="hidden" name="documentId" value={request?.documentId ?? ""} />
+              <input type="hidden" name="organizationId" value={request?.organizationId ?? ""} />
+              <input type="hidden" name="signatureProfileId" value={profile?.id ?? ""} />
+              <input type="hidden" name="requestedBy" value={request?.requestedBy ?? ""} />
               <Input
                 name="validationNotes"
-                defaultValue={request.validationNotes}
+                defaultValue={request?.validationNotes}
                 placeholder="Notes de validation"
               />
-              <Button type="submit" className="h-10 rounded-full px-4 text-sm" disabled={isCreatePending}>
+              <Button
+                type="submit"
+                className="h-10 rounded-full px-4 text-sm"
+                disabled={isCreatePending || !canCreateRequest}
+              >
                 Creer une nouvelle demande
               </Button>
+              {!canCreateRequest ? (
+                <p className="text-sm text-stone-500">
+                  La creation d&apos;une nouvelle demande necessite une demande et un profil de signature Supabase resolus.
+                </p>
+              ) : null}
               {createState.status !== "idle" ? (
                 <p
                   className={`rounded-2xl px-4 py-3 text-sm ${

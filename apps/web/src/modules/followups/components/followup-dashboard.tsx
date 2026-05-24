@@ -85,6 +85,13 @@ export function FollowupDashboard({
         ) : null}
       </div>
 
+      {!situation ? (
+        <div className="rounded-[1.75rem] border border-dashed border-stone-300 bg-white/70 p-8 text-sm text-stone-600">
+          Aucune situation exploitable n&apos;est encore disponible sur le perimetre courant.
+        </div>
+      ) : null}
+
+      {situation ? (
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <article className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
           <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
@@ -159,6 +166,7 @@ export function FollowupDashboard({
           </div>
         </article>
       </div>
+      ) : null}
     </section>
   );
 }

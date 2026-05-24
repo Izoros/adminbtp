@@ -201,6 +201,13 @@ export function buildEmptyConsultingDashboardData(
   };
 }
 
+function resolveCurrentOrganizationId(input: {
+  preferredOrganizationId: string | null;
+  accessibleOrganizationIds: string[];
+}) {
+  return input.preferredOrganizationId ?? input.accessibleOrganizationIds[0] ?? null;
+}
+
 function buildSupabaseConsultingDashboardData(
   currentOrganizationId: string | null,
   expertProfiles: ExpertProfile[],
@@ -288,6 +295,11 @@ export async function loadConsultingDashboardData(
       return buildDemoConsultingDashboardData();
     }
 
+    const currentOrganizationId = resolveCurrentOrganizationId({
+      preferredOrganizationId: userScope.preferredOrganizationId,
+      accessibleOrganizationIds: userScope.accessibleOrganizationIds,
+    });
+
     const expertProfiles = (expertProfileRows ?? [])
       .filter(
         (row) =>
@@ -296,21 +308,27 @@ export async function loadConsultingDashboardData(
       )
       .map(mapExpertProfileRow);
 
-    const scopedRequestRows = (requestRows ?? []).filter(
-      (row) =>
-        row.organization_id === userScope.preferredOrganizationId ||
-        !userScope.preferredOrganizationId,
+    const scopedRequestRows = currentOrganizationId
+      ? (requestRows ?? []).filter((row) => row.organization_id === currentOrganizationId)
+      : requestRows ?? [];
+    const scopedMissionRows = currentOrganizationId
+      ? (missionRows ?? []).filter((row) => row.organization_id === currentOrganizationId)
+      : missionRows ?? [];
+    const scopedReviewRows = currentOrganizationId
+      ? (reviewRows ?? []).filter((row) => row.organization_id === currentOrganizationId)
+      : reviewRows ?? [];
+    const scopedMissionIds = new Set(scopedMissionRows.map((row) => row.id));
+    const scopedHourRows = (hourRows ?? []).filter((row) =>
+      scopedMissionIds.has((row as ConsultingHourRow).consulting_mission_id),
     );
-    const rowsToUse = scopedRequestRows.length > 0 ? scopedRequestRows : requestRows ?? [];
-    const requests = rowsToUse.map(mapExpertRequestRow);
-    const missions = (missionRows ?? []).map(mapConsultingMissionRow);
-    const hours = (hourRows ?? []).map((row) =>
-      mapConsultingHourRow(row as ConsultingHourRow),
-    );
-    const reviews = (reviewRows ?? []).map(mapTechnicalReviewRow);
+
+    const requests = scopedRequestRows.map(mapExpertRequestRow);
+    const missions = scopedMissionRows.map(mapConsultingMissionRow);
+    const hours = scopedHourRows.map((row) => mapConsultingHourRow(row as ConsultingHourRow));
+    const reviews = scopedReviewRows.map(mapTechnicalReviewRow);
 
     return buildSupabaseConsultingDashboardData(
-      userScope.preferredOrganizationId,
+      currentOrganizationId,
       expertProfiles,
       requests,
       missions,

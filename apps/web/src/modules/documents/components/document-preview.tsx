@@ -38,7 +38,16 @@ export function DocumentPreview({
   updateStatusAction = updateDocumentStatusAction,
   regenerateAction = regenerateDocumentAction,
 }: DocumentPreviewProps) {
-  const { template, document, source, sourceMessage, variableSource, variables } = previewData;
+  const {
+    template,
+    document,
+    source,
+    sourceMessage,
+    variableSource,
+    variables,
+    hasPersistedTemplate,
+    hasPersistedDocument,
+  } = previewData;
   const [message, setMessage] = useState<string | null>(null);
   const [createState, createFormAction, isCreatePending] = useActionState(
     createAction,
@@ -52,6 +61,11 @@ export function DocumentPreview({
     regenerateAction,
     initialDocumentMutationState,
   );
+  const canCreateInSupabase = source === "supabase" && hasPersistedTemplate;
+  const canUpdatePersistedDocument =
+    source === "supabase" && hasPersistedDocument && Boolean(document.organizationId);
+  const canRegeneratePersistedDocument =
+    canUpdatePersistedDocument && hasPersistedTemplate;
 
   async function handleGeneratePdf() {
     const pdfBytes = await generateSimplePdf(template, document);
@@ -106,7 +120,11 @@ export function DocumentPreview({
             <p>Signature : {template.signatureLabel}</p>
             <p>
               Variables d&apos;apercu :{" "}
-              {variableSource === "supabase_metadata" ? "issues des metadonnees Supabase" : "issues de la demonstration"}
+              {variableSource === "supabase_metadata"
+                ? "issues des metadonnees Supabase"
+                : variableSource === "supabase_placeholder"
+                  ? "non renseignees dans Supabase"
+                  : "issues de la demonstration"}
             </p>
           </div>
 
@@ -125,7 +143,7 @@ export function DocumentPreview({
                 name="nextStatus"
                 value="validated"
                 className="h-10 rounded-full px-4 text-sm"
-                disabled={isStatusPending}
+                disabled={isStatusPending || !canUpdatePersistedDocument}
               >
                 Valider le document
               </Button>
@@ -135,11 +153,16 @@ export function DocumentPreview({
                 value="archived"
                 variant="outline"
                 className="h-10 rounded-full px-4 text-sm"
-                disabled={isStatusPending}
+                disabled={isStatusPending || !canUpdatePersistedDocument}
               >
                 Archiver
               </Button>
             </div>
+            {!canUpdatePersistedDocument ? (
+              <p className="text-sm text-stone-500">
+                Le changement de statut n&apos;est disponible que pour un document deja stocke dans Supabase.
+              </p>
+            ) : null}
             {statusState.status !== "idle" ? (
               <p
                 className={`rounded-2xl px-4 py-3 text-sm ${
@@ -217,9 +240,18 @@ export function DocumentPreview({
             <Input name="progressSummary" defaultValue={variables.progress_summary} placeholder="Resume d'avancement" />
             <Input name="attentionPoint" defaultValue={variables.attention_point} placeholder="Point d'attention" />
             <Input name="senderName" defaultValue={variables.sender_name} placeholder="Nom expediteur" />
-            <Button type="submit" className="h-11 rounded-full px-5 text-sm" disabled={isCreatePending}>
+            <Button
+              type="submit"
+              className="h-11 rounded-full px-5 text-sm"
+              disabled={isCreatePending || !canCreateInSupabase}
+            >
               Creer dans Supabase
             </Button>
+            {!canCreateInSupabase ? (
+              <p className="text-sm text-stone-500">
+                La creation d&apos;un document exige d&apos;abord un template persiste dans Supabase.
+              </p>
+            ) : null}
             {createState.status !== "idle" ? (
               <p
                 className={`rounded-2xl px-4 py-3 text-sm ${
@@ -253,9 +285,19 @@ export function DocumentPreview({
             <Input name="progressSummary" defaultValue={variables.progress_summary} placeholder="Resume d'avancement" />
             <Input name="attentionPoint" defaultValue={variables.attention_point} placeholder="Point d'attention" />
             <Input name="senderName" defaultValue={variables.sender_name} placeholder="Nom expediteur" />
-            <Button type="submit" variant="outline" className="h-11 rounded-full px-5 text-sm" disabled={isRegeneratePending}>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-11 rounded-full px-5 text-sm"
+              disabled={isRegeneratePending || !canRegeneratePersistedDocument}
+            >
               Regenerer dans Supabase
             </Button>
+            {!canRegeneratePersistedDocument ? (
+              <p className="text-sm text-stone-500">
+                La regeneration exige un document et son template encore presents dans Supabase.
+              </p>
+            ) : null}
             {regenerateState.status !== "idle" ? (
               <p
                 className={`rounded-2xl px-4 py-3 text-sm ${

@@ -14,6 +14,8 @@ type SituationRow = Tables<"situations">;
 type PaymentFollowupRow = Tables<"payment_followups">;
 
 export type FollowupSupabaseReader = {
+  accessibleOrganizationIds: string[];
+  preferredOrganizationId: string | null;
   listSituations: (query?: FollowupDashboardQuery) => Promise<SituationRow[]>;
   listFollowupsBySituation: (situationId: string) => Promise<PaymentFollowupRow[]>;
 };
@@ -69,6 +71,8 @@ export async function createFollowupSupabaseReader(): Promise<FollowupSupabaseRe
   const accessibleOrganizationIds = organizationScope.accessibleOrganizationIds;
 
   return {
+    accessibleOrganizationIds,
+    preferredOrganizationId: organizationScope.preferredOrganizationId,
     async listSituations(query) {
       let request = supabase
         .from("situations")
@@ -137,14 +141,13 @@ export async function getFollowupDashboardData(
     const situation = selectSituationForFollowups(mappedSituations);
 
     if (!situation) {
-      const situation = getDemoSituation();
-
       return {
-        situation,
-        followups: generateFollowupSchedule(situation),
-        dataOrigin: "demo",
-        persistenceMode: "demo",
-        fallbackReason: "Aucune situation n'a ete trouvee en base.",
+        situation: undefined,
+        followups: [],
+        dataOrigin: "supabase",
+        persistenceMode: "generated",
+        fallbackReason:
+          "Aucune situation n'a encore ete trouvee en base pour le perimetre courant.",
       };
     }
 

@@ -106,9 +106,11 @@ describe("alimentation documentaire", () => {
     const previewData = buildDocumentPreviewDataFromRows(templateRow, null);
 
     expect(previewData?.source).toBe("supabase");
-    expect(previewData?.document.subject).toContain("Renovation college Kaweni");
+    expect(previewData?.document.subject).toContain("[project_name]");
     expect(previewData?.sourceMessage).toContain("Template charge depuis Supabase");
-    expect(previewData?.variableSource).toBe("demo");
+    expect(previewData?.variableSource).toBe("supabase_placeholder");
+    expect(previewData?.hasPersistedTemplate).toBe(true);
+    expect(previewData?.hasPersistedDocument).toBe(false);
   });
 
   it("utilise les variables Supabase du document quand elles existent", () => {
@@ -152,6 +154,35 @@ describe("alimentation documentaire", () => {
     expect(previewData?.variableSource).toBe("supabase_metadata");
     expect(previewData?.variables.project_name).toBe("Lycee de Mamoudzou");
     expect(previewData?.sourceMessage).toContain("variables charges depuis Supabase");
+    expect(previewData?.hasPersistedTemplate).toBe(true);
+    expect(previewData?.hasPersistedDocument).toBe(true);
+  });
+
+  it("garde un etat Supabase honnete si le document existe sans template associe", () => {
+    const documentRow: Tables<"documents"> = {
+      id: "document_supabase_004",
+      template_id: "template_supprime_001",
+      title: "CR chantier",
+      subject: "Objet chantier",
+      body_rendered: "Contenu conserve en base",
+      status: "generated",
+      organization_id: "org_001",
+      project_id: "project_001",
+      metadata: {},
+      created_at: "2026-05-22T00:00:00.000Z",
+      created_by: "user_001",
+      updated_at: "2026-05-22T00:00:00.000Z",
+    };
+
+    const previewData = buildDocumentPreviewDataFromRows(null, documentRow);
+
+    expect(previewData?.source).toBe("supabase");
+    expect(previewData?.template.name).toBe("Template Supabase introuvable");
+    expect(previewData?.document.bodyRendered).toBe("Contenu conserve en base");
+    expect(previewData?.variableSource).toBe("supabase_placeholder");
+    expect(previewData?.sourceMessage).toContain("template associe est introuvable");
+    expect(previewData?.hasPersistedTemplate).toBe(false);
+    expect(previewData?.hasPersistedDocument).toBe(true);
   });
 
   it("retombe sur la demo avec un message explicite", () => {
@@ -160,5 +191,7 @@ describe("alimentation documentaire", () => {
     expect(previewData.source).toBe("demo");
     expect(previewData.sourceMessage).toBe("Base indisponible.");
     expect(previewData.variableSource).toBe("demo");
+    expect(previewData.hasPersistedTemplate).toBe(false);
+    expect(previewData.hasPersistedDocument).toBe(false);
   });
 });
