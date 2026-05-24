@@ -1,6 +1,7 @@
 import { ArrowRight, Building2, FileStack, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
 import { AppShell } from "@/components/layout/app-shell";
 import { SectionCard } from "@/components/ui/section-card";
 import { dashboardHighlights, validationChecklist } from "@/config/dashboard";
@@ -132,6 +133,8 @@ export default function Home() {
             </p>
           </article>
         </section>
+
+        <AdminCockpit />
       </div>
     </AppShell>
   );
