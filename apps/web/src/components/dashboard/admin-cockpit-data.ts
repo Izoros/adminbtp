@@ -12,11 +12,14 @@ import type { Tables } from "@/types/supabase";
 import type {
   AdminCockpitAlert,
   AdminCockpitData,
+  AdminCockpitHealthItem,
   AdminCockpitKanbanCard,
   AdminCockpitKanbanColumn,
   AdminCockpitLoadPoint,
   AdminCockpitMetric,
   AdminCockpitOverviewCard,
+  AdminCockpitPriority,
+  AdminCockpitQuickAction,
   AdminCockpitRevenuePoint,
   AdminCockpitTimeRange,
 } from "./admin-cockpit.types";
@@ -75,6 +78,9 @@ function cloneStaticCockpitData(sourceMessage: string): AdminCockpitData {
     updatedAtLabel: buildUpdatedAtLabel(new Date()),
     metrics: adminMetrics.map((metric) => ({ ...metric })),
     overviewCards: [],
+    priorities: [],
+    healthItems: [],
+    quickActions: [],
     loadSeries: adminLoadSeries.map((point) => ({ ...point })),
     revenueSeries: adminRevenueSeries.map((point) => ({ ...point })),
     alerts: adminAlerts.map((alert) => ({ ...alert })),
@@ -293,6 +299,126 @@ function buildOverviewCards(
         situationsInWindow.reduce((total, situation) => total + situation.amount_cents, 0) / 100,
       ),
       detail: `${aiPending} proposition(s) IA encore a valider`,
+      tone: "warm",
+    },
+  ];
+}
+
+function buildPriorities(
+  snapshot: AdminCockpitSnapshot,
+  range: AdminCockpitTimeRange,
+): AdminCockpitPriority[] {
+  const pendingSignatures = snapshot.signatures.filter(
+    (request) =>
+      request.status === "pending_internal_validation" ||
+      request.status === "pending_signature",
+  ).length;
+  const activeFollowups = snapshot.followups.filter(
+    (followup) => followup.status === "scheduled" || followup.status === "sent",
+  ).length;
+  const aiPending = snapshot.aiSuggestions.filter(
+    (suggestion) => suggestion.status === "pending_human_validation",
+  ).length;
+  const consultingInProgress = snapshot.consultingMissions.filter(
+    (mission) => mission.status === "in_progress" || mission.status === "scheduled",
+  ).length;
+  const rangeLabel = adminCockpitRangeLabels[range];
+
+  return [
+    {
+      title: "Debloquer les validations",
+      detail: `${pendingSignatures} circuit(s) documentaire(s) demandent une validation interne ou externe.`,
+      emphasis: pendingSignatures > 0 ? "Action du jour" : "Sous controle",
+      tone: pendingSignatures > 0 ? "rose" : "emerald",
+    },
+    {
+      title: "Prioriser la tresorerie",
+      detail: `${activeFollowups} relance(s) active(s) sur ${rangeLabel.toLowerCase()}.`,
+      emphasis: activeFollowups > 0 ? "Point cash" : "RAS",
+      tone: activeFollowups > 0 ? "amber" : "emerald",
+    },
+    {
+      title: "Arbitrer IA et expertise",
+      detail: `${aiPending} proposition(s) IA en attente et ${consultingInProgress} mission(s) conseil en mouvement.`,
+      emphasis: aiPending > 0 ? "Validation humaine" : "File fluide",
+      tone: aiPending > 0 ? "amber" : "emerald",
+    },
+  ];
+}
+
+function buildHealthItems(
+  snapshot: AdminCockpitSnapshot,
+  sourceMessage: string,
+): AdminCockpitHealthItem[] {
+  const activeProjects = snapshot.projects.filter((project) => project.status === "active").length;
+  const archivedDocuments = snapshot.documents.filter(
+    (document) => document.status === "archived",
+  ).length;
+  const disputedSituations = snapshot.situations.filter(
+    (situation) => situation.status === "disputed",
+  ).length;
+
+  return [
+    {
+      label: "Source",
+      value: snapshot.source === "supabase" ? "Live" : "Demo",
+      detail: sourceMessage,
+      tone: snapshot.source === "supabase" ? "sage" : "warm",
+    },
+    {
+      label: "Perimetre",
+      value: `${snapshot.organizationCount} org`,
+      detail: `${activeProjects} chantier(s) actif(s) sur le scope courant.`,
+      tone: "ink",
+    },
+    {
+      label: "Archive documentaire",
+      value: formatCompactCount(archivedDocuments),
+      detail: `${disputedSituations} situation(s) litigieuse(s) detectee(s).`,
+      tone: disputedSituations > 0 ? "warm" : "sage",
+    },
+  ];
+}
+
+function buildQuickActions(snapshot: AdminCockpitSnapshot): AdminCockpitQuickAction[] {
+  const pendingSignatures = snapshot.signatures.filter(
+    (request) =>
+      request.status === "pending_internal_validation" ||
+      request.status === "pending_signature",
+  ).length;
+  const activeFollowups = snapshot.followups.filter(
+    (followup) => followup.status === "scheduled" || followup.status === "sent",
+  ).length;
+  const unclassifiedEmails = snapshot.emails.filter(
+    (email) => email.classification === "unclassified",
+  ).length;
+  const aiPending = snapshot.aiSuggestions.filter(
+    (suggestion) => suggestion.status === "pending_human_validation",
+  ).length;
+
+  return [
+    {
+      label: "Traiter les emails",
+      href: "/emails",
+      detail: `${unclassifiedEmails} email(s) a qualifier`,
+      tone: "warm",
+    },
+    {
+      label: "Relances tresorerie",
+      href: "/followups",
+      detail: `${activeFollowups} relance(s) active(s)`,
+      tone: "sage",
+    },
+    {
+      label: "Valider les signatures",
+      href: "/signatures",
+      detail: `${pendingSignatures} validation(s) en attente`,
+      tone: "ink",
+    },
+    {
+      label: "Revoir les suggestions IA",
+      href: "/ai",
+      detail: `${aiPending} proposition(s) a arbitrer`,
       tone: "warm",
     },
   ];
@@ -577,6 +703,9 @@ export function buildAdminCockpitData(
     updatedAtLabel: buildUpdatedAtLabel(new Date()),
     metrics: buildMetrics(snapshot),
     overviewCards: buildOverviewCards(snapshot, range, windowStart, windowEndExclusive),
+    priorities: buildPriorities(snapshot, range),
+    healthItems: buildHealthItems(snapshot, snapshot.sourceMessage),
+    quickActions: buildQuickActions(snapshot),
     loadSeries: buildLoadSeries(snapshot, range),
     revenueSeries: buildRevenueSeries(snapshot, range),
     alerts: buildAlerts(snapshot, range, windowStart, windowEndExclusive),

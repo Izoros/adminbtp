@@ -104,6 +104,9 @@ describe("buildAdminCockpitData", () => {
     expect(data.metrics[1]?.value).toBe("1");
     expect(data.metrics[3]?.value).toContain("10");
     expect(data.overviewCards[0]?.title).toBe("Flux entrants");
+    expect(data.priorities[0]?.title).toBe("Debloquer les validations");
+    expect(data.healthItems[0]?.label).toBe("Source");
+    expect(data.quickActions.some((action) => action.href === "/emails")).toBe(true);
     expect(data.alerts[0]?.title).toContain("validation");
     expect(data.kanbanColumns[0]?.cards[0]?.title).toBe("Question chantier facade");
     expect(data.kanbanColumns[1]?.cards.some((card) => card.title === "Analyse DOE")).toBe(true);
@@ -134,5 +137,6 @@ describe("buildAdminCockpitData", () => {
     expect(data.range).toBe("7d");
     expect(data.rangeLabel).toBe("7 derniers jours");
     expect(data.loadSeries).toHaveLength(7);
+    expect(data.quickActions).toHaveLength(4);
   });
 });

@@ -1,4 +1,5 @@
 import { AlertTriangle, ArrowUpRight, BriefcaseBusiness, FolderKanban, Wallet } from "lucide-react";
+import Link from "next/link";
 
 import {
   adminAlerts,
@@ -49,6 +50,9 @@ function buildBarHeight(value: number, values: number[]) {
 export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
   const metrics = data?.metrics ?? adminMetrics;
   const overviewCards = data?.overviewCards ?? [];
+  const priorities = data?.priorities ?? [];
+  const healthItems = data?.healthItems ?? [];
+  const quickActions = data?.quickActions ?? [];
   const loadSeries = data?.loadSeries ?? adminLoadSeries;
   const revenueSeries = data?.revenueSeries ?? adminRevenueSeries;
   const alerts = data?.alerts ?? adminAlerts;
@@ -264,6 +268,89 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
               <span className="size-2 rounded-full bg-primary" />
               Facturé
             </span>
+          </div>
+        </article>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr_0.9fr]">
+        <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
+          <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+            Priorites direction
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+            Decider vite
+          </h2>
+
+          <div className="mt-5 space-y-3">
+            {priorities.map((priority) => (
+              <div
+                key={priority.title}
+                className={cn(
+                  "rounded-[1.3rem] border p-4",
+                  alertToneClasses[priority.tone],
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium">{priority.title}</p>
+                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-stone-700">
+                    {priority.emphasis}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 opacity-85">{priority.detail}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
+          <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+            Sante plateforme
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+            Radar socle
+          </h2>
+
+          <div className="mt-5 space-y-3">
+            {healthItems.map((item) => (
+              <article
+                key={item.label}
+                className={cn(
+                  "rounded-[1.3rem] border p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]",
+                  metricToneClasses[item.tone],
+                )}
+              >
+                <p className="text-xs font-medium uppercase tracking-[0.16em] opacity-70">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{item.value}</p>
+                <p className="mt-2 text-sm opacity-80">{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
+          <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+            Actions rapides
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+            Basculer en execution
+          </h2>
+
+          <div className="mt-5 space-y-3">
+            {quickActions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={cn(
+                  "block rounded-[1.3rem] border p-4 transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(15,23,42,0.08)]",
+                  metricToneClasses[action.tone],
+                )}
+              >
+                <p className="font-medium">{action.label}</p>
+                <p className="mt-2 text-sm opacity-80">{action.detail}</p>
+              </Link>
+            ))}
           </div>
         </article>
       </div>

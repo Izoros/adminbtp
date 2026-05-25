@@ -10,6 +10,9 @@ describe("AdminCockpit", () => {
     expect(screen.getByText("Charge operationnelle AdminBTP")).toBeInTheDocument();
     expect(screen.getByText("Engagement vs facture")).toBeInTheDocument();
     expect(screen.getByText("File active AdminBTP")).toBeInTheDocument();
+    expect(screen.getByText("Decider vite")).toBeInTheDocument();
+    expect(screen.getByText("Radar socle")).toBeInTheDocument();
+    expect(screen.getByText("Basculer en execution")).toBeInTheDocument();
     expect(screen.getByText("A qualifier")).toBeInTheDocument();
     expect(screen.getByText("En cours")).toBeInTheDocument();
   });

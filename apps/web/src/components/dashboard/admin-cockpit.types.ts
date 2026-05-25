@@ -20,6 +20,27 @@ export type AdminCockpitOverviewCard = {
   tone: AdminCockpitMetricTone;
 };
 
+export type AdminCockpitPriority = {
+  title: string;
+  detail: string;
+  emphasis: string;
+  tone: AdminCockpitAlertTone;
+};
+
+export type AdminCockpitHealthItem = {
+  label: string;
+  value: string;
+  detail: string;
+  tone: AdminCockpitMetricTone;
+};
+
+export type AdminCockpitQuickAction = {
+  label: string;
+  href: string;
+  detail: string;
+  tone: AdminCockpitMetricTone;
+};
+
 export type AdminCockpitLoadPoint = {
   label: string;
   emails: number;
@@ -61,6 +82,9 @@ export type AdminCockpitData = {
   updatedAtLabel: string;
   metrics: AdminCockpitMetric[];
   overviewCards: AdminCockpitOverviewCard[];
+  priorities: AdminCockpitPriority[];
+  healthItems: AdminCockpitHealthItem[];
+  quickActions: AdminCockpitQuickAction[];
   loadSeries: AdminCockpitLoadPoint[];
   revenueSeries: AdminCockpitRevenuePoint[];
   alerts: AdminCockpitAlert[];
