@@ -48,11 +48,14 @@ function buildBarHeight(value: number, values: number[]) {
 
 export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
   const metrics = data?.metrics ?? adminMetrics;
+  const overviewCards = data?.overviewCards ?? [];
   const loadSeries = data?.loadSeries ?? adminLoadSeries;
   const revenueSeries = data?.revenueSeries ?? adminRevenueSeries;
   const alerts = data?.alerts ?? adminAlerts;
   const kanbanColumns = data?.kanbanColumns ?? adminKanbanColumns;
   const source = data?.source ?? "demo";
+  const rangeLabel = data?.rangeLabel ?? "30 derniers jours";
+  const updatedAtLabel = data?.updatedAtLabel ?? "";
   const sourceMessage =
     data?.sourceMessage ??
     "Affichage des indicateurs de demonstration pour le cockpit admin.";
@@ -94,6 +97,26 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
         </span>
       </div>
 
+      {overviewCards.length > 0 ? (
+        <div className="grid gap-4 lg:grid-cols-4">
+          {overviewCards.map((card) => (
+            <article
+              key={card.title}
+              className={cn(
+                "rounded-[1.5rem] border p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]",
+                metricToneClasses[card.tone],
+              )}
+            >
+              <p className="text-xs font-medium tracking-[0.18em] uppercase opacity-70">
+                {card.title}
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{card.value}</p>
+              <p className="mt-3 text-sm opacity-80">{card.detail}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <article
@@ -125,8 +148,12 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
                 Flux operatoire
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
-                Charge hebdomadaire AdminBTP
+                Charge operationnelle AdminBTP
               </h2>
+              <p className="mt-2 text-sm text-stone-600">
+                Fenetre active : {rangeLabel}
+                {updatedAtLabel ? ` - maj ${updatedAtLabel}` : ""}
+              </p>
             </div>
             <div className="rounded-2xl bg-sky-50 p-3 text-sky-700">
               <BriefcaseBusiness className="size-5" />
@@ -174,7 +201,10 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-5">
+          <div
+            className="mt-5 grid gap-3"
+            style={{ gridTemplateColumns: `repeat(${Math.max(loadSeries.length, 1)}, minmax(0, 1fr))` }}
+          >
             {loadSeries.map((item) => (
               <div
                 key={item.label}
@@ -198,13 +228,17 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
                 Engagement vs facture
               </h2>
+              <p className="mt-2 text-sm text-stone-600">Lecture sur {rangeLabel.toLowerCase()}.</p>
             </div>
             <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">
               <Wallet className="size-5" />
             </div>
           </div>
 
-          <div className="mt-6 grid h-64 grid-cols-6 items-end gap-3 rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fbf8f1_0%,#f5eee2_100%)] p-5">
+          <div
+            className="mt-6 grid h-64 items-end gap-3 rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fbf8f1_0%,#f5eee2_100%)] p-5"
+            style={{ gridTemplateColumns: `repeat(${Math.max(revenueSeries.length, 1)}, minmax(0, 1fr))` }}
+          >
             {revenueSeries.map((item) => (
               <div key={item.label} className="flex h-full flex-col justify-end gap-2">
                 <div className="flex items-end justify-center gap-1">

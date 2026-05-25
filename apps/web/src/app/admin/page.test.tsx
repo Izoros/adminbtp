@@ -19,12 +19,24 @@ vi.mock("@/components/layout/app-shell", () => ({
 }));
 
 vi.mock("@/components/dashboard/admin-cockpit-data", () => ({
-  loadAdminCockpitData: vi.fn(async () => undefined),
+  loadAdminCockpitData: vi.fn(async () => ({
+    source: "supabase",
+    sourceMessage: "1 organisation consolidee dans le cockpit admin.",
+    range: "90d",
+    rangeLabel: "90 derniers jours",
+    updatedAtLabel: "25 mai, 09:30",
+    metrics: [],
+    overviewCards: [],
+    loadSeries: [],
+    revenueSeries: [],
+    alerts: [],
+    kanbanColumns: [],
+  })),
 }));
 
 describe("page admin", () => {
   it("affiche le cockpit admin et son titre dedie", async () => {
-    render(await AdminPage());
+    render(await AdminPage({ searchParams: Promise.resolve({ range: "90d" }) }));
 
     expect(screen.getByText("Cockpit admin")).toBeInTheDocument();
     expect(
@@ -33,5 +45,6 @@ describe("page admin", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("File active AdminBTP")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "90 jours" })).toBeInTheDocument();
   });
 });

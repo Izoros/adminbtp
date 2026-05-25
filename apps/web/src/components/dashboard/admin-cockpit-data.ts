@@ -16,7 +16,9 @@ import type {
   AdminCockpitKanbanColumn,
   AdminCockpitLoadPoint,
   AdminCockpitMetric,
+  AdminCockpitOverviewCard,
   AdminCockpitRevenuePoint,
+  AdminCockpitTimeRange,
 } from "./admin-cockpit.types";
 
 type ProjectRow = Tables<"projects">;
@@ -45,11 +47,34 @@ type AdminCockpitSnapshot = {
   aiSuggestions: Pick<AiSuggestionRow, "id" | "title" | "status" | "created_at">[];
 };
 
+export type AdminCockpitOptions = {
+  range?: string | string[] | undefined;
+};
+
+const adminCockpitRangeLabels: Record<AdminCockpitTimeRange, string> = {
+  "7d": "7 derniers jours",
+  "30d": "30 derniers jours",
+  "90d": "90 derniers jours",
+};
+
+const adminCockpitBucketConfig: Record<
+  AdminCockpitTimeRange,
+  { bucketCount: number; bucketSizeDays: number }
+> = {
+  "7d": { bucketCount: 7, bucketSizeDays: 1 },
+  "30d": { bucketCount: 6, bucketSizeDays: 5 },
+  "90d": { bucketCount: 6, bucketSizeDays: 15 },
+};
+
 function cloneStaticCockpitData(sourceMessage: string): AdminCockpitData {
   return {
     source: "demo",
     sourceMessage,
+    range: "30d",
+    rangeLabel: adminCockpitRangeLabels["30d"],
+    updatedAtLabel: buildUpdatedAtLabel(new Date()),
     metrics: adminMetrics.map((metric) => ({ ...metric })),
+    overviewCards: [],
     loadSeries: adminLoadSeries.map((point) => ({ ...point })),
     revenueSeries: adminRevenueSeries.map((point) => ({ ...point })),
     alerts: adminAlerts.map((alert) => ({ ...alert })),
@@ -62,6 +87,10 @@ function cloneStaticCockpitData(sourceMessage: string): AdminCockpitData {
 
 function formatCompactCount(value: number) {
   return new Intl.NumberFormat("fr-FR").format(value);
+}
+
+function formatDayMonth(value: Date) {
+  return formatDate(value, { day: "2-digit", month: "short" });
 }
 
 function startOfDay(value: Date) {
@@ -78,10 +107,6 @@ function subDays(value: Date, amount: number) {
   return addDays(value, -amount);
 }
 
-function subMonths(value: Date, amount: number) {
-  return new Date(value.getFullYear(), value.getMonth() - amount, 1);
-}
-
 function parseIsoDate(value: string) {
   return new Date(value);
 }
@@ -90,11 +115,51 @@ function formatDate(value: Date, options: Intl.DateTimeFormatOptions) {
   return new Intl.DateTimeFormat("fr-FR", options).format(value);
 }
 
+function buildUpdatedAtLabel(value: Date) {
+  return formatDate(value, {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function formatHours(value: number) {
   return `${new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: value % 1 === 0 ? 0 : 1,
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
   }).format(value)} h`;
+}
+
+function normalizeAdminCockpitTimeRange(
+  input?: string | string[] | undefined,
+): AdminCockpitTimeRange {
+  const rawValue = Array.isArray(input) ? input[0] : input;
+
+  if (rawValue === "7d" || rawValue === "30d" || rawValue === "90d") {
+    return rawValue;
+  }
+
+  return "30d";
+}
+
+function getWindowStart(range: AdminCockpitTimeRange, referenceDate = new Date()) {
+  const today = startOfDay(referenceDate);
+
+  switch (range) {
+    case "7d":
+      return subDays(today, 6);
+    case "90d":
+      return subDays(today, 89);
+    case "30d":
+    default:
+      return subDays(today, 29);
+  }
+}
+
+function isWithinWindow(value: string, windowStart: Date, windowEndExclusive: Date) {
+  const date = parseIsoDate(value);
+  return date >= windowStart && date < windowEndExclusive;
 }
 
 function formatShortDayLabel(value: string) {
@@ -176,40 +241,120 @@ function buildMetrics(snapshot: AdminCockpitSnapshot): AdminCockpitMetric[] {
   ];
 }
 
-function buildLoadSeries(snapshot: AdminCockpitSnapshot): AdminCockpitLoadPoint[] {
-  const today = startOfDay(new Date());
-  const days = Array.from({ length: 5 }, (_, index) => startOfDay(subDays(today, 4 - index)));
+function buildOverviewCards(
+  snapshot: AdminCockpitSnapshot,
+  range: AdminCockpitTimeRange,
+  windowStart: Date,
+  windowEndExclusive: Date,
+): AdminCockpitOverviewCard[] {
+  const rangeLabel = adminCockpitRangeLabels[range];
+  const emailsInWindow = snapshot.emails.filter((email) =>
+    isWithinWindow(email.received_at, windowStart, windowEndExclusive),
+  );
+  const documentsInWindow = snapshot.documents.filter((document) =>
+    isWithinWindow(document.updated_at, windowStart, windowEndExclusive),
+  );
+  const consultingInWindow = snapshot.consultingMissions.filter((mission) =>
+    isWithinWindow(mission.updated_at, windowStart, windowEndExclusive),
+  );
+  const situationsInWindow = snapshot.situations.filter((situation) =>
+    isWithinWindow(situation.issued_on, windowStart, windowEndExclusive),
+  );
+  const aiPending = snapshot.aiSuggestions.filter(
+    (suggestion) => suggestion.status === "pending_human_validation",
+  ).length;
 
-  return days.map((day) => {
-    const nextDay = addDays(day, 1);
-    const isWithinDay = (value: string) => {
-      const date = parseIsoDate(value);
-      return date >= day && date < nextDay;
-    };
+  return [
+    {
+      title: "Flux entrants",
+      value: formatCompactCount(emailsInWindow.length),
+      detail: `${rangeLabel} - inbox et messages clients`,
+      tone: "warm",
+    },
+    {
+      title: "Documents manipules",
+      value: formatCompactCount(documentsInWindow.length),
+      detail: `${rangeLabel} - brouillons et mises a jour`,
+      tone: "sage",
+    },
+    {
+      title: "Production conseil",
+      value: formatCompactCount(consultingInWindow.length),
+      detail: `${rangeLabel} - missions actives ou touchees`,
+      tone: "ink",
+    },
+    {
+      title: "Montant emis",
+      value: new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+        maximumFractionDigits: 0,
+      }).format(
+        situationsInWindow.reduce((total, situation) => total + situation.amount_cents, 0) / 100,
+      ),
+      detail: `${aiPending} proposition(s) IA encore a valider`,
+      tone: "warm",
+    },
+  ];
+}
+
+function buildBucketLabel(bucketStart: Date, bucketEnd: Date, bucketSizeDays: number) {
+  if (bucketSizeDays === 1) {
+    return formatShortDayLabel(bucketStart.toISOString());
+  }
+
+  return `${formatDayMonth(bucketStart)} - ${formatDayMonth(addDays(bucketEnd, -1))}`;
+}
+
+function buildLoadSeries(
+  snapshot: AdminCockpitSnapshot,
+  range: AdminCockpitTimeRange,
+): AdminCockpitLoadPoint[] {
+  const today = startOfDay(new Date());
+  const { bucketCount, bucketSizeDays } = adminCockpitBucketConfig[range];
+  const windowStart = getWindowStart(range, today);
+  const bucketStarts = Array.from({ length: bucketCount }, (_, index) =>
+    addDays(windowStart, index * bucketSizeDays),
+  );
+
+  return bucketStarts.map((bucketStart) => {
+    const bucketEnd = addDays(bucketStart, bucketSizeDays);
 
     return {
-      label: formatShortDayLabel(day.toISOString()),
-      emails: snapshot.emails.filter((email) => isWithinDay(email.received_at)).length,
-      documents: snapshot.documents.filter((document) => isWithinDay(document.updated_at)).length,
-      consulting: snapshot.consultingMissions.filter((mission) => isWithinDay(mission.updated_at))
-        .length,
+      label: buildBucketLabel(bucketStart, bucketEnd, bucketSizeDays),
+      emails: snapshot.emails.filter((email) =>
+        isWithinWindow(email.received_at, bucketStart, bucketEnd),
+      ).length,
+      documents: snapshot.documents.filter((document) =>
+        isWithinWindow(document.updated_at, bucketStart, bucketEnd),
+      ).length,
+      consulting: snapshot.consultingMissions.filter((mission) =>
+        isWithinWindow(mission.updated_at, bucketStart, bucketEnd),
+      ).length,
     };
   });
 }
 
-function buildRevenueSeries(snapshot: AdminCockpitSnapshot): AdminCockpitRevenuePoint[] {
-  const currentMonth = startOfDay(new Date());
-  const months = Array.from({ length: 6 }, (_, index) => startOfDay(subMonths(currentMonth, 5 - index)));
+function buildRevenueSeries(
+  snapshot: AdminCockpitSnapshot,
+  range: AdminCockpitTimeRange,
+): AdminCockpitRevenuePoint[] {
+  const today = startOfDay(new Date());
+  const { bucketCount, bucketSizeDays } = adminCockpitBucketConfig[range];
+  const windowStart = getWindowStart(range, today);
+  const bucketStarts = Array.from({ length: bucketCount }, (_, index) =>
+    addDays(windowStart, index * bucketSizeDays),
+  );
 
-  return months.map((monthStart) => {
-    const nextMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
-    const situations = snapshot.situations.filter((situation) => {
-      const issuedOn = parseIsoDate(situation.issued_on);
-      return issuedOn >= monthStart && issuedOn < nextMonth;
-    });
+  return bucketStarts.map((bucketStart) => {
+    const bucketEnd = addDays(bucketStart, bucketSizeDays);
+    const situations = snapshot.situations.filter((situation) =>
+      isWithinWindow(situation.issued_on, bucketStart, bucketEnd),
+    );
 
     return {
-      label: formatShortMonthLabel(monthStart),
+      label:
+        bucketSizeDays >= 15 ? formatShortMonthLabel(bucketStart) : buildBucketLabel(bucketStart, bucketEnd, bucketSizeDays),
       committed: situations.reduce((total, situation) => total + situation.amount_cents, 0) / 100,
       invoiced:
         situations
@@ -219,7 +364,12 @@ function buildRevenueSeries(snapshot: AdminCockpitSnapshot): AdminCockpitRevenue
   });
 }
 
-function buildAlerts(snapshot: AdminCockpitSnapshot): AdminCockpitAlert[] {
+function buildAlerts(
+  snapshot: AdminCockpitSnapshot,
+  range: AdminCockpitTimeRange,
+  windowStart: Date,
+  windowEndExclusive: Date,
+): AdminCockpitAlert[] {
   const pendingSignatures = snapshot.signatures.filter(
     (request) =>
       request.status === "pending_internal_validation" ||
@@ -241,6 +391,10 @@ function buildAlerts(snapshot: AdminCockpitSnapshot): AdminCockpitAlert[] {
     0,
   );
   const consultingRatio = soldHours > 0 ? Math.round((consumedHours / soldHours) * 100) : 0;
+  const recentEmails = snapshot.emails.filter((email) =>
+    isWithinWindow(email.received_at, windowStart, windowEndExclusive),
+  ).length;
+  const rangeLabel = adminCockpitRangeLabels[range];
 
   return [
     pendingSignatures.length > 0
@@ -259,7 +413,7 @@ function buildAlerts(snapshot: AdminCockpitSnapshot): AdminCockpitAlert[] {
       ? {
           title: `${activeFollowups.length} relance(s) en file active`,
           detail:
-            "Le poste tresorerie demande une priorisation sur les suivis planifies et deja envoyes.",
+            `Le poste tresorerie demande une priorisation sur les suivis ${rangeLabel.toLowerCase()} et deja envoyes.`,
           tone: "amber",
         }
       : {
@@ -270,7 +424,7 @@ function buildAlerts(snapshot: AdminCockpitSnapshot): AdminCockpitAlert[] {
     blockedAiSuggestions.length > 0 || consultingRatio >= 80
       ? {
           title: "Capacite expertise sous surveillance",
-          detail: `IA a valider : ${blockedAiSuggestions.length}. Charge conseil consommee : ${consultingRatio} %.`,
+          detail: `IA a valider : ${blockedAiSuggestions.length}. Charge conseil consommee : ${consultingRatio} %. Flux entrants sur la fenetre : ${recentEmails}.`,
           tone: consultingRatio >= 90 ? "rose" : "amber",
         }
       : {
@@ -407,14 +561,25 @@ function buildKanbanColumns(snapshot: AdminCockpitSnapshot): AdminCockpitKanbanC
   ];
 }
 
-export function buildAdminCockpitData(snapshot: AdminCockpitSnapshot): AdminCockpitData {
+export function buildAdminCockpitData(
+  snapshot: AdminCockpitSnapshot,
+  options?: AdminCockpitOptions,
+): AdminCockpitData {
+  const range = normalizeAdminCockpitTimeRange(options?.range);
+  const windowStart = getWindowStart(range);
+  const windowEndExclusive = addDays(startOfDay(new Date()), 1);
+
   return {
     source: snapshot.source,
     sourceMessage: snapshot.sourceMessage,
+    range,
+    rangeLabel: adminCockpitRangeLabels[range],
+    updatedAtLabel: buildUpdatedAtLabel(new Date()),
     metrics: buildMetrics(snapshot),
-    loadSeries: buildLoadSeries(snapshot),
-    revenueSeries: buildRevenueSeries(snapshot),
-    alerts: buildAlerts(snapshot),
+    overviewCards: buildOverviewCards(snapshot, range, windowStart, windowEndExclusive),
+    loadSeries: buildLoadSeries(snapshot, range),
+    revenueSeries: buildRevenueSeries(snapshot, range),
+    alerts: buildAlerts(snapshot, range, windowStart, windowEndExclusive),
     kanbanColumns: buildKanbanColumns(snapshot),
   };
 }
@@ -482,42 +647,59 @@ async function loadRowsForAdminCockpit(organizationIds: string[]) {
   };
 }
 
-function buildEmptySupabaseCockpit(sourceMessage: string): AdminCockpitData {
-  return buildAdminCockpitData({
-    source: "supabase",
-    sourceMessage,
-    organizationCount: 0,
-    projects: [],
-    documents: [],
-    signatures: [],
-    followups: [],
-    consultingMissions: [],
-    situations: [],
-    emails: [],
-    aiSuggestions: [],
-  });
-}
-
-export async function loadAdminCockpitData(): Promise<AdminCockpitData> {
+export async function loadAdminCockpitData(
+  options?: AdminCockpitOptions,
+): Promise<AdminCockpitData> {
   const supabase = await createClient();
   const organizationAccess = await loadOrganizationAccessData(supabase);
 
   if (organizationAccess.source === "demo") {
-    return cloneStaticCockpitData(organizationAccess.sourceDetail);
+    const staticData = cloneStaticCockpitData(organizationAccess.sourceDetail);
+    const range = normalizeAdminCockpitTimeRange(options?.range);
+
+    return {
+      ...staticData,
+      range,
+      rangeLabel: adminCockpitRangeLabels[range],
+      updatedAtLabel: buildUpdatedAtLabel(new Date()),
+    };
   }
 
   const organizationIds = organizationAccess.organizations.map((organization) => organization.id);
 
   if (organizationIds.length === 0) {
-    return buildEmptySupabaseCockpit(organizationAccess.sourceDetail);
+    return buildAdminCockpitData(
+      {
+        source: "supabase",
+        sourceMessage: organizationAccess.sourceDetail,
+        organizationCount: 0,
+        projects: [],
+        documents: [],
+        signatures: [],
+        followups: [],
+        consultingMissions: [],
+        situations: [],
+        emails: [],
+        aiSuggestions: [],
+      },
+      options,
+    );
   }
 
   const rows = await loadRowsForAdminCockpit(organizationIds);
 
   if (!rows) {
-    return cloneStaticCockpitData(
+    const staticData = cloneStaticCockpitData(
       "Lecture serveur indisponible pour le cockpit admin. Affichage du mode demonstration.",
     );
+    const range = normalizeAdminCockpitTimeRange(options?.range);
+
+    return {
+      ...staticData,
+      range,
+      rangeLabel: adminCockpitRangeLabels[range],
+      updatedAtLabel: buildUpdatedAtLabel(new Date()),
+    };
   }
 
   const hasReadError =
@@ -531,22 +713,39 @@ export async function loadAdminCockpitData(): Promise<AdminCockpitData> {
     rows.aiSuggestions.error;
 
   if (hasReadError) {
-    return buildEmptySupabaseCockpit(
-      "Supabase est accessible, mais une partie des indicateurs admin n'a pas pu etre chargee.",
+    return buildAdminCockpitData(
+      {
+        source: "supabase",
+        sourceMessage:
+          "Supabase est accessible, mais une partie des indicateurs admin n'a pas pu etre chargee.",
+        organizationCount: organizationAccess.organizations.length,
+        projects: [],
+        documents: [],
+        signatures: [],
+        followups: [],
+        consultingMissions: [],
+        situations: [],
+        emails: [],
+        aiSuggestions: [],
+      },
+      options,
     );
   }
 
-  return buildAdminCockpitData({
-    source: "supabase",
-    sourceMessage: `${organizationAccess.organizations.length} organisation(s) consolidee(s) dans le cockpit admin.`,
-    organizationCount: organizationAccess.organizations.length,
-    projects: rows.projects.data ?? [],
-    documents: rows.documents.data ?? [],
-    signatures: rows.signatures.data ?? [],
-    followups: rows.followups.data ?? [],
-    consultingMissions: rows.consultingMissions.data ?? [],
-    situations: rows.situations.data ?? [],
-    emails: rows.emails.data ?? [],
-    aiSuggestions: rows.aiSuggestions.data ?? [],
-  });
+  return buildAdminCockpitData(
+    {
+      source: "supabase",
+      sourceMessage: `${organizationAccess.organizations.length} organisation(s) consolidee(s) dans le cockpit admin.`,
+      organizationCount: organizationAccess.organizations.length,
+      projects: rows.projects.data ?? [],
+      documents: rows.documents.data ?? [],
+      signatures: rows.signatures.data ?? [],
+      followups: rows.followups.data ?? [],
+      consultingMissions: rows.consultingMissions.data ?? [],
+      situations: rows.situations.data ?? [],
+      emails: rows.emails.data ?? [],
+      aiSuggestions: rows.aiSuggestions.data ?? [],
+    },
+    options,
+  );
 }

@@ -5,8 +5,21 @@ import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
 import { loadAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
 import { AppShell } from "@/components/layout/app-shell";
 
-export default async function AdminPage() {
-  const cockpitData = await loadAdminCockpitData();
+const adminRangeOptions = [
+  { value: "7d", label: "7 jours" },
+  { value: "30d", label: "30 jours" },
+  { value: "90d", label: "90 jours" },
+] as const;
+
+type AdminPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const cockpitData = await loadAdminCockpitData({
+    range: resolvedSearchParams.range,
+  });
 
   return (
     <AppShell eyebrow="Pilotage operationnel AdminBTP" title="Cockpit admin">
@@ -42,6 +55,25 @@ export default async function AdminPage() {
                   Ouvrir la tresorerie
                 </Link>
               </div>
+              <div className="flex flex-wrap gap-2">
+                {adminRangeOptions.map((option) => {
+                  const isActive = cockpitData.range === option.value;
+
+                  return (
+                    <Link
+                      key={option.value}
+                      href={`/admin?range=${option.value}`}
+                      className={
+                        isActive
+                          ? "inline-flex h-10 items-center justify-center rounded-full bg-stone-950 px-4 text-sm font-medium text-stone-50"
+                          : "inline-flex h-10 items-center justify-center rounded-full border border-stone-200 bg-white/90 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                      }
+                    >
+                      {option.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -53,7 +85,9 @@ export default async function AdminPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-stone-950">Vue exploitation</p>
-                  <p className="text-sm text-stone-600">Charge, relances et arbitrages.</p>
+                  <p className="text-sm text-stone-600">
+                    Charge, relances et arbitrages sur {cockpitData.rangeLabel.toLowerCase()}.
+                  </p>
                 </div>
               </div>
             </article>
@@ -65,7 +99,9 @@ export default async function AdminPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-stone-950">Vue cash</p>
-                  <p className="text-sm text-stone-600">Engagement, facture et relances.</p>
+                  <p className="text-sm text-stone-600">
+                    Engagement, facture et relances sur la fenetre en cours.
+                  </p>
                 </div>
               </div>
             </article>
@@ -77,7 +113,9 @@ export default async function AdminPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-stone-950">Vue IA & expertise</p>
-                  <p className="text-sm text-stone-600">Validation humaine et missions de conseil.</p>
+                  <p className="text-sm text-stone-600">
+                    Validation humaine et missions de conseil, mises a jour {cockpitData.updatedAtLabel}.
+                  </p>
                 </div>
               </div>
             </article>

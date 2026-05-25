@@ -7,7 +7,7 @@ describe("AdminCockpit", () => {
   it("affiche les graphes et le kanban de pilotage admin", () => {
     render(<AdminCockpit />);
 
-    expect(screen.getByText("Charge hebdomadaire AdminBTP")).toBeInTheDocument();
+    expect(screen.getByText("Charge operationnelle AdminBTP")).toBeInTheDocument();
     expect(screen.getByText("Engagement vs facture")).toBeInTheDocument();
     expect(screen.getByText("File active AdminBTP")).toBeInTheDocument();
     expect(screen.getByText("A qualifier")).toBeInTheDocument();

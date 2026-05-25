@@ -4,10 +4,19 @@ export type AdminCockpitAlertTone = "amber" | "emerald" | "rose";
 
 export type AdminCockpitKanbanAccent = "amber" | "emerald" | "rose" | "sky";
 
+export type AdminCockpitTimeRange = "7d" | "30d" | "90d";
+
 export type AdminCockpitMetric = {
   label: string;
   value: string;
   delta: string;
+  tone: AdminCockpitMetricTone;
+};
+
+export type AdminCockpitOverviewCard = {
+  title: string;
+  value: string;
+  detail: string;
   tone: AdminCockpitMetricTone;
 };
 
@@ -47,7 +56,11 @@ export type AdminCockpitKanbanColumn = {
 export type AdminCockpitData = {
   source: "demo" | "supabase";
   sourceMessage: string;
+  range: AdminCockpitTimeRange;
+  rangeLabel: string;
+  updatedAtLabel: string;
   metrics: AdminCockpitMetric[];
+  overviewCards: AdminCockpitOverviewCard[];
   loadSeries: AdminCockpitLoadPoint[];
   revenueSeries: AdminCockpitRevenuePoint[];
   alerts: AdminCockpitAlert[];
