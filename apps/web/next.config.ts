@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["ssh2", "ssh2-sftp-client"],
   turbopack: {
     root: path.join(__dirname, "../.."),
   },

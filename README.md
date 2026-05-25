@@ -13,6 +13,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Runbook de deploiement](/Users/symba/Documents/9_AdminBTP/docs/DEPLOYMENT.md)
 - [Checklist de release](/Users/symba/Documents/9_AdminBTP/docs/RELEASE_CHECKLIST.md)
 - [Politique de securite](/Users/symba/Documents/9_AdminBTP/docs/SECURITY.md)
+- [Runbook archivage 25 ans](/Users/symba/Documents/9_AdminBTP/docs/ARCHIVAL_25Y.md)
 - [Prochaines actions recommandees](/Users/symba/Documents/9_AdminBTP/docs/NEXT_STEPS.md)
 - [Guide Supabase local](/Users/symba/Documents/9_AdminBTP/docs/SUPABASE_LOCAL.md)
 - [Guide Supabase distant](/Users/symba/Documents/9_AdminBTP/docs/SUPABASE_REMOTE.md)
@@ -42,6 +43,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 19](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_19.md)
 - [Validation d'execution de la phase 20](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_20.md)
 - [Validation d'execution de la phase 21](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_21.md)
+- [Validation d'execution de la phase 22](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_22.md)
 
 ## Finalite
 
