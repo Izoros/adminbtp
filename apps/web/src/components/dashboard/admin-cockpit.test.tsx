@@ -13,6 +13,8 @@ describe("AdminCockpit", () => {
     expect(screen.getByText("Decider vite")).toBeInTheDocument();
     expect(screen.getByText("Radar socle")).toBeInTheDocument();
     expect(screen.getByText("Basculer en execution")).toBeInTheDocument();
+    expect(screen.getByText("Organisations sous charge")).toBeInTheDocument();
+    expect(screen.getByText("Projets les plus exposes")).toBeInTheDocument();
     expect(screen.getByText("A qualifier")).toBeInTheDocument();
     expect(screen.getByText("En cours")).toBeInTheDocument();
   });

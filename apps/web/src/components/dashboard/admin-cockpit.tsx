@@ -53,6 +53,8 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
   const priorities = data?.priorities ?? [];
   const healthItems = data?.healthItems ?? [];
   const quickActions = data?.quickActions ?? [];
+  const organizationFocus = data?.organizationFocus ?? [];
+  const projectFocus = data?.projectFocus ?? [];
   const loadSeries = data?.loadSeries ?? adminLoadSeries;
   const revenueSeries = data?.revenueSeries ?? adminRevenueSeries;
   const alerts = data?.alerts ?? adminAlerts;
@@ -349,6 +351,78 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
               >
                 <p className="font-medium">{action.label}</p>
                 <p className="mt-2 text-sm opacity-80">{action.detail}</p>
+              </Link>
+            ))}
+          </div>
+        </article>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
+          <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+            Focus portefeuille
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+            Organisations sous charge
+          </h2>
+
+          <div className="mt-5 space-y-3">
+            {organizationFocus.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href ?? "/organizations"}
+                className={cn(
+                  "block rounded-[1.3rem] border p-4 transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(15,23,42,0.08)]",
+                  metricToneClasses[item.tone],
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.14em] opacity-70">
+                      {item.subtitle}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-stone-700">
+                    {item.stat}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm opacity-80">{item.detail}</p>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
+          <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+            Focus chantiers
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+            Projets les plus exposes
+          </h2>
+
+          <div className="mt-5 space-y-3">
+            {projectFocus.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href ?? "/projects"}
+                className={cn(
+                  "block rounded-[1.3rem] border p-4 transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(15,23,42,0.08)]",
+                  metricToneClasses[item.tone],
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.14em] opacity-70">
+                      {item.subtitle}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-stone-700">
+                    {item.stat}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm opacity-80">{item.detail}</p>
               </Link>
             ))}
           </div>

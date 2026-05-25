@@ -8,6 +8,12 @@ describe("buildAdminCockpitData", () => {
       source: "supabase",
       sourceMessage: "1 organisation consolidee dans le cockpit admin.",
       organizationCount: 1,
+      organizations: [
+        {
+          id: "org_1",
+          name: "AdminBTP Mayotte",
+        },
+      ],
       projects: [
         {
           id: "project_1",
@@ -15,6 +21,7 @@ describe("buildAdminCockpitData", () => {
           status: "active",
           updated_at: "2026-05-25T08:00:00.000Z",
           created_at: "2026-05-01T08:00:00.000Z",
+          owner_organization_id: "org_1",
         },
       ],
       documents: [
@@ -24,6 +31,8 @@ describe("buildAdminCockpitData", () => {
           status: "draft",
           updated_at: "2026-05-25T08:30:00.000Z",
           created_at: "2026-05-24T08:30:00.000Z",
+          organization_id: "org_1",
+          project_id: "project_1",
         },
       ],
       signatures: [
@@ -32,6 +41,8 @@ describe("buildAdminCockpitData", () => {
           status: "pending_internal_validation",
           updated_at: "2026-05-25T09:00:00.000Z",
           created_at: "2026-05-25T09:00:00.000Z",
+          organization_id: "org_1",
+          document_id: "document_1",
         },
       ],
       followups: [
@@ -41,6 +52,7 @@ describe("buildAdminCockpitData", () => {
           step_label: "Relance J+15",
           scheduled_for: "2026-05-25",
           updated_at: "2026-05-25T06:00:00.000Z",
+          organization_id: "org_1",
         },
         {
           id: "followup_2",
@@ -48,6 +60,7 @@ describe("buildAdminCockpitData", () => {
           step_label: "Relance J+7",
           scheduled_for: "2026-05-20",
           updated_at: "2026-05-20T06:00:00.000Z",
+          organization_id: "org_1",
         },
       ],
       consultingMissions: [
@@ -59,6 +72,9 @@ describe("buildAdminCockpitData", () => {
           consumed_hours: 6,
           updated_at: "2026-05-25T07:00:00.000Z",
           created_at: "2026-05-15T07:00:00.000Z",
+          organization_id: "org_1",
+          related_entity_id: "project_1",
+          related_entity_type: "project",
         },
         {
           id: "mission_2",
@@ -68,6 +84,9 @@ describe("buildAdminCockpitData", () => {
           consumed_hours: 4,
           updated_at: "2026-05-22T07:00:00.000Z",
           created_at: "2026-05-18T07:00:00.000Z",
+          organization_id: "org_1",
+          related_entity_id: null,
+          related_entity_type: null,
         },
       ],
       situations: [
@@ -77,6 +96,8 @@ describe("buildAdminCockpitData", () => {
           status: "sent",
           amount_cents: 250000,
           issued_on: "2026-05-10",
+          organization_id: "org_1",
+          project_id: "project_1",
         },
       ],
       emails: [
@@ -85,6 +106,8 @@ describe("buildAdminCockpitData", () => {
           subject: "Question chantier facade",
           classification: "unclassified",
           received_at: "2026-05-25T05:00:00.000Z",
+          organization_id: "org_1",
+          project_id: "project_1",
         },
       ],
       aiSuggestions: [
@@ -93,6 +116,8 @@ describe("buildAdminCockpitData", () => {
           title: "Synthese PPSPS",
           status: "pending_human_validation",
           created_at: "2026-05-25T04:00:00.000Z",
+          organization_id: "org_1",
+          project_id: "project_1",
         },
       ],
     });
@@ -107,6 +132,8 @@ describe("buildAdminCockpitData", () => {
     expect(data.priorities[0]?.title).toBe("Debloquer les validations");
     expect(data.healthItems[0]?.label).toBe("Source");
     expect(data.quickActions.some((action) => action.href === "/emails")).toBe(true);
+    expect(data.organizationFocus[0]?.title).toBe("AdminBTP Mayotte");
+    expect(data.projectFocus[0]?.title).toBe("College Mamoudzou");
     expect(data.alerts[0]?.title).toContain("validation");
     expect(data.kanbanColumns[0]?.cards[0]?.title).toBe("Question chantier facade");
     expect(data.kanbanColumns[1]?.cards.some((card) => card.title === "Analyse DOE")).toBe(true);
@@ -122,6 +149,7 @@ describe("buildAdminCockpitData", () => {
         source: "supabase",
         sourceMessage: "1 organisation consolidee dans le cockpit admin.",
         organizationCount: 1,
+        organizations: [],
         projects: [],
         documents: [],
         signatures: [],

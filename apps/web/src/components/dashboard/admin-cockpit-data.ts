@@ -18,6 +18,7 @@ import type {
   AdminCockpitLoadPoint,
   AdminCockpitMetric,
   AdminCockpitOverviewCard,
+  AdminCockpitPortfolioItem,
   AdminCockpitPriority,
   AdminCockpitQuickAction,
   AdminCockpitRevenuePoint,
@@ -37,17 +38,48 @@ type AdminCockpitSnapshot = {
   source: "demo" | "supabase";
   sourceMessage: string;
   organizationCount: number;
-  projects: Pick<ProjectRow, "id" | "name" | "status" | "updated_at" | "created_at">[];
-  documents: Pick<DocumentRow, "id" | "title" | "status" | "updated_at" | "created_at">[];
-  signatures: Pick<SignatureRequestRow, "id" | "status" | "updated_at" | "created_at">[];
-  followups: Pick<PaymentFollowupRow, "id" | "status" | "step_label" | "scheduled_for" | "updated_at">[];
+  organizations: Array<{ id: string; name: string }>;
+  projects: Pick<
+    ProjectRow,
+    "id" | "name" | "status" | "updated_at" | "created_at" | "owner_organization_id"
+  >[];
+  documents: Pick<
+    DocumentRow,
+    "id" | "title" | "status" | "updated_at" | "created_at" | "organization_id" | "project_id"
+  >[];
+  signatures: Pick<
+    SignatureRequestRow,
+    "id" | "status" | "updated_at" | "created_at" | "organization_id" | "document_id"
+  >[];
+  followups: Pick<
+    PaymentFollowupRow,
+    "id" | "status" | "step_label" | "scheduled_for" | "updated_at" | "organization_id"
+  >[];
   consultingMissions: Pick<
     ConsultingMissionRow,
-    "id" | "title" | "status" | "sold_hours" | "consumed_hours" | "updated_at" | "created_at"
+    | "id"
+    | "title"
+    | "status"
+    | "sold_hours"
+    | "consumed_hours"
+    | "updated_at"
+    | "created_at"
+    | "organization_id"
+    | "related_entity_id"
+    | "related_entity_type"
   >[];
-  situations: Pick<SituationRow, "id" | "reference" | "status" | "amount_cents" | "issued_on">[];
-  emails: Pick<EmailRow, "id" | "subject" | "classification" | "received_at">[];
-  aiSuggestions: Pick<AiSuggestionRow, "id" | "title" | "status" | "created_at">[];
+  situations: Pick<
+    SituationRow,
+    "id" | "reference" | "status" | "amount_cents" | "issued_on" | "organization_id" | "project_id"
+  >[];
+  emails: Pick<
+    EmailRow,
+    "id" | "subject" | "classification" | "received_at" | "organization_id" | "project_id"
+  >[];
+  aiSuggestions: Pick<
+    AiSuggestionRow,
+    "id" | "title" | "status" | "created_at" | "organization_id" | "project_id"
+  >[];
 };
 
 export type AdminCockpitOptions = {
@@ -81,6 +113,8 @@ function cloneStaticCockpitData(sourceMessage: string): AdminCockpitData {
     priorities: [],
     healthItems: [],
     quickActions: [],
+    organizationFocus: [],
+    projectFocus: [],
     loadSeries: adminLoadSeries.map((point) => ({ ...point })),
     revenueSeries: adminRevenueSeries.map((point) => ({ ...point })),
     alerts: adminAlerts.map((alert) => ({ ...alert })),
@@ -424,6 +458,156 @@ function buildQuickActions(snapshot: AdminCockpitSnapshot): AdminCockpitQuickAct
   ];
 }
 
+function buildOrganizationFocus(snapshot: AdminCockpitSnapshot): AdminCockpitPortfolioItem[] {
+  const organizationNames = new Map(
+    snapshot.organizations.map((organization) => [organization.id, organization.name]),
+  );
+  const scoreByOrganization = new Map<
+    string,
+    {
+      projects: number;
+      docs: number;
+      followups: number;
+      consulting: number;
+      emails: number;
+      ai: number;
+    }
+  >();
+
+  const ensureEntry = (organizationId: string) => {
+    if (!scoreByOrganization.has(organizationId)) {
+      scoreByOrganization.set(organizationId, {
+        projects: 0,
+        docs: 0,
+        followups: 0,
+        consulting: 0,
+        emails: 0,
+        ai: 0,
+      });
+    }
+
+    return scoreByOrganization.get(organizationId)!;
+  };
+
+  snapshot.projects.forEach((project) => {
+    ensureEntry(project.owner_organization_id).projects += 1;
+  });
+  snapshot.documents.forEach((document) => {
+    ensureEntry(document.organization_id).docs += 1;
+  });
+  snapshot.followups.forEach((followup) => {
+    ensureEntry(followup.organization_id).followups += 1;
+  });
+  snapshot.consultingMissions.forEach((mission) => {
+    ensureEntry(mission.organization_id).consulting += 1;
+  });
+  snapshot.emails.forEach((email) => {
+    ensureEntry(email.organization_id).emails += 1;
+  });
+  snapshot.aiSuggestions.forEach((suggestion) => {
+    ensureEntry(suggestion.organization_id).ai += 1;
+  });
+
+  return Array.from(scoreByOrganization.entries())
+    .map(([organizationId, counters]) => {
+      const score =
+        counters.projects +
+        counters.docs +
+        counters.followups +
+        counters.consulting +
+        counters.emails +
+        counters.ai;
+
+      return {
+        organizationId,
+        score,
+        counters,
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3)
+    .map((entry, index) => ({
+      title: organizationNames.get(entry.organizationId) ?? "Organisation sans nom",
+      subtitle: `Organisation #${index + 1}`,
+      stat: `${entry.score} signaux`,
+      detail: `${entry.counters.projects} chantier(s), ${entry.counters.docs} doc(s), ${entry.counters.followups} relance(s), ${entry.counters.consulting} mission(s).`,
+      tone: index === 0 ? "warm" : index === 1 ? "ink" : "sage",
+      href: "/organizations",
+    }));
+}
+
+function buildProjectFocus(snapshot: AdminCockpitSnapshot): AdminCockpitPortfolioItem[] {
+  const projectNames = new Map(snapshot.projects.map((project) => [project.id, project.name]));
+  const scoreByProject = new Map<
+    string,
+    {
+      docs: number;
+      emails: number;
+      situations: number;
+      consulting: number;
+      ai: number;
+    }
+  >();
+
+  const ensureEntry = (projectId: string) => {
+    if (!scoreByProject.has(projectId)) {
+      scoreByProject.set(projectId, {
+        docs: 0,
+        emails: 0,
+        situations: 0,
+        consulting: 0,
+        ai: 0,
+      });
+    }
+
+    return scoreByProject.get(projectId)!;
+  };
+
+  snapshot.documents.forEach((document) => {
+    if (document.project_id) {
+      ensureEntry(document.project_id).docs += 1;
+    }
+  });
+  snapshot.emails.forEach((email) => {
+    if (email.project_id) {
+      ensureEntry(email.project_id).emails += 1;
+    }
+  });
+  snapshot.situations.forEach((situation) => {
+    if (situation.project_id) {
+      ensureEntry(situation.project_id).situations += 1;
+    }
+  });
+  snapshot.consultingMissions.forEach((mission) => {
+    if (mission.related_entity_type === "project" && mission.related_entity_id) {
+      ensureEntry(mission.related_entity_id).consulting += 1;
+    }
+  });
+  snapshot.aiSuggestions.forEach((suggestion) => {
+    if (suggestion.project_id) {
+      ensureEntry(suggestion.project_id).ai += 1;
+    }
+  });
+
+  return Array.from(scoreByProject.entries())
+    .map(([projectId, counters]) => ({
+      projectId,
+      score:
+        counters.docs + counters.emails + counters.situations + counters.consulting + counters.ai,
+      counters,
+    }))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3)
+    .map((entry, index) => ({
+      title: projectNames.get(entry.projectId) ?? "Chantier sans nom",
+      subtitle: `Projet #${index + 1}`,
+      stat: `${entry.score} signaux`,
+      detail: `${entry.counters.docs} doc(s), ${entry.counters.emails} email(s), ${entry.counters.situations} situation(s), ${entry.counters.consulting} conseil, ${entry.counters.ai} IA.`,
+      tone: index === 0 ? "warm" : index === 1 ? "ink" : "sage",
+      href: "/projects",
+    }));
+}
+
 function buildBucketLabel(bucketStart: Date, bucketEnd: Date, bucketSizeDays: number) {
   if (bucketSizeDays === 1) {
     return formatShortDayLabel(bucketStart.toISOString());
@@ -706,6 +890,8 @@ export function buildAdminCockpitData(
     priorities: buildPriorities(snapshot, range),
     healthItems: buildHealthItems(snapshot, snapshot.sourceMessage),
     quickActions: buildQuickActions(snapshot),
+    organizationFocus: buildOrganizationFocus(snapshot),
+    projectFocus: buildProjectFocus(snapshot),
     loadSeries: buildLoadSeries(snapshot, range),
     revenueSeries: buildRevenueSeries(snapshot, range),
     alerts: buildAlerts(snapshot, range, windowStart, windowEndExclusive),
@@ -724,42 +910,42 @@ async function loadRowsForAdminCockpit(organizationIds: string[]) {
     await Promise.all([
       supabase
         .from("projects")
-        .select("id,name,status,updated_at,created_at")
+        .select("id,name,status,updated_at,created_at,owner_organization_id")
         .in("owner_organization_id", organizationIds)
         .order("updated_at", { ascending: false }),
       supabase
         .from("documents")
-        .select("id,title,status,updated_at,created_at")
+        .select("id,title,status,updated_at,created_at,organization_id,project_id")
         .in("organization_id", organizationIds)
         .order("updated_at", { ascending: false }),
       supabase
         .from("signature_requests")
-        .select("id,status,updated_at,created_at")
+        .select("id,status,updated_at,created_at,organization_id,document_id")
         .in("organization_id", organizationIds)
         .order("updated_at", { ascending: false }),
       supabase
         .from("payment_followups")
-        .select("id,status,step_label,scheduled_for,updated_at")
+        .select("id,status,step_label,scheduled_for,updated_at,organization_id")
         .in("organization_id", organizationIds)
         .order("scheduled_for", { ascending: true }),
       supabase
         .from("consulting_missions")
-        .select("id,title,status,sold_hours,consumed_hours,updated_at,created_at")
+        .select("id,title,status,sold_hours,consumed_hours,updated_at,created_at,organization_id,related_entity_id,related_entity_type")
         .in("organization_id", organizationIds)
         .order("updated_at", { ascending: false }),
       supabase
         .from("situations")
-        .select("id,reference,status,amount_cents,issued_on")
+        .select("id,reference,status,amount_cents,issued_on,organization_id,project_id")
         .in("organization_id", organizationIds)
         .order("issued_on", { ascending: false }),
       supabase
         .from("emails")
-        .select("id,subject,classification,received_at")
+        .select("id,subject,classification,received_at,organization_id,project_id")
         .in("organization_id", organizationIds)
         .order("received_at", { ascending: false }),
       supabase
         .from("ai_suggestions")
-        .select("id,title,status,created_at")
+        .select("id,title,status,created_at,organization_id,project_id")
         .in("organization_id", organizationIds)
         .order("created_at", { ascending: false }),
     ]);
@@ -802,6 +988,7 @@ export async function loadAdminCockpitData(
         source: "supabase",
         sourceMessage: organizationAccess.sourceDetail,
         organizationCount: 0,
+        organizations: [],
         projects: [],
         documents: [],
         signatures: [],
@@ -848,6 +1035,10 @@ export async function loadAdminCockpitData(
         sourceMessage:
           "Supabase est accessible, mais une partie des indicateurs admin n'a pas pu etre chargee.",
         organizationCount: organizationAccess.organizations.length,
+        organizations: organizationAccess.organizations.map((organization) => ({
+          id: organization.id,
+          name: organization.name,
+        })),
         projects: [],
         documents: [],
         signatures: [],
@@ -866,6 +1057,10 @@ export async function loadAdminCockpitData(
       source: "supabase",
       sourceMessage: `${organizationAccess.organizations.length} organisation(s) consolidee(s) dans le cockpit admin.`,
       organizationCount: organizationAccess.organizations.length,
+      organizations: organizationAccess.organizations.map((organization) => ({
+        id: organization.id,
+        name: organization.name,
+      })),
       projects: rows.projects.data ?? [],
       documents: rows.documents.data ?? [],
       signatures: rows.signatures.data ?? [],

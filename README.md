@@ -41,6 +41,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 18](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_18.md)
 - [Validation d'execution de la phase 19](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_19.md)
 - [Validation d'execution de la phase 20](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_20.md)
+- [Validation d'execution de la phase 21](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_21.md)
 
 ## Finalite
 

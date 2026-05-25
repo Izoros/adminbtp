@@ -41,6 +41,15 @@ export type AdminCockpitQuickAction = {
   tone: AdminCockpitMetricTone;
 };
 
+export type AdminCockpitPortfolioItem = {
+  title: string;
+  subtitle: string;
+  stat: string;
+  detail: string;
+  tone: AdminCockpitMetricTone;
+  href?: string;
+};
+
 export type AdminCockpitLoadPoint = {
   label: string;
   emails: number;
@@ -85,6 +94,8 @@ export type AdminCockpitData = {
   priorities: AdminCockpitPriority[];
   healthItems: AdminCockpitHealthItem[];
   quickActions: AdminCockpitQuickAction[];
+  organizationFocus: AdminCockpitPortfolioItem[];
+  projectFocus: AdminCockpitPortfolioItem[];
   loadSeries: AdminCockpitLoadPoint[];
   revenueSeries: AdminCockpitRevenuePoint[];
   alerts: AdminCockpitAlert[];
