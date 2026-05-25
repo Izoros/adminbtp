@@ -18,9 +18,13 @@ vi.mock("@/components/layout/app-shell", () => ({
   ),
 }));
 
+vi.mock("@/components/dashboard/admin-cockpit-data", () => ({
+  loadAdminCockpitData: vi.fn(async () => undefined),
+}));
+
 describe("page admin", () => {
-  it("affiche le cockpit admin et son titre dedie", () => {
-    render(<AdminPage />);
+  it("affiche le cockpit admin et son titre dedie", async () => {
+    render(await AdminPage());
 
     expect(screen.getByText("Cockpit admin")).toBeInTheDocument();
     expect(

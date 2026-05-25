@@ -8,6 +8,7 @@ import {
   adminRevenueSeries,
 } from "@/config/dashboard";
 import { cn } from "@/lib/utils";
+import type { AdminCockpitData } from "@/components/dashboard/admin-cockpit.types";
 
 const metricToneClasses = {
   warm: "border-amber-200/80 bg-white text-stone-950",
@@ -40,27 +41,61 @@ function buildPolylinePoints(values: number[], width: number, height: number) {
     .join(" ");
 }
 
-export function AdminCockpit() {
+function buildBarHeight(value: number, values: number[]) {
+  const maxValue = Math.max(...values, 1);
+  return `${Math.max((value / maxValue) * 180, value > 0 ? 18 : 8)}px`;
+}
+
+export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
+  const metrics = data?.metrics ?? adminMetrics;
+  const loadSeries = data?.loadSeries ?? adminLoadSeries;
+  const revenueSeries = data?.revenueSeries ?? adminRevenueSeries;
+  const alerts = data?.alerts ?? adminAlerts;
+  const kanbanColumns = data?.kanbanColumns ?? adminKanbanColumns;
+  const source = data?.source ?? "demo";
+  const sourceMessage =
+    data?.sourceMessage ??
+    "Affichage des indicateurs de demonstration pour le cockpit admin.";
   const consultingPoints = buildPolylinePoints(
-    adminLoadSeries.map((item) => item.consulting),
+    loadSeries.map((item) => item.consulting),
     320,
     110,
   );
   const documentPoints = buildPolylinePoints(
-    adminLoadSeries.map((item) => item.documents),
+    loadSeries.map((item) => item.documents),
     320,
     110,
   );
   const emailPoints = buildPolylinePoints(
-    adminLoadSeries.map((item) => item.emails),
+    loadSeries.map((item) => item.emails),
     320,
     110,
   );
+  const revenueValues = revenueSeries.flatMap((item) => [item.committed, item.invoiced]);
 
   return (
     <section className="space-y-6">
+      <div className="flex flex-col gap-3 rounded-[1.5rem] border border-stone-200/80 bg-white/90 px-5 py-4 text-sm text-stone-700 shadow-[0_12px_32px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+            Source cockpit
+          </p>
+          <p className="mt-1 leading-6">{sourceMessage}</p>
+        </div>
+        <span
+          className={cn(
+            "inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.18em]",
+            source === "supabase"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-amber-50 text-amber-700",
+          )}
+        >
+          {source === "supabase" ? "Supabase" : "Demonstration"}
+        </span>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {adminMetrics.map((metric) => (
+        {metrics.map((metric) => (
           <article
             key={metric.label}
             className={cn(
@@ -140,7 +175,7 @@ export function AdminCockpit() {
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-5">
-            {adminLoadSeries.map((item) => (
+            {loadSeries.map((item) => (
               <div
                 key={item.label}
                 className="rounded-2xl border border-stone-200 bg-stone-50/80 px-4 py-3 text-sm text-stone-700"
@@ -170,16 +205,16 @@ export function AdminCockpit() {
           </div>
 
           <div className="mt-6 grid h-64 grid-cols-6 items-end gap-3 rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fbf8f1_0%,#f5eee2_100%)] p-5">
-            {adminRevenueSeries.map((item) => (
+            {revenueSeries.map((item) => (
               <div key={item.label} className="flex h-full flex-col justify-end gap-2">
                 <div className="flex items-end justify-center gap-1">
                   <div
                     className="w-4 rounded-t-full bg-stone-300"
-                    style={{ height: `${item.committed * 3}px` }}
+                    style={{ height: buildBarHeight(item.committed, revenueValues) }}
                   />
                   <div
                     className="w-4 rounded-t-full bg-primary"
-                    style={{ height: `${item.invoiced * 3}px` }}
+                    style={{ height: buildBarHeight(item.invoiced, revenueValues) }}
                   />
                 </div>
                 <p className="text-center text-xs font-medium text-stone-600">{item.label}</p>
@@ -216,7 +251,7 @@ export function AdminCockpit() {
           </div>
 
           <div className="mt-5 space-y-4">
-            {adminAlerts.map((alert) => (
+            {alerts.map((alert) => (
               <div
                 key={alert.title}
                 className={cn(
@@ -247,7 +282,7 @@ export function AdminCockpit() {
           </div>
 
           <div className="mt-5 grid gap-4 xl:grid-cols-4">
-            {adminKanbanColumns.map((column) => (
+            {kanbanColumns.map((column) => (
               <div
                 key={column.id}
                 className={cn(

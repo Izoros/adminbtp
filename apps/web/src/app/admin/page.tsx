@@ -2,9 +2,12 @@ import Link from "next/link";
 import { ArrowRight, Bot, BriefcaseBusiness, Wallet } from "lucide-react";
 
 import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
+import { loadAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
 import { AppShell } from "@/components/layout/app-shell";
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const cockpitData = await loadAdminCockpitData();
+
   return (
     <AppShell eyebrow="Pilotage operationnel AdminBTP" title="Cockpit admin">
       <div className="space-y-8">
@@ -81,7 +84,7 @@ export default function AdminPage() {
           </aside>
         </section>
 
-        <AdminCockpit />
+        <AdminCockpit data={cockpitData} />
       </div>
     </AppShell>
   );
