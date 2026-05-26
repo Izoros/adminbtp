@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 
 import { appNavigation } from "@/config/navigation";
+import { getSupabaseProjectRef } from "@/lib/env";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import {
   getTestAccessCookieName,
@@ -21,6 +22,7 @@ export async function AppShell({
   title = "Tableau de lancement",
 }: AppShellProps) {
   const user = await getAuthenticatedUser();
+  const supabaseProjectRef = getSupabaseProjectRef();
   const cookieStore = await cookies();
   const hasTestAccess = hasTestAccessCookieValue(
     cookieStore.get(getTestAccessCookieName())?.value,
@@ -108,6 +110,15 @@ export async function AppShell({
                       ? "Acces test lecture seule"
                       : "Mode visiteur ou session absente"}
                 </div>
+
+                {supabaseProjectRef ? (
+                  <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700">
+                    <span className="font-medium text-stone-900">Projet Supabase</span>
+                    <span className="rounded-full bg-stone-100 px-3 py-1 font-mono text-xs text-stone-700">
+                      {supabaseProjectRef}
+                    </span>
+                  </div>
+                ) : null}
 
                 {user ? (
                   <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700">

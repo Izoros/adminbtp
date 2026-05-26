@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseConfig } from "@/lib/env";
+import { getSupabaseProjectRef, hasSupabaseConfig } from "@/lib/env";
 import { getDefaultAuthRedirect } from "@/modules/auth/services/session-navigation";
 
 type LoginFormProps = {
@@ -16,6 +16,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const supabaseProjectRef = getSupabaseProjectRef();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,7 +80,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
         {hasSupabaseConfig()
-          ? "Connexion reelle activee via Supabase."
+          ? `Connexion reelle activee via Supabase.${supabaseProjectRef ? ` Projet actif: ${supabaseProjectRef}.` : ""}`
           : "Mode local: la vue reste testable sans projet Supabase branche."}
       </div>
 

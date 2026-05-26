@@ -24,3 +24,26 @@ export const publicEnv = {
 export function hasSupabaseConfig() {
   return Boolean(publicEnv.supabaseUrl && publicEnv.supabasePublishableKey);
 }
+
+export function extractSupabaseProjectRef(url: string | null | undefined) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+    const hostnameParts = parsedUrl.hostname.split(".");
+
+    if (hostnameParts.length < 3 || hostnameParts[1] !== "supabase") {
+      return null;
+    }
+
+    return hostnameParts[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+export function getSupabaseProjectRef() {
+  return extractSupabaseProjectRef(publicEnv.supabaseUrl);
+}
