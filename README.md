@@ -78,10 +78,10 @@ Application web :
 
 ## Mise en ligne
 
-Deploiement Vercel realise et verifie le `2026-05-23` :
+Deploiement Vercel realise et verifie le `2026-05-26` :
 
 - URL de production principale : [adminbtp.vercel.app](https://adminbtp.vercel.app)
-- URL de deploiement validee : [adminbtp-dnme7ixia-izoros-projects.vercel.app](https://adminbtp-dnme7ixia-izoros-projects.vercel.app)
+- URL de deploiement validee : [adminbtp-ovohepeob-izoros-projects.vercel.app](https://adminbtp-ovohepeob-izoros-projects.vercel.app)
 
 Note d'exploitation :
 
