@@ -44,6 +44,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 20](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_20.md)
 - [Validation d'execution de la phase 21](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_21.md)
 - [Validation d'execution de la phase 22](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_22.md)
+- [Validation d'execution de la phase 23](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_23.md)
 
 ## Finalite
 
@@ -108,6 +109,26 @@ npm run supabase:start
 npm run supabase:reset
 npm run supabase:types
 ```
+
+## Acces de test interface
+
+Pour tester rapidement l'interface sans compte Supabase reel :
+
+- ouvrir [adminbtp.vercel.app/login](https://adminbtp.vercel.app/login)
+- cliquer sur `Activer l'acces test`
+- ou ouvrir directement [adminbtp.vercel.app/auth/test-access?next=%2Fadmin](https://adminbtp.vercel.app/auth/test-access?next=%2Fadmin)
+
+Comportement :
+
+- l'acces test ouvre une session `lecture seule`
+- les routes protegees deviennent navigables
+- les donnees affichees restent limitees au mode demonstration ou aux etats de lecture non authentifies
+- les ecritures sensibles ne remplacent pas une vraie session utilisateur
+
+Configuration :
+
+- variable d'environnement `NEXT_PUBLIC_ENABLE_TEST_ACCESS=true`
+- deconnexion du mode test via `/auth/test-access/logout`
 
 ## Etat actuel du socle
 

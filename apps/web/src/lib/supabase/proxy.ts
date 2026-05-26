@@ -9,6 +9,10 @@ import {
   isProtectedPath,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
+import {
+  getTestAccessCookieName,
+  hasTestAccessCookieValue,
+} from "@/modules/auth/services/test-access";
 import type { SupabaseDatabase } from "@/types/supabase";
 
 export async function updateSession(request: NextRequest) {
@@ -16,6 +20,9 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
+  const hasTestAccess = hasTestAccessCookieValue(
+    request.cookies.get(getTestAccessCookieName())?.value,
+  );
 
   if (!hasSupabaseConfig() || !shouldHandleAuthGuard(requestUrl.pathname)) {
     return response;
@@ -53,7 +60,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && isProtectedPath(requestUrl.pathname)) {
+  if (!user && !hasTestAccess && isProtectedPath(requestUrl.pathname)) {
     return createRedirectResponse(
       response,
       new URL(
@@ -65,7 +72,7 @@ export async function updateSession(request: NextRequest) {
     );
   }
 
-  if (user && isLoginPath(requestUrl.pathname)) {
+  if ((user || hasTestAccess) && isLoginPath(requestUrl.pathname)) {
     const nextPath = requestUrl.searchParams.get("next");
 
     return createRedirectResponse(

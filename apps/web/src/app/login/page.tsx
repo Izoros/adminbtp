@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import {
@@ -6,10 +8,16 @@ import {
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
 import { LoginForm } from "@/modules/auth/components/login-form";
+import {
+  getTestAccessCookieName,
+  hasTestAccessCookieValue,
+  isTestAccessEnabled,
+} from "@/modules/auth/services/test-access";
 
 type LoginPageProps = {
   searchParams?: Promise<{
     next?: string | string[];
+    testAccess?: string | string[];
   }>;
 };
 
@@ -18,10 +26,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const nextValue = Array.isArray(resolvedSearchParams?.next)
     ? resolvedSearchParams?.next[0]
     : resolvedSearchParams?.next;
+  const testAccessStatus = Array.isArray(resolvedSearchParams?.testAccess)
+    ? resolvedSearchParams?.testAccess[0]
+    : resolvedSearchParams?.testAccess;
   const nextPath = sanitizeRedirectPath(nextValue);
   const user = await getAuthenticatedUser();
+  const cookieStore = await cookies();
+  const hasTestAccess = hasTestAccessCookieValue(
+    cookieStore.get(getTestAccessCookieName())?.value,
+  );
 
-  if (user) {
+  if (user || hasTestAccess) {
     redirect(nextPath || getDefaultAuthRedirect());
   }
 
@@ -56,6 +71,32 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="mt-8">
             <LoginForm nextPath={nextPath} />
           </div>
+
+          {isTestAccessEnabled() ? (
+            <div className="mt-6 rounded-[1.5rem] border border-stone-200 bg-stone-50 px-5 py-4">
+              <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
+                Acces test
+              </p>
+              <p className="mt-2 text-sm leading-7 text-stone-600">
+                Pour tester l&apos;interface sans session reelle, active un acces
+                lecture seule. Les routes protegees deviennent navigables avec les
+                donnees de demonstration et les ecritures sensibles restent hors
+                session.
+              </p>
+              <Link
+                href={`/auth/test-access${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`}
+                className="mt-4 inline-flex h-11 items-center justify-center rounded-full border border-stone-950 px-5 text-sm font-medium text-stone-950 transition hover:bg-stone-950 hover:text-white"
+              >
+                Activer l&apos;acces test
+              </Link>
+            </div>
+          ) : null}
+
+          {testAccessStatus === "disabled" ? (
+            <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              L&apos;acces test est desactive dans cet environnement.
+            </p>
+          ) : null}
         </section>
       </div>
     </main>

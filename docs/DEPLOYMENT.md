@@ -39,6 +39,7 @@ Variables minimales :
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_ENABLE_TEST_ACCESS`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `N8N_SHARED_SECRET`
 
@@ -79,6 +80,7 @@ npx vercel deploy --prod --yes --scope izoros-projects --project adminbtp
 
 - lancer `npm run verify:prod` pour controler les parcours critiques publies
 - ouvrir `/login`
+- verifier que le bouton `Activer l'acces test` est present si `NEXT_PUBLIC_ENABLE_TEST_ACCESS=true`
 - ouvrir `/projects`
 - ouvrir `/ai`
 - verifier `/api/health`
