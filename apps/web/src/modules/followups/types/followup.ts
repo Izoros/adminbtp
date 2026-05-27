@@ -30,8 +30,8 @@ export type PaymentFollowup = {
   status: FollowupStatus;
 };
 
-export type FollowupDataOrigin = "demo" | "supabase";
-export type FollowupPersistenceMode = "demo" | "generated" | "persisted";
+export type FollowupDataOrigin = "supabase";
+export type FollowupPersistenceMode = "generated" | "persisted";
 
 export type FollowupFeedback = {
   tone: "success" | "error" | "info";

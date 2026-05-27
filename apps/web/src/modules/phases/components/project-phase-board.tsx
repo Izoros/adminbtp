@@ -17,7 +17,7 @@ type ProjectPhaseBoardProps = {
   phases: ProjectPhase[];
   checklistItems: PhaseChecklistItem[];
   alerts: PhaseAlert[];
-  source: "demo" | "supabase";
+  source: "supabase";
   sourceDetail: string;
   toggleChecklistAction: (formData: FormData) => Promise<void>;
   updatePhaseStatusAction: (formData: FormData) => Promise<void>;
@@ -29,7 +29,6 @@ export function ProjectPhaseBoard({
   phases,
   checklistItems,
   alerts,
-  source,
   sourceDetail,
   toggleChecklistAction,
   updatePhaseStatusAction,
@@ -40,7 +39,7 @@ export function ProjectPhaseBoard({
   if (!profile) {
     return (
       <div className="rounded-[1.75rem] border border-stone-200 bg-white p-6 text-sm text-stone-700">
-        Ce role n&apos;utilise pas encore de parcours de phase dedie dans la demo locale.
+        Ce role n&apos;utilise pas encore de parcours de phase dedie.
       </div>
     );
   }
@@ -51,7 +50,7 @@ export function ProjectPhaseBoard({
     <section className="space-y-6">
       <div className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.07)]">
         <p className="text-xs font-medium tracking-[0.22em] text-stone-500 uppercase">
-          Phase 3
+          Phases
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-stone-950">
           Phases chantier configurables
@@ -62,7 +61,7 @@ export function ProjectPhaseBoard({
         </p>
         <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
           <p className="font-medium text-stone-950">
-            Source : {source === "supabase" ? "Supabase" : "Demonstration"}
+            Source : Supabase
           </p>
           <p className="mt-1">{sourceDetail}</p>
         </div>

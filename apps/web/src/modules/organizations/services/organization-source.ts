@@ -3,19 +3,14 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   loadServerOrganizationScope,
 } from "@/lib/permissions";
-import { demoUser } from "@/modules/auth/services/demo-session";
 import type { AppUserProfile } from "@/modules/auth/types/auth";
-import {
-  demoOrganizationMemberships,
-  demoOrganizations,
-} from "@/modules/organizations/services/demo-organizations";
 import type {
   Organization,
   OrganizationMembership,
 } from "@/modules/organizations/types/organization";
 import type { SupabaseDatabase } from "@/types/supabase";
 
-export type OrganizationDataSource = "supabase" | "demo";
+export type OrganizationDataSource = "supabase";
 
 export type OrganizationAccessData = {
   user: AppUserProfile;
@@ -30,6 +25,15 @@ type OrganizationSnapshot = {
   organizations: Organization[];
   memberships: OrganizationMembership[];
 };
+
+function buildUnavailableUserProfile(): AppUserProfile {
+  return {
+    id: "session_indisponible",
+    email: "session@adminbtp.local",
+    fullName: "Session AdminBTP indisponible",
+    internalRole: "member",
+  };
+}
 
 function mapSupabaseUser(
   user: User,
@@ -66,12 +70,15 @@ function mapOrganizationRow(
   };
 }
 
-function buildDemoOrganizationAccessData(sourceDetail: string): OrganizationAccessData {
+function buildEmptyOrganizationAccessData(
+  sourceDetail: string,
+  user: AppUserProfile | null = null,
+): OrganizationAccessData {
   return {
-    user: demoUser,
-    organizations: demoOrganizations,
-    memberships: demoOrganizationMemberships,
-    source: "demo",
+    user: user ?? buildUnavailableUserProfile(),
+    organizations: [],
+    memberships: [],
+    source: "supabase",
     sourceDetail,
   };
 }
@@ -123,8 +130,8 @@ export function resolveOrganizationAccessData(
   const normalizedSnapshot = normalizeOrganizationSnapshot(snapshot);
 
   if (!normalizedSnapshot.user) {
-    return buildDemoOrganizationAccessData(
-      "Aucune session Supabase exploitable, bascule sur les donnees de demonstration.",
+    return buildEmptyOrganizationAccessData(
+      "Aucune session Supabase exploitable n'a ete trouvee pour charger les organisations.",
     );
   }
 
@@ -148,16 +155,16 @@ export async function loadOrganizationAccessData(
   supabase: SupabaseClient<SupabaseDatabase> | null,
 ): Promise<OrganizationAccessData> {
   if (!supabase) {
-    return buildDemoOrganizationAccessData(
-      "Configuration Supabase absente, utilisation du mode demonstration.",
+    return buildEmptyOrganizationAccessData(
+      "Configuration Supabase absente. Le module organisations ne peut pas charger de donnees.",
     );
   }
 
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user) {
-    return buildDemoOrganizationAccessData(
-      "Session Supabase indisponible, utilisation du mode demonstration.",
+    return buildEmptyOrganizationAccessData(
+      "Session Supabase indisponible. Reconnectez-vous pour charger les organisations.",
     );
   }
 
@@ -171,8 +178,9 @@ export async function loadOrganizationAccessData(
   const organizationScope = await loadServerOrganizationScope(supabase);
 
   if (!organizationScope) {
-    return buildDemoOrganizationAccessData(
-      "Lecture des rattachements organisationnels indisponible, utilisation du mode demonstration.",
+    return buildEmptyOrganizationAccessData(
+      "Lecture des rattachements organisationnels indisponible pour cette session.",
+      user,
     );
   }
 
@@ -198,8 +206,9 @@ export async function loadOrganizationAccessData(
     .order("name", { ascending: true });
 
   if (organizationsError) {
-    return buildDemoOrganizationAccessData(
-      "Lecture des organisations indisponible, utilisation du mode demonstration.",
+    return buildEmptyOrganizationAccessData(
+      "Lecture des organisations indisponible dans Supabase pour le perimetre courant.",
+      user,
     );
   }
 

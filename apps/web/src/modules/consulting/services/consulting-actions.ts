@@ -16,13 +16,13 @@ type ConsultingMissionRow = Tables<"consulting_missions">;
 
 export type ConsultingMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
 };
 
 export const initialConsultingMutationState: ConsultingMutationState = {
   status: "idle",
-  mode: "demo",
+  mode: "supabase",
   message: "",
 };
 
@@ -72,9 +72,9 @@ async function resolveWritableConsultingContext(
 
   if (!supabaseClient || data.source !== "supabase") {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. L'ecriture consulting reste simulee en mode demonstration.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. Les ecritures consulting sont bloquees en mode production.",
     };
   }
 
@@ -154,9 +154,9 @@ export async function createExpertRequestAction(
 
   if (!supabaseClient || data.source !== "supabase" || !data.currentOrganizationId) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. La creation reste simulee en mode demonstration.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. La creation est bloquee en mode production.",
     };
   }
 
@@ -182,7 +182,7 @@ export async function createExpertRequestAction(
   if (!draft) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de creer la demande sans titre ni type d'assistance valides.",
     };
   }
@@ -260,7 +260,7 @@ export async function createConsultingMissionAction(
   if (!organizationId || !data.request) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de creer une mission sans organisation ni demande d'expertise active.",
     };
   }
@@ -268,7 +268,7 @@ export async function createConsultingMissionAction(
   if (!title || soldHours === null) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Le titre de mission et le volume d'heures vendues sont obligatoires.",
     };
   }
@@ -279,7 +279,7 @@ export async function createConsultingMissionAction(
   ) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "L'expert selectionne est introuvable sur l'organisation courante.",
     };
   }
@@ -358,7 +358,7 @@ export async function registerConsultingHourAction(
   if (!organizationId || !data.mission) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible d'enregistrer une heure sans mission de conseil active.",
     };
   }
@@ -366,7 +366,7 @@ export async function registerConsultingHourAction(
   if (!isIsoDateValue(workDate) || hoursSpent === null || billableHours === null) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "La date, le temps passe et le temps facturable doivent etre valides.",
     };
   }
@@ -376,7 +376,7 @@ export async function registerConsultingHourAction(
   if (billableHours > hoursSpent) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Le temps facturable ne peut pas depasser le temps passe.",
     };
   }
@@ -387,7 +387,7 @@ export async function registerConsultingHourAction(
   ) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "L'expert selectionne pour la saisie d'heures est introuvable.",
     };
   }

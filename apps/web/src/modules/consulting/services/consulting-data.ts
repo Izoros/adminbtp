@@ -5,14 +5,6 @@ import {
   resolvePreferredOrganizationId as resolveScopedPreferredOrganizationId,
 } from "@/lib/permissions";
 import {
-  demoConsultingHours,
-  demoConsultingMissions,
-  demoExpertProfiles,
-  demoExpertRequests,
-  demoTechnicalReviews,
-} from "@/modules/consulting/services/demo-consulting";
-import {
-  getConsultingJourneyState,
   getMissionByRequestId,
   getReviewForRequest,
 } from "@/modules/consulting/services/consulting-flow";
@@ -35,7 +27,7 @@ type TechnicalReviewRow = ConsultingTables["technical_reviews"]["Row"];
 type UserProfileRow = ConsultingTables["user_profiles"]["Row"];
 
 export type ConsultingDashboardData = {
-  source: "demo" | "supabase";
+  source: "supabase";
   currentOrganizationId: string | null;
   expertProfiles: ExpertProfile[];
   request: ExpertRequest | null;
@@ -166,26 +158,6 @@ export function sanitizeExpertRequestDraft(input: {
   };
 }
 
-export function buildDemoConsultingDashboardData(): ConsultingDashboardData {
-  const request = demoExpertRequests[0]!;
-  const journey = getConsultingJourneyState(
-    request,
-    demoConsultingMissions,
-    demoConsultingHours,
-    demoTechnicalReviews,
-  );
-
-  return {
-    source: "demo",
-    currentOrganizationId: "org_adminbtp_001",
-    expertProfiles: demoExpertProfiles,
-    request,
-    mission: journey.mission,
-    missionHours: journey.missionHours,
-    review: journey.review,
-  };
-}
-
 export function buildEmptyConsultingDashboardData(
   currentOrganizationId: string | null,
   expertProfiles: ExpertProfile[] = [],
@@ -241,14 +213,14 @@ export async function loadConsultingDashboardData(
   supabase: SupabaseClient<SupabaseDatabase> | null,
 ): Promise<ConsultingDashboardData> {
   if (!supabase) {
-    return buildDemoConsultingDashboardData();
+    return buildEmptyConsultingDashboardData(null, []);
   }
 
   try {
     const userScope = await loadServerOrganizationScope(supabase);
 
     if (!userScope) {
-      return buildDemoConsultingDashboardData();
+      return buildEmptyConsultingDashboardData(null, []);
     }
 
     const [
@@ -292,7 +264,7 @@ export async function loadConsultingDashboardData(
       hoursError ||
       reviewsError
     ) {
-      return buildDemoConsultingDashboardData();
+      return buildEmptyConsultingDashboardData(null, []);
     }
 
     const currentOrganizationId = resolveCurrentOrganizationId({
@@ -336,6 +308,6 @@ export async function loadConsultingDashboardData(
       reviews,
     );
   } catch {
-    return buildDemoConsultingDashboardData();
+    return buildEmptyConsultingDashboardData(null, []);
   }
 }

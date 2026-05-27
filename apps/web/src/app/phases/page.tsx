@@ -21,7 +21,7 @@ export default async function PhasesPage() {
 
     await togglePhaseChecklistItemAction({
       status: "idle",
-      mode: "demo",
+      mode: "supabase",
       message: "",
     }, formData);
   }
@@ -31,7 +31,7 @@ export default async function PhasesPage() {
 
     await updateProjectPhaseStatusAction({
       status: "idle",
-      mode: "demo",
+      mode: "supabase",
       message: "",
     }, formData);
   }
@@ -41,7 +41,7 @@ export default async function PhasesPage() {
 
     await resolvePhaseAlertAction({
       status: "idle",
-      mode: "demo",
+      mode: "supabase",
       message: "",
     }, formData);
   }

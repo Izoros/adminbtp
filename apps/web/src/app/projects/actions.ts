@@ -18,7 +18,12 @@ export async function createProjectAction(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    redirect(buildRedirectUrl("projectStatus", "demo"));
+    redirect(
+      buildRedirectUrl(
+        "projectError",
+        "Supabase indisponible. La creation de chantier est bloquee en mode production.",
+      ),
+    );
   }
 
   const { data: authData, error: authError } = await supabase.auth.getUser();

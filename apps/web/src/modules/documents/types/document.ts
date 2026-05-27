@@ -28,5 +28,4 @@ export type DocumentVariableMap = Record<string, string>;
 
 export type DocumentVariableSource =
   | "supabase_metadata"
-  | "supabase_placeholder"
-  | "demo";
+  | "supabase_placeholder";

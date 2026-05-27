@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadServerOrganizationScope } from "@/lib/permissions";
-import { getDemoSituation } from "@/modules/followups/services/demo-followups";
 import { generateFollowupSchedule } from "@/modules/followups/services/followup-schedule";
 import type {
   FollowupDashboardData,
@@ -124,13 +123,11 @@ export async function getFollowupDashboardData(
   const resolvedReader = reader ?? (await createFollowupSupabaseReader());
 
   if (!resolvedReader) {
-    const situation = getDemoSituation();
-
     return {
-      situation,
-      followups: generateFollowupSchedule(situation),
-      dataOrigin: "demo",
-      persistenceMode: "demo",
+      situation: undefined,
+      followups: [],
+      dataOrigin: "supabase",
+      persistenceMode: "generated",
       fallbackReason: "Configuration Supabase absente ou lecture distante indisponible.",
     };
   }
@@ -169,14 +166,12 @@ export async function getFollowupDashboardData(
           : "Aucune relance en base, planning calcule a la volee depuis la situation cible.",
     };
   } catch {
-    const situation = getDemoSituation();
-
     return {
-      situation,
-      followups: generateFollowupSchedule(situation),
-      dataOrigin: "demo",
-      persistenceMode: "demo",
-      fallbackReason: "Lecture Supabase impossible, bascule vers les donnees de demonstration.",
+      situation: undefined,
+      followups: [],
+      dataOrigin: "supabase",
+      persistenceMode: "generated",
+      fallbackReason: "Lecture Supabase impossible pour le module relances.",
     };
   }
 }

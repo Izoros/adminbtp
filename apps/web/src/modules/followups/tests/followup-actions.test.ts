@@ -83,7 +83,7 @@ describe("followup-actions", () => {
 
     await expectRedirect(
       syncFollowupScheduleAction(buildSyncFormData()),
-      "/followups?organizationId=org_adminbtp_001&followupInfo=Supabase+indisponible.+La+synchronisation+des+relances+reste+simulee.",
+      "/followups?organizationId=org_adminbtp_001&followupInfo=Supabase+indisponible.+La+synchronisation+des+relances+est+bloquee+en+mode+production.",
     );
 
     expect(revalidatePathMock).not.toHaveBeenCalled();

@@ -7,10 +7,6 @@ import {
   getGovernanceStateFromIssues,
   getLatestHumanAuditLog,
 } from "@/modules/ai/services/ai-governance";
-import {
-  demoAiAuditLogs,
-  demoAiSuggestions,
-} from "@/modules/ai/services/demo-ai";
 import type {
   AiSuggestion,
   AiSuggestionAuditLog,
@@ -23,7 +19,7 @@ type AiSuggestionRow = AiTables["ai_suggestions"]["Row"];
 type AiSuggestionAuditLogRow = AiTables["ai_suggestion_audit_logs"]["Row"];
 
 export type AiGovernanceData = {
-  source: "demo" | "supabase";
+  source: "supabase";
   currentOrganizationId: string | null;
   suggestions: AiSuggestion[];
   auditLogs: AiSuggestionAuditLog[];
@@ -129,20 +125,6 @@ export function enrichSuggestionsWithGovernance(
   });
 }
 
-export function buildDemoAiGovernanceData(): AiGovernanceData {
-  return {
-    source: "demo",
-    currentOrganizationId: "org_adminbtp_001",
-    suggestions: enrichSuggestionsWithGovernance(
-      demoAiSuggestions,
-      demoAiAuditLogs,
-    ),
-    auditLogs: demoAiAuditLogs,
-    sourceMessage:
-      "Supabase est indisponible pour le module IA. Les donnees de demonstration restent affichees.",
-  };
-}
-
 export function buildEmptyAiGovernanceData(
   currentOrganizationId: string | null,
   sourceMessage = "Aucune suggestion IA reelle n'est encore disponible pour cette organisation.",
@@ -160,13 +142,19 @@ export async function loadAiGovernanceData(
   supabase: SupabaseClient<SupabaseDatabase> | null,
 ): Promise<AiGovernanceData> {
   if (!supabase) {
-    return buildDemoAiGovernanceData();
+    return buildEmptyAiGovernanceData(
+      null,
+      "Configuration Supabase absente. Le module IA ne peut pas charger de suggestions.",
+    );
   }
 
   const userScope = await loadServerOrganizationScope(supabase);
 
   if (!userScope) {
-    return buildDemoAiGovernanceData();
+    return buildEmptyAiGovernanceData(
+      null,
+      "Le scope organisation est indisponible pour le module IA.",
+    );
   }
 
   const { data: suggestionRows, error: suggestionError } = await supabase

@@ -31,7 +31,7 @@ export type EmailRecord = {
   classification: EmailClassification;
 };
 
-export type DataOrigin = "demo" | "supabase";
+export type DataOrigin = "supabase";
 
 export type MailboxBoardData = {
   organizationId: string;

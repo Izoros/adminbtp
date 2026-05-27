@@ -148,12 +148,12 @@ describe("chargement tresorerie via Supabase", () => {
     expect(followupQuery.eq).toHaveBeenCalledWith("situation_id", "situation_001");
   });
 
-  it("bascule sur la demonstration sans lecteur Supabase", async () => {
+  it("retourne un etat vide Supabase sans lecteur Supabase", async () => {
     const data = await getFollowupDashboardData(undefined, null);
 
-    expect(data.dataOrigin).toBe("demo");
-    expect(data.persistenceMode).toBe("demo");
-    expect(data.followups).toHaveLength(4);
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.persistenceMode).toBe("generated");
+    expect(data.followups).toEqual([]);
   });
 
   it("reste en source Supabase vide si aucune situation n'existe encore", async () => {

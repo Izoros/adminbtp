@@ -69,12 +69,12 @@ describe("createProjectAction", () => {
     vi.clearAllMocks();
   });
 
-  it("redirige en mode demonstration si Supabase est indisponible", async () => {
+  it("redirige en erreur si Supabase est indisponible", async () => {
     createClientMock.mockResolvedValue(null);
 
     await expectRedirect(
       createProjectAction(buildProjectFormData()),
-      "/projects?projectStatus=demo",
+      "/projects?projectError=Supabase%20indisponible.%20La%20creation%20de%20chantier%20est%20bloquee%20en%20mode%20production.",
     );
 
     expect(revalidatePathMock).not.toHaveBeenCalled();

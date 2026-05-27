@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe("resolution des donnees phases chantier", () => {
-  it("bascule en demonstration si aucun role actif n'est exploitable", () => {
+  it("retourne un etat vide Supabase si aucun role actif n'est exploitable", () => {
     const result = resolvePhaseDashboardData({
       activeRole: null,
       phases: [],
@@ -39,9 +39,9 @@ describe("resolution des donnees phases chantier", () => {
       alerts: [],
     });
 
-    expect(result.source).toBe("demo");
+    expect(result.source).toBe("supabase");
     expect(result.activeRole).toBe("moe");
-    expect(result.sourceDetail).toMatch(/mode demonstration/i);
+    expect(result.sourceDetail).toMatch(/aucun role chantier compatible|aucune phase/i);
   });
 
   it("retourne la source Supabase quand les phases sont exploitables", () => {
@@ -210,10 +210,10 @@ describe("chargement Supabase des phases chantier", () => {
     expect(alertQuery.in).toHaveBeenCalledWith("phase_id", ["phase_001"]);
   });
 
-  it("bascule en demonstration si Supabase est absent", async () => {
+  it("retourne un etat vide Supabase si Supabase est absent", async () => {
     const result = await loadPhaseDashboardData(null, ["org_adminbtp_001"]);
 
-    expect(result.source).toBe("demo");
-    expect(result.phases.length).toBeGreaterThan(0);
+    expect(result.source).toBe("supabase");
+    expect(result.phases).toEqual([]);
   });
 });

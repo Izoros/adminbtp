@@ -14,7 +14,7 @@ export type OdooMapping = {
   syncStatus: string;
 };
 
-export type OdooDataOrigin = "demo" | "supabase";
+export type OdooDataOrigin = "supabase";
 
 export type OdooMappingBoardData = {
   organizationId: string;

@@ -1,6 +1,5 @@
 import { loadServerOrganizationScope } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { getDemoOdooMappingBoardData } from "@/modules/settings/services/demo-odoo";
 import {
   findCustomerMappingForOrganization,
   getMappingsByType,
@@ -130,7 +129,10 @@ export async function getOdooMappingBoardData(
     reader === undefined ? await createOdooSupabaseReader() : reader;
 
   if (!resolvedReader) {
-    return getDemoOdooMappingBoardData();
+    return buildEmptyOdooMappingBoardData(
+      query?.organizationId ?? "organization_indisponible",
+      "Lecture Odoo indisponible pour cette session.",
+    );
   }
 
   try {
@@ -148,17 +150,17 @@ export async function getOdooMappingBoardData(
         );
       }
 
-      return {
-        ...getDemoOdooMappingBoardData(),
-        fallbackReason: "Aucune organisation accessible n'a pu etre resolue pour Odoo.",
-      };
+      return buildEmptyOdooMappingBoardData(
+        "organization_indisponible",
+        "Aucune organisation accessible n'a pu etre resolue pour Odoo.",
+      );
     }
 
     return boardData;
   } catch {
-    return {
-      ...getDemoOdooMappingBoardData(),
-      fallbackReason: "Lecture Supabase impossible, bascule vers les donnees de demonstration.",
-    };
+    return buildEmptyOdooMappingBoardData(
+      query?.organizationId ?? "organization_indisponible",
+      "Lecture Supabase impossible pour les mappings Odoo.",
+    );
   }
 }

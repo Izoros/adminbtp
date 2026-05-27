@@ -9,10 +9,6 @@ import {
   filterWorkspaceItemsForViewer,
   resolveWorkspaceItemStatus,
 } from "@/modules/client-space/services/client-space-access";
-import {
-  demoClientComments,
-  demoClientWorkspaceItems,
-} from "@/modules/client-space/services/demo-client-space";
 import type {
   ClientComment,
   ClientDecision,
@@ -28,7 +24,7 @@ type ClientFeedbackThreadRow = ClientSpaceTables["client_feedback_threads"]["Row
 type UserProfileRow = ClientSpaceTables["user_profiles"]["Row"];
 
 export type ClientSpaceData = {
-  source: "demo" | "supabase";
+  source: "supabase";
   clientOrganizationId: string | null;
   viewerMode: ClientViewerMode;
   workspaceItems: ClientWorkspaceItem[];
@@ -197,18 +193,6 @@ async function resolveClientSpaceUserScope(
   };
 }
 
-export function buildDemoClientSpaceData(): ClientSpaceData {
-  return {
-    source: "demo",
-    clientOrganizationId: "org_client_004",
-    viewerMode: "demo",
-    workspaceItems: demoClientWorkspaceItems.filter(
-      (item) => item.clientOrganizationId === "org_client_004",
-    ),
-    comments: demoClientComments,
-  };
-}
-
 export function buildEmptyClientSpaceData(
   viewerMode: "internal" | "client",
   clientOrganizationId: string | null,
@@ -226,13 +210,13 @@ export async function loadClientSpaceData(
   supabase: SupabaseClient<SupabaseDatabase> | null,
 ): Promise<ClientSpaceData> {
   if (!supabase) {
-    return buildDemoClientSpaceData();
+    return buildEmptyClientSpaceData("internal", null);
   }
 
   const userScope = await resolveClientSpaceUserScope(supabase);
 
   if (!userScope) {
-    return buildDemoClientSpaceData();
+    return buildEmptyClientSpaceData("internal", null);
   }
 
   if (userScope.organizationIds.length === 0) {
@@ -251,7 +235,10 @@ export async function loadClientSpaceData(
     .limit(40);
 
   if (accessError) {
-    return buildDemoClientSpaceData();
+    return buildEmptyClientSpaceData(
+      userScope.viewerMode,
+      userScope.preferredOrganizationId,
+    );
   }
 
   if (!accessRows || accessRows.length === 0) {
@@ -285,7 +272,10 @@ export async function loadClientSpaceData(
     .limit(60);
 
   if (feedbackError) {
-    return buildDemoClientSpaceData();
+    return buildEmptyClientSpaceData(
+      userScope.viewerMode,
+      userScope.preferredOrganizationId,
+    );
   }
 
   const comments = filterCommentsForVisibleItems(

@@ -14,7 +14,7 @@ const inboundExample = {
   mailboxAddress: "client@adminbtp.yt",
   senderEmail: "conducteur@groupement-tce.fr",
   senderName: "Conducteur TCE",
-  externalMessageId: "msg_demo_001",
+  externalMessageId: "msg_inbound_001",
   classification: "payment_followup" as const,
   persistEmail: true,
   autoCreateMailbox: true,

@@ -52,7 +52,7 @@ export async function upsertOdooMappingAction(
   if (!organizationId || !bindingTypeValue || !adminbtpEntityId || !odooModel || !odooRecordId) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible d'enregistrer le mapping Odoo sans identifiants complets.",
     };
   }
@@ -60,7 +60,7 @@ export async function upsertOdooMappingAction(
   if (!isOdooBindingType(bindingTypeValue)) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Le type de mapping Odoo demande n'est pas supporte.",
     };
   }
@@ -70,9 +70,9 @@ export async function upsertOdooMappingAction(
 
   if (!supabaseClient) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. Le mapping Odoo reste simule.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. Le mapping Odoo est bloque en mode production.",
     };
   }
 

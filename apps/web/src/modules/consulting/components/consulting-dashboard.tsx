@@ -41,7 +41,7 @@ export function ConsultingDashboard({
           Source active : {data.source}
         </p>
         <p className="mt-3 text-sm text-stone-600">
-          Organisation courante : {data.currentOrganizationId ?? "mode demo"}
+          Organisation courante : {data.currentOrganizationId ?? "non resolue"}
         </p>
       </div>
 

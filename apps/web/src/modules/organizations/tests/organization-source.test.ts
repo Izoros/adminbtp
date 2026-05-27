@@ -1,15 +1,16 @@
 import { resolveOrganizationAccessData } from "@/modules/organizations/services/organization-source";
 
 describe("source des organisations", () => {
-  it("bascule sur la demonstration sans utilisateur Supabase", () => {
+  it("retourne un etat vide Supabase sans utilisateur exploitable", () => {
     const result = resolveOrganizationAccessData({
       user: null,
       organizations: [],
       memberships: [],
     });
 
-    expect(result.source).toBe("demo");
-    expect(result.organizations.length).toBeGreaterThan(0);
+    expect(result.source).toBe("supabase");
+    expect(result.organizations).toEqual([]);
+    expect(result.memberships).toEqual([]);
   });
 
   it("renvoie un etat vide Supabase quand aucun rattachement exploitable n'existe encore", () => {

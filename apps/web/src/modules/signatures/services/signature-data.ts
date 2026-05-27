@@ -1,11 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import {
-  demoAuditLogEntries,
-  demoSignatureProfiles,
-  demoSignatureRequests,
-} from "@/modules/signatures/services/demo-signatures";
 import type {
   AuditLogEntry,
   SignatureProfile,
@@ -23,7 +18,7 @@ export type SignatureWorkflowData = {
   profile: SignatureProfile | null;
   request: SignatureRequest | null;
   auditEntries: AuditLogEntry[];
-  source: "supabase" | "demo";
+  source: "supabase";
   sourceMessage: string;
 };
 
@@ -229,22 +224,12 @@ export function buildEmptySupabaseSignatureWorkflowData(
   };
 }
 
-export function buildDemoSignatureWorkflowData(reason: string): SignatureWorkflowData {
-  return {
-    profile: demoSignatureProfiles[0]!,
-    request: demoSignatureRequests[0]!,
-    auditEntries: demoAuditLogEntries,
-    source: "demo",
-    sourceMessage: reason,
-  };
-}
-
 export async function getSignatureWorkflowData(): Promise<SignatureWorkflowData> {
   const supabase = await createClient();
 
   if (!supabase) {
-    return buildDemoSignatureWorkflowData(
-      "Configuration Supabase absente. Affichage des donnees de demonstration.",
+    return buildEmptySupabaseSignatureWorkflowData(
+      "Configuration Supabase absente. Le module signatures ne peut pas charger de donnees.",
     );
   }
 

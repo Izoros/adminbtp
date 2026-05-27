@@ -71,12 +71,6 @@ export function getOrganizationFeedbackFromSearchParams(
       };
     }
 
-    if (organizationStatus === "demo") {
-      return {
-        tone: "info",
-        message: "Le mode demonstration est actif. La creation reelle est desactivee tant que Supabase n'est pas disponible.",
-      };
-    }
   }
 
   if (typeof organizationError === "string") {

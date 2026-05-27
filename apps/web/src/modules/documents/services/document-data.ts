@@ -1,11 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import {
-  demoDocumentTemplates,
-  demoDocumentVariables,
-  demoGeneratedDocuments,
-} from "@/modules/documents/services/demo-documents";
 import { renderTemplate } from "@/modules/documents/services/template-renderer";
 import type {
   DocumentTemplate,
@@ -23,7 +18,7 @@ export type DocumentPreviewData = {
   document: GeneratedDocument;
   variables: DocumentVariableMap;
   variableSource: DocumentVariableSource;
-  source: "supabase" | "demo";
+  source: "supabase";
   sourceMessage: string;
   hasPersistedTemplate: boolean;
   hasPersistedDocument: boolean;
@@ -128,28 +123,12 @@ export function buildDocumentPreviewDataFromRows(
   };
 }
 
-export function buildDemoDocumentPreviewData(reason: string): DocumentPreviewData {
-  return {
-    template: demoDocumentTemplates[0]!,
-    document: {
-      ...demoGeneratedDocuments[0]!,
-      organizationId: demoDocumentTemplates[0]!.organizationId,
-    },
-    variables: demoDocumentVariables,
-    variableSource: "demo",
-    source: "demo",
-    sourceMessage: reason,
-    hasPersistedTemplate: false,
-    hasPersistedDocument: false,
-  };
-}
-
 export async function getDocumentPreviewData(): Promise<DocumentPreviewData> {
   const supabase = await createClient();
 
   if (!supabase) {
-    return buildDemoDocumentPreviewData(
-      "Configuration Supabase absente. Affichage des donnees de demonstration.",
+    return buildEmptySupabaseDocumentPreviewData(
+      "Configuration Supabase absente. Le module documentaire ne peut pas charger de donnees.",
     );
   }
 
@@ -161,8 +140,8 @@ export async function getDocumentPreviewData(): Promise<DocumentPreviewData> {
       .limit(1);
 
     if (documentError) {
-      return buildDemoDocumentPreviewData(
-        "Supabase a repondu avec une erreur sur les documents. Repli automatique sur les donnees de demonstration.",
+      return buildEmptySupabaseDocumentPreviewData(
+        "Supabase a repondu avec une erreur sur les documents.",
       );
     }
 
@@ -182,8 +161,8 @@ export async function getDocumentPreviewData(): Promise<DocumentPreviewData> {
       .limit(1);
 
     if (templateError) {
-      return buildDemoDocumentPreviewData(
-        "Supabase a repondu avec une erreur sur les templates. Repli automatique sur les donnees de demonstration.",
+      return buildEmptySupabaseDocumentPreviewData(
+        "Supabase a repondu avec une erreur sur les templates.",
       );
     }
 
@@ -198,8 +177,8 @@ export async function getDocumentPreviewData(): Promise<DocumentPreviewData> {
 
     return buildEmptySupabaseDocumentPreviewData();
   } catch {
-    return buildDemoDocumentPreviewData(
-      "Base indisponible pour le module documentaire. Repli sur les donnees de demonstration.",
+    return buildEmptySupabaseDocumentPreviewData(
+      "Base indisponible pour le module documentaire.",
     );
   }
 }
@@ -266,7 +245,7 @@ function buildDocumentSourceMessage({
   }
 
   if (hasSupabaseDocument && usesPlaceholderTemplate) {
-    return "Document charge depuis Supabase, mais son template associe est introuvable. Un gabarit neutre est reconstruit localement pour afficher l'aperçu sans injecter de donnees de demonstration.";
+    return "Document charge depuis Supabase, mais son template associe est introuvable. Un gabarit neutre est reconstruit localement pour afficher l'apercu sans injecter de contenu factice.";
   }
 
   if (hasSupabaseTemplate) {
@@ -308,7 +287,9 @@ function buildMissingTemplatePreview(documentRow: DocumentRow | null): DocumentT
   };
 }
 
-function buildEmptySupabaseDocumentPreviewData(): DocumentPreviewData {
+export function buildEmptySupabaseDocumentPreviewData(
+  reason?: string,
+): DocumentPreviewData {
   const template: DocumentTemplate = {
     id: "",
     organizationId: "",
@@ -340,6 +321,7 @@ function buildEmptySupabaseDocumentPreviewData(): DocumentPreviewData {
     variableSource: "supabase_placeholder",
     source: "supabase",
     sourceMessage:
+      reason ??
       "Supabase est accessible, mais aucun template ni document n'est encore disponible pour la base documentaire.",
     hasPersistedTemplate: false,
     hasPersistedDocument: false,

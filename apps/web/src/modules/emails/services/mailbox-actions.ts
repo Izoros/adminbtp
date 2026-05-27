@@ -33,7 +33,7 @@ export async function createMailboxAction(
   if (!organizationId || !address || !displayName || !isMailboxProvider(providerValue)) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de creer une boite sans organisation, adresse, libelle et provider valides.",
     };
   }
@@ -42,9 +42,9 @@ export async function createMailboxAction(
 
   if (!supabaseClient) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. La creation de boite reste simulee.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. La creation de boite est bloquee en mode production.",
     };
   }
 

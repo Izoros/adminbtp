@@ -1,13 +1,6 @@
 import { AlertTriangle, ArrowUpRight, BriefcaseBusiness, FolderKanban, Wallet } from "lucide-react";
 import Link from "next/link";
 
-import {
-  adminAlerts,
-  adminKanbanColumns,
-  adminLoadSeries,
-  adminMetrics,
-  adminRevenueSeries,
-} from "@/config/dashboard";
 import { cn } from "@/lib/utils";
 import type { AdminCockpitData } from "@/components/dashboard/admin-cockpit.types";
 
@@ -48,23 +41,22 @@ function buildBarHeight(value: number, values: number[]) {
 }
 
 export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
-  const metrics = data?.metrics ?? adminMetrics;
+  const metrics = data?.metrics ?? [];
   const overviewCards = data?.overviewCards ?? [];
   const priorities = data?.priorities ?? [];
   const healthItems = data?.healthItems ?? [];
   const quickActions = data?.quickActions ?? [];
   const organizationFocus = data?.organizationFocus ?? [];
   const projectFocus = data?.projectFocus ?? [];
-  const loadSeries = data?.loadSeries ?? adminLoadSeries;
-  const revenueSeries = data?.revenueSeries ?? adminRevenueSeries;
-  const alerts = data?.alerts ?? adminAlerts;
-  const kanbanColumns = data?.kanbanColumns ?? adminKanbanColumns;
-  const source = data?.source ?? "demo";
+  const loadSeries = data?.loadSeries ?? [];
+  const revenueSeries = data?.revenueSeries ?? [];
+  const alerts = data?.alerts ?? [];
+  const kanbanColumns = data?.kanbanColumns ?? [];
   const rangeLabel = data?.rangeLabel ?? "30 derniers jours";
   const updatedAtLabel = data?.updatedAtLabel ?? "";
   const sourceMessage =
     data?.sourceMessage ??
-    "Affichage des indicateurs de demonstration pour le cockpit admin.";
+    "Aucune donnee cockpit n'est encore disponible.";
   const consultingPoints = buildPolylinePoints(
     loadSeries.map((item) => item.consulting),
     320,
@@ -94,14 +86,28 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
         <span
           className={cn(
             "inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.18em]",
-            source === "supabase"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-amber-50 text-amber-700",
+            "bg-emerald-50 text-emerald-700",
           )}
         >
-          {source === "supabase" ? "Supabase" : "Demonstration"}
+          Supabase
         </span>
       </div>
+
+      {metrics.length === 0 &&
+      overviewCards.length === 0 &&
+      priorities.length === 0 &&
+      healthItems.length === 0 &&
+      quickActions.length === 0 &&
+      organizationFocus.length === 0 &&
+      projectFocus.length === 0 &&
+      loadSeries.length === 0 &&
+      revenueSeries.length === 0 &&
+      alerts.length === 0 &&
+      kanbanColumns.length === 0 ? (
+        <div className="rounded-[1.75rem] border border-dashed border-stone-300 bg-white/80 p-8 text-sm text-stone-600">
+          Aucun indicateur admin n&apos;est encore disponible pour ce perimetre.
+        </div>
+      ) : null}
 
       {overviewCards.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-4">

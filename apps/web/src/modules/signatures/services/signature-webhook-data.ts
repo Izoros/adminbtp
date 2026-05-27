@@ -3,7 +3,7 @@ import { normalizeWhatsappPayload } from "@/modules/signatures/services/signatur
 import type { SignatureWhatsappPayload } from "@/modules/signatures/types/signature";
 
 export type ResolvedSignatureWebhookContext = {
-  dataOrigin: "demo" | "supabase";
+  dataOrigin: "supabase";
   requestId: string;
   organizationId?: string;
   whatsappPayload: SignatureWhatsappPayload | null;
@@ -16,7 +16,7 @@ export async function resolveSignatureWebhookContext(
 
   if (!supabase) {
     return {
-      dataOrigin: "demo",
+      dataOrigin: "supabase",
       requestId: signatureRequestId,
       whatsappPayload: null,
     };
@@ -31,7 +31,7 @@ export async function resolveSignatureWebhookContext(
 
     if (requestError || !requestRow) {
       return {
-        dataOrigin: "demo",
+        dataOrigin: "supabase",
         requestId: signatureRequestId,
         whatsappPayload: null,
       };
@@ -55,7 +55,7 @@ export async function resolveSignatureWebhookContext(
     };
   } catch {
     return {
-      dataOrigin: "demo",
+      dataOrigin: "supabase",
       requestId: signatureRequestId,
       whatsappPayload: null,
     };

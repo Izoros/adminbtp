@@ -125,11 +125,11 @@ describe("mapping Odoo", () => {
     expect(mappingQuery.eq).toHaveBeenCalledWith("binding_type", "customer");
   });
 
-  it("bascule sur le fallback demo sans lecteur Supabase", async () => {
+  it("retourne un etat vide Supabase sans lecteur Supabase", async () => {
     const data = await getOdooMappingBoardData(undefined, null);
 
-    expect(data.dataOrigin).toBe("demo");
-    expect(data.customerMapping?.odooRecordId).toBe("odoo_partner_1042");
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.customerMapping).toBeUndefined();
   });
 
   it("retourne les mappings Supabase si le perimetre contient des liaisons", async () => {

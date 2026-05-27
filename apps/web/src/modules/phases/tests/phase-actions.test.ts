@@ -106,7 +106,7 @@ describe("actions phases chantier", () => {
     formData.set("nextCompletedValue", "true");
 
     const result = await togglePhaseChecklistItemAction(
-      { status: "idle", mode: "demo", message: "" },
+      { status: "idle", mode: "supabase", message: "" },
       formData,
     );
 
@@ -182,7 +182,7 @@ describe("actions phases chantier", () => {
     formData.set("nextCompletedValue", "true");
 
     const result = await togglePhaseChecklistItemAction(
-      { status: "idle", mode: "demo", message: "" },
+      { status: "idle", mode: "supabase", message: "" },
       formData,
     );
 
@@ -229,7 +229,7 @@ describe("actions phases chantier", () => {
     formData.set("nextStatus", "completed");
 
     const result = await updateProjectPhaseStatusAction(
-      { status: "idle", mode: "demo", message: "" },
+      { status: "idle", mode: "supabase", message: "" },
       formData,
     );
 
@@ -297,7 +297,7 @@ describe("actions phases chantier", () => {
     formData.set("alertId", "alert_001");
 
     const result = await resolvePhaseAlertAction(
-      { status: "idle", mode: "demo", message: "" },
+      { status: "idle", mode: "supabase", message: "" },
       formData,
     );
 

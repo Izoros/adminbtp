@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  buildDemoClientSpaceData,
   buildEmptyClientSpaceData,
   formatClientDecisionMessage,
   inferWorkspaceItemType,
@@ -34,12 +33,12 @@ describe("client-space-data", () => {
     loadServerOrganizationScopeMock.mockReset();
   });
 
-  it("replie sur le client de demonstration", () => {
-    const data = buildDemoClientSpaceData();
+  it("retourne un espace client vide et coherent en mode production", () => {
+    const data = buildEmptyClientSpaceData("client", "org_client_004");
 
-    expect(data.source).toBe("demo");
+    expect(data.source).toBe("supabase");
     expect(data.clientOrganizationId).toBe("org_client_004");
-    expect(data.viewerMode).toBe("demo");
+    expect(data.viewerMode).toBe("client");
   });
 
   it("deduit un type metier depuis le scope d acces", () => {

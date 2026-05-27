@@ -1,5 +1,5 @@
 import {
-  buildDemoDocumentPreviewData,
+  buildEmptySupabaseDocumentPreviewData,
   buildDocumentPreviewDataFromRows,
   extractDocumentVariables,
   mapDocumentRowToGeneratedDocument,
@@ -185,12 +185,12 @@ describe("alimentation documentaire", () => {
     expect(previewData?.hasPersistedDocument).toBe(true);
   });
 
-  it("retombe sur la demo avec un message explicite", () => {
-    const previewData = buildDemoDocumentPreviewData("Base indisponible.");
+  it("retourne un etat vide Supabase avec un message explicite", () => {
+    const previewData = buildEmptySupabaseDocumentPreviewData("Base indisponible.");
 
-    expect(previewData.source).toBe("demo");
+    expect(previewData.source).toBe("supabase");
     expect(previewData.sourceMessage).toBe("Base indisponible.");
-    expect(previewData.variableSource).toBe("demo");
+    expect(previewData.variableSource).toBe("supabase_placeholder");
     expect(previewData.hasPersistedTemplate).toBe(false);
     expect(previewData.hasPersistedDocument).toBe(false);
   });

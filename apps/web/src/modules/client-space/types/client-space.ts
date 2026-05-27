@@ -1,5 +1,5 @@
 export type ClientActionStatus = "pending" | "approved" | "rejected" | "commented";
-export type ClientViewerMode = "internal" | "client" | "demo";
+export type ClientViewerMode = "internal" | "client";
 export type ClientDecision = Extract<
   ClientActionStatus,
   "approved" | "rejected" | "commented"

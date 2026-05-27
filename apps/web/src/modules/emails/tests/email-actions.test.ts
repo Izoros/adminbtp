@@ -47,7 +47,7 @@ describe("actions emails", () => {
     assertOrganizationAccessMock.mockImplementation(() => undefined);
   });
 
-  it("retombe en mode demonstration si Supabase est indisponible", async () => {
+  it("bloque la reclassification si Supabase est indisponible", async () => {
     createClientMock.mockResolvedValue(null);
 
     const result = await updateEmailClassificationAction(
@@ -56,11 +56,11 @@ describe("actions emails", () => {
     );
 
     expect(result).toEqual({
-      status: "success",
-      mode: "demo",
+      status: "error",
+      mode: "supabase",
       emailId: "email_001",
       message:
-        "Supabase indisponible. La reclassification email reste simulee en mode demonstration.",
+        "Supabase indisponible. La reclassification email est bloquee en mode production.",
     });
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });

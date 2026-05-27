@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadServerOrganizationScope } from "@/lib/permissions";
-import { getDemoMailboxBoardData } from "@/modules/emails/services/demo-emails";
 import type {
   EmailRecord,
   Mailbox,
@@ -16,7 +15,7 @@ type EmailRow = Tables<"emails">;
 
 export type PersistedInboundEmailResult = {
   persisted: boolean;
-  dataOrigin: "demo" | "supabase";
+  dataOrigin: "supabase";
   emailId?: string;
   duplicateOfEmailId?: string;
   mailboxId?: string;
@@ -238,7 +237,12 @@ export async function getMailboxBoardData(
     reader === undefined ? await createEmailSupabaseReader() : reader;
 
   if (!resolvedReader) {
-    return getDemoMailboxBoardData();
+    return {
+      organizationId: query?.organizationId ?? "organization_indisponible",
+      emails: [],
+      dataOrigin: "supabase",
+      fallbackReason: "Lecture des boites impossible pour cette session.",
+    };
   }
 
   try {
@@ -250,7 +254,7 @@ export async function getMailboxBoardData(
         query?.organizationId ??
         resolvedReader.preferredOrganizationId ??
         resolvedReader.accessibleOrganizationIds[0] ??
-        getDemoMailboxBoardData().organizationId;
+        "organization_indisponible";
 
       return {
         organizationId,
@@ -270,8 +274,10 @@ export async function getMailboxBoardData(
     };
   } catch {
     return {
-      ...getDemoMailboxBoardData(),
-      fallbackReason: "Lecture Supabase impossible, bascule vers les donnees de demonstration.",
+      organizationId: query?.organizationId ?? "organization_indisponible",
+      emails: [],
+      dataOrigin: "supabase",
+      fallbackReason: "Lecture Supabase impossible pour les boites email.",
     };
   }
 }
@@ -286,7 +292,7 @@ export async function persistInboundEmail(
   if (!payload.persistEmail) {
     return {
       persisted: false,
-      dataOrigin: resolvedReader ? "supabase" : "demo",
+      dataOrigin: "supabase",
       reason: "La persistance a ete desactivee par le webhook entrant.",
     };
   }
@@ -294,7 +300,7 @@ export async function persistInboundEmail(
   if (!resolvedReader) {
     return {
       persisted: false,
-      dataOrigin: "demo",
+      dataOrigin: "supabase",
       reason: "Client Supabase indisponible pour persister l'email entrant.",
     };
   }
@@ -404,7 +410,7 @@ export async function resolveMailboxForInboundWebhook(
   if (!resolvedReader) {
     return {
       mailboxId: null,
-      dataOrigin: "demo",
+      dataOrigin: "supabase",
     };
   }
 
@@ -421,7 +427,7 @@ export async function resolveMailboxForInboundWebhook(
   } catch {
     return {
       mailboxId: null,
-      dataOrigin: "demo",
+      dataOrigin: "supabase",
     };
   }
 }

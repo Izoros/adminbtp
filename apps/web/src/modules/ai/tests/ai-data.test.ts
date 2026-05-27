@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildDemoAiGovernanceData,
   buildEmptyAiGovernanceData,
   buildSuggestionSummary,
   enrichSuggestionsWithGovernance,
@@ -13,14 +12,6 @@ import type { SupabaseDatabase } from "@/types/supabase";
 type AiTables = SupabaseDatabase["public"]["Tables"];
 
 describe("ai-data", () => {
-  it("replie sur les donnees de demonstration", () => {
-    const data = buildDemoAiGovernanceData();
-
-    expect(data.source).toBe("demo");
-    expect(data.suggestions.length).toBeGreaterThan(0);
-    expect(data.sourceMessage).toContain("Supabase est indisponible");
-  });
-
   it("reconstruit un resume depuis le payload Supabase", () => {
     const row: AiTables["ai_suggestions"]["Row"] = {
       applied_at: null,

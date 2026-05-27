@@ -40,9 +40,9 @@ async function resolveWritableAiContext(): Promise<
 
   if (!supabaseClient) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. Les validations IA restent simulees.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. Les validations IA sont bloquees en mode production.",
     };
   }
 
@@ -123,7 +123,7 @@ export async function reviewAiSuggestionAction(
   if (!suggestionId || !decision) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de traiter la suggestion IA sans identifiants complets.",
     };
   }
@@ -228,7 +228,7 @@ export async function applyAiSuggestionAction(
   if (!suggestionId) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible d'appliquer une suggestion IA sans identifiant.",
     };
   }

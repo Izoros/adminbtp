@@ -224,11 +224,11 @@ describe("chargement emails via Supabase", () => {
     expect(insertQuery.insert).not.toHaveBeenCalled();
   });
 
-  it("bascule sur les donnees de demonstration sans lecteur Supabase", async () => {
+  it("retourne un etat vide Supabase sans lecteur Supabase", async () => {
     const data = await getMailboxBoardData(undefined, null);
 
-    expect(data.dataOrigin).toBe("demo");
-    expect(data.emails.length).toBeGreaterThan(0);
+    expect(data.dataOrigin).toBe("supabase");
+    expect(data.emails).toEqual([]);
   });
 
   it("retourne les donnees Supabase si la boite et les emails existent", async () => {

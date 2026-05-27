@@ -1,12 +1,5 @@
 import { loadOrganizationAccessData } from "@/modules/organizations/services/organization-source";
 import { createClient } from "@/lib/supabase/server";
-import {
-  adminAlerts,
-  adminKanbanColumns,
-  adminLoadSeries,
-  adminMetrics,
-  adminRevenueSeries,
-} from "@/config/dashboard";
 import type { Tables } from "@/types/supabase";
 
 import type {
@@ -35,7 +28,7 @@ type EmailRow = Tables<"emails">;
 type AiSuggestionRow = Tables<"ai_suggestions">;
 
 type AdminCockpitSnapshot = {
-  source: "demo" | "supabase";
+  source: "supabase";
   sourceMessage: string;
   organizationCount: number;
   organizations: Array<{ id: string; name: string }>;
@@ -101,27 +94,29 @@ const adminCockpitBucketConfig: Record<
   "90d": { bucketCount: 6, bucketSizeDays: 15 },
 };
 
-function cloneStaticCockpitData(sourceMessage: string): AdminCockpitData {
+function buildEmptyAdminCockpitData(sourceMessage: string): AdminCockpitData {
   return {
-    source: "demo",
+    source: "supabase",
     sourceMessage,
     range: "30d",
     rangeLabel: adminCockpitRangeLabels["30d"],
     updatedAtLabel: buildUpdatedAtLabel(new Date()),
-    metrics: adminMetrics.map((metric) => ({ ...metric })),
+    metrics: [
+      { label: "Chantiers suivis", value: "0", delta: "0 actif", tone: "warm" },
+      { label: "Validations en attente", value: "0", delta: "0 prioritaire", tone: "ink" },
+      { label: "Relances a lancer", value: "0", delta: "0 urgente", tone: "sage" },
+      { label: "Heures conseil", value: "0 h", delta: "0 % consomme", tone: "warm" },
+    ],
     overviewCards: [],
     priorities: [],
     healthItems: [],
     quickActions: [],
     organizationFocus: [],
     projectFocus: [],
-    loadSeries: adminLoadSeries.map((point) => ({ ...point })),
-    revenueSeries: adminRevenueSeries.map((point) => ({ ...point })),
-    alerts: adminAlerts.map((alert) => ({ ...alert })),
-    kanbanColumns: adminKanbanColumns.map((column) => ({
-      ...column,
-      cards: column.cards.map((card) => ({ ...card })),
-    })),
+    loadSeries: [],
+    revenueSeries: [],
+    alerts: [],
+    kanbanColumns: [],
   };
 }
 
@@ -968,18 +963,6 @@ export async function loadAdminCockpitData(
   const supabase = await createClient();
   const organizationAccess = await loadOrganizationAccessData(supabase);
 
-  if (organizationAccess.source === "demo") {
-    const staticData = cloneStaticCockpitData(organizationAccess.sourceDetail);
-    const range = normalizeAdminCockpitTimeRange(options?.range);
-
-    return {
-      ...staticData,
-      range,
-      rangeLabel: adminCockpitRangeLabels[range],
-      updatedAtLabel: buildUpdatedAtLabel(new Date()),
-    };
-  }
-
   const organizationIds = organizationAccess.organizations.map((organization) => organization.id);
 
   if (organizationIds.length === 0) {
@@ -1005,8 +988,8 @@ export async function loadAdminCockpitData(
   const rows = await loadRowsForAdminCockpit(organizationIds);
 
   if (!rows) {
-    const staticData = cloneStaticCockpitData(
-      "Lecture serveur indisponible pour le cockpit admin. Affichage du mode demonstration.",
+    const staticData = buildEmptyAdminCockpitData(
+      "Lecture serveur indisponible pour le cockpit admin.",
     );
     const range = normalizeAdminCockpitTimeRange(options?.range);
 

@@ -1,17 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { loadServerProjectScope } from "@/lib/permissions";
-import {
-  demoProjectOrganizations,
-  demoProjects,
-} from "@/modules/projects/services/demo-projects";
 import type {
   Project,
   ProjectOrganization,
 } from "@/modules/projects/types/project";
 import type { SupabaseDatabase } from "@/types/supabase";
 
-export type ProjectDataSource = "supabase" | "demo";
+export type ProjectDataSource = "supabase";
 
 export type ProjectDashboardData = {
   projects: Project[];
@@ -38,15 +34,6 @@ function mapProjectRow(
     ownerOrganizationId: row.owner_organization_id,
     startsOn: row.starts_on ?? "",
     endsOn: row.ends_on ?? undefined,
-  };
-}
-
-function buildDemoProjectDashboardData(sourceDetail: string): ProjectDashboardData {
-  return {
-    projects: demoProjects,
-    projectOrganizations: demoProjectOrganizations,
-    source: "demo",
-    sourceDetail,
   };
 }
 
@@ -102,8 +89,8 @@ export async function loadProjectDashboardData(
   organizationIds: string[],
 ): Promise<ProjectDashboardData> {
   if (!supabase) {
-    return buildDemoProjectDashboardData(
-      "Configuration Supabase absente, utilisation du mode demonstration.",
+    return buildEmptySupabaseProjectDashboardData(
+      "Configuration Supabase absente. Le module chantiers ne peut pas charger de donnees.",
     );
   }
 
@@ -119,8 +106,8 @@ export async function loadProjectDashboardData(
   const projectScope = await loadServerProjectScope(supabase, uniqueOrganizationIds);
 
   if (!projectScope) {
-    return buildDemoProjectDashboardData(
-      "Lecture des roles chantier indisponible, utilisation du mode demonstration.",
+    return buildEmptySupabaseProjectDashboardData(
+      "Lecture des roles chantier indisponible pour le perimetre courant.",
     );
   }
 
@@ -146,8 +133,8 @@ export async function loadProjectDashboardData(
     .order("starts_on", { ascending: false, nullsFirst: false });
 
   if (projectsError) {
-    return buildDemoProjectDashboardData(
-      "Lecture des chantiers indisponible, utilisation du mode demonstration.",
+    return buildEmptySupabaseProjectDashboardData(
+      "Lecture des chantiers indisponible dans Supabase pour le perimetre courant.",
     );
   }
 

@@ -91,7 +91,7 @@ export async function syncFollowupScheduleAction(formData: FormData) {
   if (!supabase) {
     redirectWithFeedback(returnTo, {
       tone: "info",
-      message: "Supabase indisponible. La synchronisation des relances reste simulee.",
+      message: "Supabase indisponible. La synchronisation des relances est bloquee en mode production.",
     });
   }
 
@@ -201,7 +201,7 @@ export async function updateFollowupStatusAction(formData: FormData) {
   if (!supabase) {
     redirectWithFeedback(returnTo, {
       tone: "info",
-      message: "Supabase indisponible. La mise a jour de relance reste simulee.",
+      message: "Supabase indisponible. La mise a jour de relance est bloquee en mode production.",
     });
   }
 

@@ -21,13 +21,13 @@ const fallbackActorId = "user_adminbtp_system";
 
 export type DocumentMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
 };
 
 export const initialDocumentMutationState: DocumentMutationState = {
   status: "idle",
-  mode: "demo",
+  mode: "supabase",
   message: "",
 };
 
@@ -44,7 +44,7 @@ export async function createDocumentAction(
   if (!templateId || !organizationId) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de creer le document sans template ni organisation.",
     };
   }
@@ -53,9 +53,9 @@ export async function createDocumentAction(
 
   if (!supabase) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. La creation reste simulee en mode demonstration.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. La creation du document est bloquee en mode production.",
     };
   }
 
@@ -113,7 +113,7 @@ export async function createDocumentAction(
   if (templateError || !templateRow) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Le template cible est introuvable dans Supabase. Aucun document n'a ete cree.",
     };
   }
@@ -164,7 +164,7 @@ export async function updateDocumentStatusAction(
   if (!documentId || !organizationId || !nextStatus) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de mettre a jour le statut sans identifiants complets.",
     };
   }
@@ -174,7 +174,7 @@ export async function updateDocumentStatusAction(
   if (!allowedStatuses.includes(nextStatus)) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Le statut demande n'est pas autorise pour le module documentaire.",
     };
   }
@@ -183,9 +183,9 @@ export async function updateDocumentStatusAction(
 
   if (!supabase) {
     return {
-      status: "success",
-      mode: "demo",
-      message: `Supabase indisponible. Le passage au statut ${nextStatus} reste simule.`,
+      status: "error",
+      mode: "supabase",
+      message: `Supabase indisponible. Le passage au statut ${nextStatus} est bloque en mode production.`,
     };
   }
 
@@ -253,7 +253,7 @@ export async function regenerateDocumentAction(
   if (!documentId || !templateId || !organizationId) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de regenerer le document sans identifiants complets.",
     };
   }
@@ -262,9 +262,9 @@ export async function regenerateDocumentAction(
 
   if (!supabase) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. La regeneration reste simulee en mode demonstration.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. La regeneration est bloquee en mode production.",
     };
   }
 

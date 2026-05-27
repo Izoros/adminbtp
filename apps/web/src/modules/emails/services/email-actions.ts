@@ -33,11 +33,10 @@ export async function updateEmailClassificationAction(
 
   if (!supabaseClient) {
     return {
-      status: "success",
-      mode: "demo",
+      status: "error",
+      mode: "supabase",
       emailId,
-      message:
-        "Supabase indisponible. La reclassification email reste simulee en mode demonstration.",
+      message: "Supabase indisponible. La reclassification email est bloquee en mode production.",
     };
   }
 

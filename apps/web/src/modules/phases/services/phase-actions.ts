@@ -19,7 +19,7 @@ type PhaseAlertRow = Tables<"phase_alerts">;
 
 export type PhaseMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
 };
 
@@ -50,9 +50,9 @@ async function resolveWritablePhaseContext(): Promise<
 
   if (!supabaseClient) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. Les mises a jour de phase restent simulees.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. Les mises a jour de phase sont bloquees en mode production.",
     };
   }
 
@@ -176,7 +176,7 @@ export async function togglePhaseChecklistItemAction(
   if (!checklistItemId || !nextCompletedValue) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de mettre a jour la checklist sans identifiants complets.",
     };
   }
@@ -254,7 +254,7 @@ export async function updateProjectPhaseStatusAction(
   if (!phaseId || !isPhaseStatusValue(nextStatusValue)) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de mettre a jour la phase sans statut valide.",
     };
   }
@@ -322,7 +322,7 @@ export async function resolvePhaseAlertAction(
   if (!alertId) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de traiter une alerte sans identifiant.",
     };
   }

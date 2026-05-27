@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildEmptyConsultingDashboardData,
-  buildDemoConsultingDashboardData,
   loadConsultingDashboardData,
   mapConsultingHourRow,
   mapConsultingMissionRow,
@@ -30,14 +29,6 @@ vi.mock("@/lib/permissions", async () => {
 describe("consulting-data", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("replie proprement sur le jeu de demonstration", () => {
-    const data = buildDemoConsultingDashboardData();
-
-    expect(data.source).toBe("demo");
-    expect(data.request?.requestNumber).toBe("ER-010");
-    expect(data.missionHours).toHaveLength(2);
   });
 
   it("retourne un etat vide Supabase quand aucune demande n est visible", () => {

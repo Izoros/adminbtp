@@ -1,13 +1,13 @@
 export type AiMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
 };
 
 export function buildInitialAiMutationState(): AiMutationState {
   return {
     status: "idle",
-    mode: "demo",
+    mode: "supabase",
     message: "",
   };
 }

@@ -14,7 +14,7 @@ type ProjectDashboardProps = {
   memberships: OrganizationMembership[];
   projects: Project[];
   projectOrganizations: ProjectOrganization[];
-  source: "supabase" | "demo";
+  source: "supabase";
   sourceDetail: string;
   feedback: ProjectFormFeedback | null;
   createProjectAction: (formData: FormData) => Promise<void>;
@@ -37,7 +37,6 @@ export function ProjectDashboard({
   memberships,
   projects,
   projectOrganizations,
-  source,
   sourceDetail,
   feedback,
   createProjectAction,
@@ -57,13 +56,13 @@ export function ProjectDashboard({
       )
       .map((membership) => membership.organizationId),
   );
-  const isSupabaseWritable = source === "supabase" || manageableOrganizations.length > 0;
+  const isSupabaseWritable = manageableOrganizations.length > 0;
 
   return (
     <section className="space-y-6">
       <div className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.07)]">
         <p className="text-xs font-medium tracking-[0.22em] text-stone-500 uppercase">
-          Phase 2
+          Chantiers
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-stone-950">
           Dashboard chantier selon le role
@@ -73,7 +72,7 @@ export function ProjectDashboard({
           Ici, la vue affiche la priorite correspondant au role projet rattache.
         </p>
         <div className="mt-4 inline-flex rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">
-          Source : {source === "supabase" ? "Supabase" : "Demonstration"} · {sourceDetail}
+          Source : Supabase · {sourceDetail}
         </div>
       </div>
 
@@ -92,7 +91,7 @@ export function ProjectDashboard({
             </p>
           </div>
           <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">
-            {isSupabaseWritable ? "Ecriture Supabase active" : "Mode demonstration"}
+            {isSupabaseWritable ? "Ecriture Supabase active" : "Ecriture indisponible"}
           </span>
         </div>
 

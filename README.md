@@ -112,15 +112,14 @@ npm run supabase:types
 
 ## Etat actuel du socle
 
-Le depot a depasse le simple mode demonstration sur le coeur auth/securite :
+Le depot est maintenant aligne sur un fonctionnement production :
 
 - authentification reelle Supabase par mot de passe ou lien magique, avec cookies SSR
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`
 - endpoint `/api/health`, verification locale ciblee `npm run verify:guards` et verification distante `npm run verify:prod`
-
-Le reste de l'application conserve encore, selon les modules, des fallbacks demo explicites tant que toute la chaine session + CRUD reel n'est pas generalisee.
+- modules serveurs branches sur des etats Supabase reels ou des etats vides honnetes, sans injection de donnees de demonstration au runtime
 
 ## Structure projet
 

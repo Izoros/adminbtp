@@ -84,7 +84,7 @@ export type AdminCockpitKanbanColumn = {
 };
 
 export type AdminCockpitData = {
-  source: "demo" | "supabase";
+  source: "supabase";
   sourceMessage: string;
   range: AdminCockpitTimeRange;
   rangeLabel: string;

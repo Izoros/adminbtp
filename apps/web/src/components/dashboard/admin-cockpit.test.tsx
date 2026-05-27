@@ -4,18 +4,12 @@ import { describe, expect, it } from "vitest";
 import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
 
 describe("AdminCockpit", () => {
-  it("affiche les graphes et le kanban de pilotage admin", () => {
+  it("affiche un etat vide coherent sans donnees cockpit", () => {
     render(<AdminCockpit />);
 
-    expect(screen.getByText("Charge operationnelle AdminBTP")).toBeInTheDocument();
-    expect(screen.getByText("Engagement vs facture")).toBeInTheDocument();
-    expect(screen.getByText("File active AdminBTP")).toBeInTheDocument();
-    expect(screen.getByText("Decider vite")).toBeInTheDocument();
-    expect(screen.getByText("Radar socle")).toBeInTheDocument();
-    expect(screen.getByText("Basculer en execution")).toBeInTheDocument();
-    expect(screen.getByText("Organisations sous charge")).toBeInTheDocument();
-    expect(screen.getByText("Projets les plus exposes")).toBeInTheDocument();
-    expect(screen.getByText("A qualifier")).toBeInTheDocument();
-    expect(screen.getByText("En cours")).toBeInTheDocument();
+    expect(screen.getByText("Supabase")).toBeInTheDocument();
+    expect(
+      screen.getByText("Aucun indicateur admin n'est encore disponible pour ce perimetre."),
+    ).toBeInTheDocument();
   });
 });

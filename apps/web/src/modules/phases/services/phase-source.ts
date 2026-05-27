@@ -1,11 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { loadServerProjectScope } from "@/lib/permissions";
-import {
-  demoPhaseAlerts,
-  demoPhaseChecklistItems,
-  demoProjectPhases,
-} from "@/modules/phases/services/demo-phases";
 import { getPhaseProfileFromProjectRole } from "@/modules/phases/services/phase-rules";
 import type {
   PhaseAlert,
@@ -21,7 +16,7 @@ type ProjectPhaseTemplateRow = PhaseTables["project_phase_templates"]["Row"];
 type PhaseChecklistItemRow = PhaseTables["phase_checklist_items"]["Row"];
 type PhaseAlertRow = PhaseTables["phase_alerts"]["Row"];
 
-export type PhaseDataSource = "supabase" | "demo";
+export type PhaseDataSource = "supabase";
 
 export type PhaseDashboardData = {
   activeRole: ProjectRole;
@@ -76,13 +71,16 @@ function mapAlertRow(row: PhaseAlertRow): PhaseAlert {
   };
 }
 
-function buildDemoPhaseDashboardData(sourceDetail: string): PhaseDashboardData {
+function buildEmptyPhaseDashboardData(
+  sourceDetail: string,
+  activeRole: ProjectRole = "moe",
+): PhaseDashboardData {
   return {
-    activeRole: "moe",
-    phases: demoProjectPhases,
-    checklistItems: demoPhaseChecklistItems,
-    alerts: demoPhaseAlerts,
-    source: "demo",
+    activeRole,
+    phases: [],
+    checklistItems: [],
+    alerts: [],
+    source: "supabase",
     sourceDetail,
   };
 }
@@ -108,14 +106,15 @@ export function resolvePhaseDashboardData(
   const normalizedSnapshot = normalizePhaseSnapshot(snapshot);
 
   if (!normalizedSnapshot.activeRole) {
-    return buildDemoPhaseDashboardData(
-      "Aucun role chantier compatible n'a ete trouve, utilisation du mode demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Aucun role chantier compatible n'a ete trouve pour charger les phases.",
     );
   }
 
   if (normalizedSnapshot.phases.length === 0) {
-    return buildDemoPhaseDashboardData(
-      "Base vide ou non exploitable pour les phases chantier, bascule sur les donnees de demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Aucune phase chantier n'est encore disponible en base pour ce role.",
+      normalizedSnapshot.activeRole,
     );
   }
 
@@ -134,24 +133,24 @@ export async function loadPhaseDashboardData(
   organizationIds: string[],
 ): Promise<PhaseDashboardData> {
   if (!supabase) {
-    return buildDemoPhaseDashboardData(
-      "Configuration Supabase absente, utilisation du mode demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Configuration Supabase absente. Le module phases ne peut pas charger de donnees.",
     );
   }
 
   const scopedOrganizationIds = Array.from(new Set(organizationIds));
 
   if (scopedOrganizationIds.length === 0) {
-    return buildDemoPhaseDashboardData(
-      "Aucune organisation accessible pour charger les phases, utilisation du mode demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Aucune organisation accessible n'a ete trouvee pour charger les phases.",
     );
   }
 
   const projectScope = await loadServerProjectScope(supabase, scopedOrganizationIds);
 
   if (!projectScope) {
-    return buildDemoPhaseDashboardData(
-      "Lecture du scope projet indisponible, utilisation du mode demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Lecture du scope projet indisponible pour cette session.",
     );
   }
 
@@ -176,8 +175,9 @@ export async function loadPhaseDashboardData(
     .order("created_at", { ascending: true });
 
   if (phaseError) {
-    return buildDemoPhaseDashboardData(
-      "Lecture des phases chantier indisponible, utilisation du mode demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Lecture des phases chantier indisponible dans Supabase.",
+      selectedMembership.role,
     );
   }
 
@@ -220,8 +220,9 @@ export async function loadPhaseDashboardData(
     ]);
 
   if (templateError || checklistError || alertError) {
-    return buildDemoPhaseDashboardData(
-      "Lecture des checklists ou alertes chantier indisponible, utilisation du mode demonstration.",
+    return buildEmptyPhaseDashboardData(
+      "Lecture des checklists ou alertes chantier indisponible dans Supabase.",
+      selectedMembership.role,
     );
   }
 

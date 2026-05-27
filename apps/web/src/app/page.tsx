@@ -2,11 +2,16 @@ import { ArrowRight, Building2, FileStack, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
+import { loadAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
 import { AppShell } from "@/components/layout/app-shell";
 import { SectionCard } from "@/components/ui/section-card";
 import { dashboardHighlights, validationChecklist } from "@/config/dashboard";
 
-export default function Home() {
+export default async function Home() {
+  const adminCockpitData = await loadAdminCockpitData({
+    range: "30d",
+  });
+
   return (
     <AppShell eyebrow="Plateforme administrative et technique" title="Tableau de lancement">
       <div className="space-y-8">
@@ -130,7 +135,7 @@ export default function Home() {
           </article>
         </section>
 
-        <AdminCockpit />
+        <AdminCockpit data={adminCockpitData} />
       </div>
     </AppShell>
   );

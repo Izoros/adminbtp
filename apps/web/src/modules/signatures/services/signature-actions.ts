@@ -31,13 +31,13 @@ type DocumentRow = Tables<"documents">;
 
 export type SignatureMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
 };
 
 export const initialSignatureMutationState: SignatureMutationState = {
   status: "idle",
-  mode: "demo",
+  mode: "supabase",
   message: "",
 };
 
@@ -55,7 +55,7 @@ export async function createSignatureRequestAction(
   if (!documentId || !organizationId || !signatureProfileId) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de creer une demande sans document, organisation et profil de signature.",
     };
   }
@@ -64,9 +64,9 @@ export async function createSignatureRequestAction(
 
   if (!supabase) {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. La demande de signature reste simulee en mode demonstration.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. La demande de signature est bloquee en mode production.",
     };
   }
 
@@ -189,7 +189,7 @@ export async function transitionSignatureRequestAction(
   if (!requestId || !organizationId || !currentStatus || !nextStatus) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible de traiter la transition sans identifiants complets.",
     };
   }
@@ -197,7 +197,7 @@ export async function transitionSignatureRequestAction(
   if (!canTransitionSignatureRequest(currentStatus, nextStatus)) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: `Transition interdite de ${currentStatus} vers ${nextStatus}.`,
     };
   }
@@ -206,9 +206,9 @@ export async function transitionSignatureRequestAction(
 
   if (!supabase) {
     return {
-      status: "success",
-      mode: "demo",
-      message: `Supabase indisponible. La transition vers ${nextStatus} reste simulee.`,
+      status: "error",
+      mode: "supabase",
+      message: `Supabase indisponible. La transition vers ${nextStatus} est bloquee en mode production.`,
     };
   }
 

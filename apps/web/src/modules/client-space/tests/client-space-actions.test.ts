@@ -133,7 +133,7 @@ describe("actions client-space", () => {
 
     expect(result).toEqual({
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible d'enregistrer cette decision client sur l'element courant.",
     });
     expect(revalidatePathMock).not.toHaveBeenCalled();

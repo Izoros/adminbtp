@@ -1,6 +1,5 @@
 import {
   buildEmptySupabaseSignatureWorkflowData,
-  buildDemoSignatureWorkflowData,
   buildSignatureWorkflowDataFromRows,
   extractWhatsappSummary,
   mapAuditLogRow,
@@ -330,10 +329,10 @@ describe("alimentation signatures", () => {
     expect(workflowData.sourceMessage).toContain("aucune demande");
   });
 
-  it("retombe sur la demo avec un message explicite", () => {
-    const workflowData = buildDemoSignatureWorkflowData("Base indisponible.");
+  it("retourne un etat vide Supabase avec un message explicite", () => {
+    const workflowData = buildEmptySupabaseSignatureWorkflowData("Base indisponible.");
 
-    expect(workflowData.source).toBe("demo");
+    expect(workflowData.source).toBe("supabase");
     expect(workflowData.sourceMessage).toBe("Base indisponible.");
   });
 });

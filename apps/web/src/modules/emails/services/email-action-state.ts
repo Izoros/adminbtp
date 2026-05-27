@@ -11,13 +11,13 @@ export const emailClassifications: EmailClassification[] = [
 
 export type EmailMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
   emailId?: string;
 };
 
 export const initialEmailMutationState: EmailMutationState = {
   status: "idle",
-  mode: "demo",
+  mode: "supabase",
   message: "",
 };

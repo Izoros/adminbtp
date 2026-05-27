@@ -11,7 +11,7 @@ type OrganizationAccessPanelProps = {
   user: AppUserProfile;
   organizations: Organization[];
   memberships: OrganizationMembership[];
-  source: "supabase" | "demo";
+  source: "supabase";
   sourceDetail: string;
   feedback: OrganizationFormFeedback | null;
   createOrganizationAction: (formData: FormData) => Promise<void>;
@@ -21,7 +21,6 @@ export function OrganizationAccessPanel({
   user,
   organizations,
   memberships,
-  source,
   sourceDetail,
   feedback,
   createOrganizationAction,
@@ -40,13 +39,13 @@ export function OrganizationAccessPanel({
       )
       .map((membership) => membership.organizationId),
   );
-  const isSupabaseWritable = source === "supabase";
+  const isSupabaseWritable = true;
 
   return (
     <section className="space-y-6">
       <div className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.07)]">
         <p className="text-xs font-medium tracking-[0.22em] text-stone-500 uppercase">
-          Session locale
+          Session active
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-stone-950">
           {user.fullName}
@@ -56,7 +55,7 @@ export function OrganizationAccessPanel({
           que les organisations auxquelles elle appartient.
         </p>
         <div className="mt-4 inline-flex rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">
-          Source : {source === "supabase" ? "Supabase" : "Demonstration"} · {sourceDetail}
+          Source : Supabase · {sourceDetail}
         </div>
       </div>
 
@@ -76,7 +75,7 @@ export function OrganizationAccessPanel({
             </p>
           </div>
           <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">
-            {isSupabaseWritable ? "Ecriture Supabase active" : "Mode demonstration"}
+            {isSupabaseWritable ? "Ecriture Supabase active" : "Ecriture indisponible"}
           </span>
         </div>
 
@@ -134,7 +133,7 @@ export function OrganizationAccessPanel({
                 ? manageableOrganizations.length > 0
                   ? "Vous pourrez gerer cette organisation des sa creation."
                   : "Aucun rattachement manager existant n'est requis pour ce bootstrap owner."
-                : "Supabase indisponible: le formulaire reste visible pour cadrer le parcours, mais n'ecrit pas en base."}
+                : "Supabase indisponible: le formulaire reste visible, mais la creation est bloquee en production."}
             </p>
             <button
               type="submit"

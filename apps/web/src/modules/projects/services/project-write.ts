@@ -131,7 +131,7 @@ export function getProjectFeedbackFromSearchParams(
     if (projectStatus === "demo") {
       return {
         tone: "info",
-        message: "Le mode demonstration est actif. La creation reelle est desactivee tant que Supabase n'est pas disponible.",
+        message: "Supabase est indisponible. La creation reelle de chantier est bloquee en mode production.",
       };
     }
   }

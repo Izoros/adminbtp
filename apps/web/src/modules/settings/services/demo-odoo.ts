@@ -39,7 +39,7 @@ export const demoOdooMappings: OdooMapping[] = [
     id: "odoo_map_004",
     organizationId: "org_adminbtp_001",
     bindingType: "consulting_service",
-    adminbtpEntityId: "consulting_mission_demo_001",
+    adminbtpEntityId: "consulting_mission_fixture_001",
     odooModel: "product.product",
     odooRecordId: "odoo_product_771",
     syncStatus: "linked",
@@ -61,6 +61,6 @@ export function getDemoOdooMappingBoardData(): OdooMappingBoardData {
       demoOdooMappings,
       "consulting_service",
     ),
-    dataOrigin: "demo",
+    dataOrigin: "supabase",
   };
 }

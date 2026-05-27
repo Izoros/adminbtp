@@ -16,7 +16,12 @@ export async function createOrganizationAction(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    redirect(buildRedirectUrl("organizationStatus", "demo"));
+    redirect(
+      buildRedirectUrl(
+        "organizationError",
+        "Supabase indisponible. La creation d'organisation est bloquee en mode production.",
+      ),
+    );
   }
 
   const { data: authData, error: authError } = await supabase.auth.getUser();

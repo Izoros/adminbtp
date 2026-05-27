@@ -17,13 +17,13 @@ type WritableSupabaseClient = NonNullable<Awaited<ReturnType<typeof createClient
 
 export type ClientSpaceMutationState = {
   status: "idle" | "success" | "error";
-  mode: "demo" | "supabase";
+  mode: "supabase";
   message: string;
 };
 
 export const initialClientSpaceMutationState: ClientSpaceMutationState = {
   status: "idle",
-  mode: "demo",
+  mode: "supabase",
   message: "",
 };
 
@@ -53,9 +53,9 @@ async function resolveWritableClientSpaceContext(
 
   if (!supabaseClient || data.source !== "supabase") {
     return {
-      status: "success",
-      mode: "demo",
-      message: "Supabase indisponible. L'ecriture client reste simulee en mode demonstration.",
+      status: "error",
+      mode: "supabase",
+      message: "Supabase indisponible. Les ecritures client sont bloquees en mode production.",
     };
   }
 
@@ -103,7 +103,7 @@ export async function addCommentAction(
   if (!workspaceItemId || !message || !workspaceItem) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible d'ajouter un commentaire sans element visible ni message valide.",
     };
   }
@@ -164,7 +164,7 @@ export async function submitWorkspaceDecisionAction(
   ) {
     return {
       status: "error",
-      mode: "demo",
+      mode: "supabase",
       message: "Impossible d'enregistrer cette decision client sur l'element courant.",
     };
   }
