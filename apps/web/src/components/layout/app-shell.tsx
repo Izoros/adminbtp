@@ -1,14 +1,9 @@
 import { Building2, LayoutDashboard, LogIn, LogOut, Settings2 } from "lucide-react";
 import Link from "next/link";
-import { cookies } from "next/headers";
 
 import { appNavigation } from "@/config/navigation";
 import { getSupabaseProjectRef } from "@/lib/env";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
-import {
-  getTestAccessCookieName,
-  hasTestAccessCookieValue,
-} from "@/modules/auth/services/test-access";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -23,10 +18,6 @@ export async function AppShell({
 }: AppShellProps) {
   const user = await getAuthenticatedUser();
   const supabaseProjectRef = getSupabaseProjectRef();
-  const cookieStore = await cookies();
-  const hasTestAccess = hasTestAccessCookieValue(
-    cookieStore.get(getTestAccessCookieName())?.value,
-  );
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#efe3d0_0%,#f7f4ee_32%,#f5f2ec_100%)] text-stone-950">
@@ -92,11 +83,7 @@ export async function AppShell({
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
                   <Settings2 className="size-4 text-stone-500" />
-                  {user
-                    ? "Session Supabase active"
-                    : hasTestAccess
-                      ? "Acces test lecture seule"
-                      : "Mode visiteur ou session absente"}
+                  {user ? "Session Supabase active" : "Session requise"}
                 </div>
 
                 {supabaseProjectRef ? (
@@ -117,17 +104,6 @@ export async function AppShell({
                     >
                       <LogOut className="size-3.5" />
                       Quitter
-                    </Link>
-                  </div>
-                ) : hasTestAccess ? (
-                  <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700">
-                    <span className="max-w-52 truncate">Session demo lecture seule</span>
-                    <Link
-                      href="/auth/test-access/logout"
-                      className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-stone-800"
-                    >
-                      <LogOut className="size-3.5" />
-                      Quitter le test
                     </Link>
                   </div>
                 ) : (

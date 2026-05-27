@@ -1,4 +1,4 @@
-import { ArrowRight, Building2, FileStack, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Building2, FileStack, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
@@ -14,10 +14,6 @@ export default function Home() {
           <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-[radial-gradient(circle_at_top_left,_rgba(224,122,95,0.18),_transparent_32%),linear-gradient(135deg,#fffaf3_0%,#f7efe5_42%,#f1e4d1_100%)] p-8 shadow-[0_24px_80px_rgba(89,65,40,0.14)]">
             <div className="absolute inset-y-0 right-0 hidden w-48 bg-[radial-gradient(circle_at_center,_rgba(31,41,55,0.12),_transparent_70%)] lg:block" />
             <div className="relative space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-stone-300/70 bg-white/75 px-3 py-1 text-xs font-medium tracking-[0.22em] text-stone-600 uppercase">
-                <Sparkles className="size-3.5" />
-                Phase 16 en preparation
-              </div>
               <div className="max-w-2xl space-y-4">
                 <h1 className="max-w-xl text-4xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-5xl">
                   AdminBTP prend forme comme une plateforme modulaire BTP.

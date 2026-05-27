@@ -17,7 +17,6 @@ describe("page d'accueil AdminBTP", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/Phase 16 en preparation/i)).toBeInTheDocument();
     expect(screen.getByText(/Validation de phase/i)).toBeInTheDocument();
     expect(screen.getByText(/CRUD reels/i)).toBeInTheDocument();
   });

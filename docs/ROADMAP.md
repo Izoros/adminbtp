@@ -390,7 +390,7 @@ Validation :
 
 Contenu :
 
-- authentification reelle Supabase par lien magique
+- authentification reelle Supabase par mot de passe ou lien magique
 - echange de session SSR via callback et proxy
 - verifications serveur avant ecriture sensible
 - fonctions SQL atomiques pour creations critiques

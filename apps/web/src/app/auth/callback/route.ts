@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import {
+  copyAuthCookies,
+  createRouteHandlerClient,
+} from "@/lib/supabase/route-handler";
 import {
   getDefaultAuthRedirect,
   sanitizeRedirectPath,
@@ -15,7 +18,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const supabase = await createClient();
+  const { supabase, response } = createRouteHandlerClient(request);
 
   if (!supabase) {
     return NextResponse.redirect(
@@ -29,7 +32,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.redirect(
-    new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
+  return copyAuthCookies(
+    response,
+    NextResponse.redirect(
+      new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
+    ),
   );
 }

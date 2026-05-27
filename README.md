@@ -110,31 +110,11 @@ npm run supabase:reset
 npm run supabase:types
 ```
 
-## Acces de test interface
-
-Pour tester rapidement l'interface sans compte Supabase reel :
-
-- ouvrir [adminbtp.vercel.app/login](https://adminbtp.vercel.app/login)
-- cliquer sur `Activer l'acces test`
-- ou ouvrir directement [adminbtp.vercel.app/auth/test-access?next=%2Fadmin](https://adminbtp.vercel.app/auth/test-access?next=%2Fadmin)
-
-Comportement :
-
-- l'acces test ouvre une session `lecture seule`
-- les routes protegees deviennent navigables
-- les donnees affichees restent limitees au mode demonstration ou aux etats de lecture non authentifies
-- les ecritures sensibles ne remplacent pas une vraie session utilisateur
-
-Configuration :
-
-- variable d'environnement `NEXT_PUBLIC_ENABLE_TEST_ACCESS=true`
-- deconnexion du mode test via `/auth/test-access/logout`
-
 ## Etat actuel du socle
 
 Le depot a depasse le simple mode demonstration sur le coeur auth/securite :
 
-- authentification reelle Supabase par lien magique, avec callback SSR
+- authentification reelle Supabase par mot de passe ou lien magique, avec cookies SSR
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`

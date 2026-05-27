@@ -1,16 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import {
+  copyAuthCookies,
+  createRouteHandlerClient,
+} from "@/lib/supabase/route-handler";
 
 async function handleLogout(request: NextRequest) {
-  const supabase = await createClient();
+  const { supabase, response } = createRouteHandlerClient(request);
 
   if (supabase) {
     // On invalide la session distante et les cookies SSR associes.
     await supabase.auth.signOut();
   }
 
-  return NextResponse.redirect(new URL("/login", request.url));
+  return copyAuthCookies(response, NextResponse.redirect(new URL("/login", request.url)));
 }
 
 export async function GET(request: NextRequest) {

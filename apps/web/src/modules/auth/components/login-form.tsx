@@ -10,26 +10,25 @@ import { getDefaultAuthRedirect } from "@/modules/auth/services/session-navigati
 
 type LoginFormProps = {
   nextPath?: string;
+  initialMessage?: string | null;
 };
 
-export function LoginForm({ nextPath }: LoginFormProps) {
+export function LoginForm({ nextPath, initialMessage = null }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(initialMessage);
+  const [activeAction, setActiveAction] = useState<"password" | "magic-link" | null>(null);
   const supabaseProjectRef = getSupabaseProjectRef();
 
   async function sendMagicLink() {
-    setIsSubmitting(true);
+    setActiveAction("magic-link");
     setMessage(null);
 
     const supabase = createClient();
 
     if (!supabase) {
-      setMessage(
-        "Variables Supabase absentes: branchez le projet pour activer la connexion reelle.",
-      );
-      setIsSubmitting(false);
+      setMessage("Configuration Supabase indisponible pour cette instance.");
+      setActiveAction(null);
       return;
     }
 
@@ -45,67 +44,33 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
     if (error) {
       setMessage(error.message);
-      setIsSubmitting(false);
+      setActiveAction(null);
       return;
     }
 
     setMessage("Lien de connexion envoye. Ouvrez votre email pour continuer.");
-    setIsSubmitting(false);
-  }
-
-  async function handlePasswordSignIn() {
-    setIsSubmitting(true);
-    setMessage(null);
-
-    const supabase = createClient();
-
-    if (!supabase) {
-      setMessage(
-        "Variables Supabase absentes: branchez le projet pour activer la connexion reelle.",
-      );
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!password.trim()) {
-      setMessage("Le mot de passe est obligatoire pour cette methode.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setMessage(error.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    window.location.href = nextPath ?? getDefaultAuthRedirect();
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (password.trim().length > 0) {
-      await handlePasswordSignIn();
-      return;
-    }
-
-    await sendMagicLink();
+    setActiveAction(null);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      action="/auth/password-login"
+      method="post"
+      className="space-y-4"
+      onSubmit={() => {
+        setActiveAction("password");
+        setMessage(null);
+      }}
+    >
+      <input type="hidden" name="next" value={nextPath ?? getDefaultAuthRedirect()} />
+
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-stone-800">
           Email professionnel
         </label>
         <Input
           id="email"
+          name="email"
           type="email"
           placeholder="vous@entreprise.fr"
           autoComplete="email"
@@ -121,6 +86,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         </label>
         <Input
           id="password"
+          name="password"
           type="password"
           placeholder="Votre mot de passe"
           autoComplete="current-password"
@@ -131,33 +97,32 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
       <div className="grid gap-3 md:grid-cols-2">
         <Button
-          type="button"
+          type="submit"
           variant="outline"
           className="h-11 rounded-full"
-          disabled={isSubmitting}
-          onClick={handlePasswordSignIn}
+          disabled={activeAction !== null}
         >
-          {isSubmitting ? "Connexion..." : "Se connecter"}
+          {activeAction === "password" ? "Connexion..." : "Se connecter"}
         </Button>
 
         <Button
           type="button"
           className="h-11 rounded-full"
-          disabled={isSubmitting}
+          disabled={activeAction !== null}
           onClick={sendMagicLink}
         >
-          {isSubmitting ? "Envoi en cours..." : "Recevoir un lien de connexion"}
+          {activeAction === "magic-link" ? "Envoi en cours..." : "Recevoir un lien de connexion"}
         </Button>
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
         {hasSupabaseConfig()
           ? `Connexion reelle activee via Supabase.${supabaseProjectRef ? ` Projet actif: ${supabaseProjectRef}.` : ""}`
-          : "Mode local: la vue reste testable sans projet Supabase branche."}
+          : "Configuration Supabase indisponible pour cette instance."}
       </div>
 
       <p className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-600">
-        Tu peux utiliser soit un mot de passe, soit le lien magique par email.
+        Le mot de passe ouvre directement la session. Le lien email reste disponible en secours.
       </p>
 
       {message ? (
