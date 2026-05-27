@@ -16,6 +16,7 @@
     "verify": "bash ./scripts/validate.sh",
     "verify:prod": "bash ./scripts/verify-production.sh",
     "audit:prod": "npm audit --omit=dev",
+    "supabase:create-platform-admin": "node ./scripts/create-platform-admin.mjs",
     "supabase:check": "bash ./scripts/check-supabase-prereqs.sh",
     "supabase:bootstrap": "bash ./scripts/bootstrap-supabase.sh",
     "supabase:init": "npx supabase init",
