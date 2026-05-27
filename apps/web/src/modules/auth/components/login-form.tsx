@@ -19,8 +19,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabaseProjectRef = getSupabaseProjectRef();
 
-  async function handleMagicLinkSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function sendMagicLink() {
     setIsSubmitting(true);
     setMessage(null);
 
@@ -54,7 +53,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
     setIsSubmitting(false);
   }
 
-  async function handlePasswordSubmit() {
+  async function handlePasswordSignIn() {
     setIsSubmitting(true);
     setMessage(null);
 
@@ -88,8 +87,19 @@ export function LoginForm({ nextPath }: LoginFormProps) {
     window.location.href = nextPath ?? getDefaultAuthRedirect();
   }
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (password.trim().length > 0) {
+      await handlePasswordSignIn();
+      return;
+    }
+
+    await sendMagicLink();
+  }
+
   return (
-    <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-stone-800">
           Email professionnel
@@ -125,15 +135,16 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           variant="outline"
           className="h-11 rounded-full"
           disabled={isSubmitting}
-          onClick={handlePasswordSubmit}
+          onClick={handlePasswordSignIn}
         >
           {isSubmitting ? "Connexion..." : "Se connecter"}
         </Button>
 
         <Button
-          type="submit"
+          type="button"
           className="h-11 rounded-full"
           disabled={isSubmitting}
+          onClick={sendMagicLink}
         >
           {isSubmitting ? "Envoi en cours..." : "Recevoir un lien de connexion"}
         </Button>

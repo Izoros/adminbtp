@@ -1,4 +1,4 @@
-import { Building2, FolderKanban, LayoutDashboard, LogIn, LogOut, Settings2 } from "lucide-react";
+import { Building2, LayoutDashboard, LogIn, LogOut, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 
@@ -38,7 +38,7 @@ export async function AppShell({
             </div>
             <div>
               <p className="text-lg font-semibold tracking-[-0.03em]">AdminBTP</p>
-              <p className="text-sm text-stone-400">Socle projet V1</p>
+              <p className="text-sm text-stone-400">Pilotage administratif et technique</p>
             </div>
           </div>
 
@@ -72,18 +72,6 @@ export async function AppShell({
               </div>
             ))}
           </nav>
-
-          <div className="mt-auto rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-white/10 p-2.5 text-stone-200">
-                <FolderKanban className="size-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Roadmap active</p>
-                <p className="text-xs text-stone-400">Phase 0 maintenant, phase 1 ensuite.</p>
-              </div>
-            </div>
-          </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col gap-6">
