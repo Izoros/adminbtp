@@ -1,4 +1,5 @@
 import type { Organization } from "@/modules/organizations/types/organization";
+import type { InternalRole } from "@/modules/auth/types/auth";
 import type {
   ProjectFormFeedback,
   ProjectRole,
@@ -108,7 +109,12 @@ export function parseProjectDraft(formData: FormData): ProjectDraftInput {
 export function getProjectOwnerOptions(
   organizations: Organization[],
   manageableOrganizationIds: string[],
+  internalRole?: InternalRole,
 ) {
+  if (internalRole === "platform_admin") {
+    return organizations;
+  }
+
   const idSet = new Set(manageableOrganizationIds);
 
   return organizations.filter((organization) => idSet.has(organization.id));

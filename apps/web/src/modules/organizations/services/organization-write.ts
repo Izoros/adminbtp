@@ -2,6 +2,7 @@ import type {
   Organization,
   OrganizationFormFeedback,
 } from "@/modules/organizations/types/organization";
+import type { InternalRole } from "@/modules/auth/types/auth";
 
 export type OrganizationDraftInput = {
   name: string;
@@ -51,7 +52,12 @@ export function parseOrganizationDraft(formData: FormData): OrganizationDraftInp
 export function getManageableOrganizations(
   organizations: Organization[],
   manageableOrganizationIds: string[],
+  internalRole?: InternalRole,
 ) {
+  if (internalRole === "platform_admin") {
+    return organizations;
+  }
+
   const idSet = new Set(manageableOrganizationIds);
 
   return organizations.filter((organization) => idSet.has(organization.id));

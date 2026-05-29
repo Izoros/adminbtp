@@ -38,6 +38,7 @@ export function OrganizationAccessPanel({
         (membership.role === "org_owner" || membership.role === "org_admin"),
       )
       .map((membership) => membership.organizationId),
+    user.internalRole,
   );
   const isSupabaseWritable = true;
 

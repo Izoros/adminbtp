@@ -55,6 +55,7 @@ export function ProjectDashboard({
         (membership.role === "org_owner" || membership.role === "org_admin"),
       )
       .map((membership) => membership.organizationId),
+    user.internalRole,
   );
   const isSupabaseWritable = manageableOrganizations.length > 0;
 
@@ -227,7 +228,7 @@ export function ProjectDashboard({
             <p className="text-xs leading-6 text-stone-500">
               {manageableOrganizations.length > 0
                 ? "Le chantier sera rattache a la premiere organisation choisie avec le role principal selectionne."
-                : "Aucune organisation gerable n'est encore disponible pour une creation reelle de chantier."}
+                : "Aucune organisation proprietaire n'est encore disponible. Creez d'abord une organisation dans l'onglet Organisations."}
             </p>
             <button
               type="submit"

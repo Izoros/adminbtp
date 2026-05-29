@@ -11,6 +11,7 @@ import {
 } from "@/lib/permissions";
 
 const organizationScope = {
+  internalRole: "member" as const,
   accessibleOrganizationIds: ["org_001", "org_002"],
   memberships: [
     {
@@ -22,6 +23,23 @@ const organizationScope = {
       organizationId: "org_002",
       userId: "user_001",
       role: "org_member" as const,
+    },
+  ],
+};
+
+const platformAdminOrganizationScope = {
+  internalRole: "platform_admin" as const,
+  accessibleOrganizationIds: ["org_001", "org_002"],
+  memberships: [
+    {
+      organizationId: "org_001",
+      userId: "user_001",
+      role: "org_member" as const,
+    },
+    {
+      organizationId: "org_002",
+      userId: "user_001",
+      role: "org_viewer" as const,
     },
   ],
 };
@@ -51,6 +69,15 @@ describe("server guards", () => {
     expect(getManageableOrganizationIds(organizationScope)).toEqual(["org_001"]);
     expect(canManageOrganization(organizationScope, "org_001")).toBe(true);
     expect(canManageOrganization(organizationScope, "org_002")).toBe(false);
+  });
+
+  it("autorise un platform_admin a gerer toutes les organisations accessibles", () => {
+    expect(getManageableOrganizationIds(platformAdminOrganizationScope)).toEqual([
+      "org_001",
+      "org_002",
+    ]);
+    expect(canManageOrganization(platformAdminOrganizationScope, "org_001")).toBe(true);
+    expect(canManageOrganization(platformAdminOrganizationScope, "org_002")).toBe(true);
   });
 
   it("leve une erreur explicite quand l'organisation sort du scope", () => {

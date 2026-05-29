@@ -39,9 +39,16 @@ export function canAccessOrganization(
 }
 
 export function getManageableOrganizationIds(
-  scope: Pick<ServerOrganizationScope, "memberships">,
+  scope: Pick<
+    ServerOrganizationScope,
+    "memberships" | "accessibleOrganizationIds" | "internalRole"
+  >,
   managerRoles: OrganizationRole[] = defaultManagerRoles,
 ): string[] {
+  if (scope.internalRole === "platform_admin") {
+    return Array.from(new Set(scope.accessibleOrganizationIds));
+  }
+
   const manageableOrganizationIds = scope.memberships
     .filter((membership) => managerRoles.includes(membership.role))
     .map((membership) => membership.organizationId);
@@ -50,7 +57,10 @@ export function getManageableOrganizationIds(
 }
 
 export function canManageOrganization(
-  scope: Pick<ServerOrganizationScope, "memberships">,
+  scope: Pick<
+    ServerOrganizationScope,
+    "memberships" | "accessibleOrganizationIds" | "internalRole"
+  >,
   organizationId: string | null | undefined,
   managerRoles: OrganizationRole[] = defaultManagerRoles,
 ): boolean {
