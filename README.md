@@ -115,6 +115,7 @@ npm run supabase:types
 Le depot est maintenant aligne sur un fonctionnement production :
 
 - authentification reelle Supabase par mot de passe ou lien magique, avec cookies SSR
+- guide d'accueil affiche une fois par utilisateur connecte pour accelerer la prise en main
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`

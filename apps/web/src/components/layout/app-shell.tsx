@@ -2,6 +2,7 @@ import { Building2, LayoutDashboard, LogIn, LogOut, Settings2 } from "lucide-rea
 import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { NewUserGuide } from "@/components/onboarding/new-user-guide";
 import { appNavigation } from "@/config/navigation";
 import { getSupabaseProjectRef } from "@/lib/env";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
@@ -22,6 +23,12 @@ export async function AppShell({
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#efe3d0_0%,#f7f4ee_32%,#f5f2ec_100%)] text-stone-950">
+      {user ? (
+        <NewUserGuide
+          userId={user.id}
+          userLabel={user.email?.split("@")[0] ?? "dans AdminBTP"}
+        />
+      ) : null}
       <div className="mx-auto flex min-h-screen max-w-[1680px] gap-6 px-4 py-4 md:px-6 xl:px-8">
         <aside className="hidden w-80 shrink-0 rounded-[2rem] border border-white/70 bg-[linear-gradient(180deg,#241f1c_0%,#181513_100%)] p-6 text-stone-100 shadow-[0_28px_80px_rgba(15,23,42,0.28)] lg:flex lg:flex-col">
           <div className="flex items-center gap-4 border-b border-white/10 pb-5">
