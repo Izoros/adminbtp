@@ -6,6 +6,7 @@ import {
   getPrimaryProjectRoleView,
   getProjectsForUser,
 } from "@/modules/projects/services/project-access";
+import { ProjectSubmitButton } from "@/modules/projects/components/project-submit-button";
 import { getProjectOwnerOptions } from "@/modules/projects/services/project-write";
 import type { Project, ProjectOrganization } from "@/modules/projects/types/project";
 import type { ProjectFormFeedback, ProjectRole } from "@/modules/projects/types/project";
@@ -241,13 +242,9 @@ export function ProjectDashboard({
                   Creer une organisation
                 </Link>
               ) : null}
-              <button
-                type="submit"
+              <ProjectSubmitButton
                 disabled={!isSupabaseWritable || manageableOrganizations.length === 0}
-                className="inline-flex items-center justify-center rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
-              >
-                Creer le chantier
-              </button>
+              />
             </div>
           </div>
         </form>
