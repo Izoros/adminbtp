@@ -1,6 +1,10 @@
+import { redirect } from "next/navigation";
+
+import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { ModulePageFrame } from "@/components/layout/module-page-frame";
 import { createProjectAction } from "@/app/projects/actions";
+import { buildLoginRedirectPath } from "@/modules/auth/services/session-navigation";
 import { loadOrganizationAccessData } from "@/modules/organizations/services/organization-source";
 import { ProjectDashboard } from "@/modules/projects/components/project-dashboard";
 import { loadProjectDashboardData } from "@/modules/projects/services/project-source";
@@ -11,6 +15,12 @@ type ProjectsPageProps = {
 };
 
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    redirect(buildLoginRedirectPath("/projects"));
+  }
+
   const supabase = await createClient();
   const organizationAccessData = await loadOrganizationAccessData(supabase);
   const projectDashboardData = await loadProjectDashboardData(
