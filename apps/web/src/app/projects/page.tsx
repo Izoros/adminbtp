@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ModulePageFrame } from "@/components/layout/module-page-frame";
 import { createProjectAction } from "@/app/projects/actions";
 import { loadOrganizationAccessData } from "@/modules/organizations/services/organization-source";
 import { ProjectDashboard } from "@/modules/projects/components/project-dashboard";
@@ -20,20 +21,18 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
   const feedback = getProjectFeedbackFromSearchParams(resolvedSearchParams);
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#efe3d0_0%,#f7f4ee_38%,#f5f2ec_100%)] px-4 py-10 md:px-6">
-      <div className="mx-auto max-w-6xl">
-        <ProjectDashboard
-          user={organizationAccessData.user}
-          organizations={organizationAccessData.organizations}
-          memberships={organizationAccessData.memberships}
-          projects={projectDashboardData.projects}
-          projectOrganizations={projectDashboardData.projectOrganizations}
-          source={projectDashboardData.source}
-          sourceDetail={projectDashboardData.sourceDetail}
-          feedback={feedback}
-          createProjectAction={createProjectAction}
-        />
-      </div>
-    </main>
+    <ModulePageFrame>
+      <ProjectDashboard
+        user={organizationAccessData.user}
+        organizations={organizationAccessData.organizations}
+        memberships={organizationAccessData.memberships}
+        projects={projectDashboardData.projects}
+        projectOrganizations={projectDashboardData.projectOrganizations}
+        source={projectDashboardData.source}
+        sourceDetail={projectDashboardData.sourceDetail}
+        feedback={feedback}
+        createProjectAction={createProjectAction}
+      />
+    </ModulePageFrame>
   );
 }

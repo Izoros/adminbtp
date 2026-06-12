@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { AppUserProfile } from "@/modules/auth/types/auth";
 import type { Organization, OrganizationMembership } from "@/modules/organizations/types/organization";
 import {
@@ -230,13 +232,23 @@ export function ProjectDashboard({
                 ? "Le chantier sera rattache a la premiere organisation choisie avec le role principal selectionne."
                 : "Aucune organisation proprietaire n'est encore disponible. Creez d'abord une organisation dans l'onglet Organisations."}
             </p>
-            <button
-              type="submit"
-              disabled={!isSupabaseWritable || manageableOrganizations.length === 0}
-              className="inline-flex items-center justify-center rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
-            >
-              Creer le chantier
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              {manageableOrganizations.length === 0 ? (
+                <Link
+                  href="/organizations"
+                  className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+                >
+                  Creer une organisation
+                </Link>
+              ) : null}
+              <button
+                type="submit"
+                disabled={!isSupabaseWritable || manageableOrganizations.length === 0}
+                className="inline-flex items-center justify-center rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+              >
+                Creer le chantier
+              </button>
+            </div>
           </div>
         </form>
       </div>

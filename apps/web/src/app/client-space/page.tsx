@@ -1,3 +1,4 @@
+import { ModulePageFrame } from "@/components/layout/module-page-frame";
 import { ClientSpaceBoard } from "@/modules/client-space/components/client-space-board";
 import {
   addCommentAction,
@@ -25,14 +26,12 @@ export default async function ClientSpacePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#efe3d0_0%,#f7f4ee_38%,#f5f2ec_100%)] px-4 py-10 md:px-6">
-      <div className="mx-auto max-w-6xl">
-        <ClientSpaceBoard
-          data={data}
-          addCommentAction={addCommentPageAction}
-          submitWorkspaceDecisionAction={submitWorkspaceDecisionPageAction}
-        />
-      </div>
-    </main>
+    <ModulePageFrame>
+      <ClientSpaceBoard
+        data={data}
+        addCommentAction={addCommentPageAction}
+        submitWorkspaceDecisionAction={submitWorkspaceDecisionPageAction}
+      />
+    </ModulePageFrame>
   );
 }

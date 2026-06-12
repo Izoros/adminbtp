@@ -34,11 +34,11 @@ describe("page d'accueil AdminBTP", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /AdminBTP prend forme comme une plateforme modulaire BTP/i,
+        name: /Le cockpit AdminBTP devient l'ecran principal d'exploitation/i,
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/Validation de phase/i)).toBeInTheDocument();
-    expect(screen.getByText(/CRUD reels/i)).toBeInTheDocument();
+    expect(screen.getByText(/Checklist exploitation/i)).toBeInTheDocument();
+    expect(screen.getByText(/production reelle/i)).toBeInTheDocument();
   });
 });

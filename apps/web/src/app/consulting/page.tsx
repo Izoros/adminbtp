@@ -1,3 +1,4 @@
+import { ModulePageFrame } from "@/components/layout/module-page-frame";
 import { ConsultingDashboard } from "@/modules/consulting/components/consulting-dashboard";
 import {
   createConsultingMissionAction,
@@ -32,15 +33,13 @@ export default async function ConsultingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#efe3d0_0%,#f7f4ee_38%,#f5f2ec_100%)] px-4 py-10 md:px-6">
-      <div className="mx-auto max-w-6xl">
-        <ConsultingDashboard
-          data={data}
-          createExpertRequestAction={createExpertRequestPageAction}
-          createConsultingMissionAction={createConsultingMissionPageAction}
-          registerConsultingHourAction={registerConsultingHourPageAction}
-        />
-      </div>
-    </main>
+    <ModulePageFrame>
+      <ConsultingDashboard
+        data={data}
+        createExpertRequestAction={createExpertRequestPageAction}
+        createConsultingMissionAction={createConsultingMissionPageAction}
+        registerConsultingHourAction={registerConsultingHourPageAction}
+      />
+    </ModulePageFrame>
   );
 }

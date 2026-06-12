@@ -152,7 +152,7 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -172,8 +172,8 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
             </div>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1ea_100%)] p-5">
-            <svg viewBox="0 0 320 120" className="h-36 w-full">
+          <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fcfaf7_0%,#f6f1ea_100%)] p-6">
+            <svg viewBox="0 0 320 120" className="h-52 w-full">
               <path d="M0 110 H320" stroke="#d6d3d1" strokeWidth="1" strokeDasharray="4 4" />
               <path
                 d={`M ${emailPoints}`}
@@ -214,13 +214,13 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
           </div>
 
           <div
-            className="mt-5 grid gap-3"
+            className="mt-5 grid gap-4"
             style={{ gridTemplateColumns: `repeat(${Math.max(loadSeries.length, 1)}, minmax(0, 1fr))` }}
           >
             {loadSeries.map((item) => (
               <div
                 key={item.label}
-                className="rounded-2xl border border-stone-200 bg-stone-50/80 px-4 py-3 text-sm text-stone-700"
+                className="rounded-2xl border border-stone-200 bg-stone-50/80 px-5 py-4 text-sm text-stone-700"
               >
                 <p className="font-medium text-stone-950">{item.label}</p>
                 <p className="mt-2">Emails : {item.emails}</p>
@@ -248,7 +248,7 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
           </div>
 
           <div
-            className="mt-6 grid h-64 items-end gap-3 rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fbf8f1_0%,#f5eee2_100%)] p-5"
+            className="mt-6 grid h-80 items-end gap-3 rounded-[1.5rem] border border-stone-200 bg-[linear-gradient(180deg,#fbf8f1_0%,#f5eee2_100%)] p-6"
             style={{ gridTemplateColumns: `repeat(${Math.max(revenueSeries.length, 1)}, minmax(0, 1fr))` }}
           >
             {revenueSeries.map((item) => (
@@ -280,7 +280,7 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
         </article>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr_0.9fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr_0.95fr]">
         <article className="rounded-[1.9rem] border border-stone-200/80 bg-white p-6 shadow-[0_22px_56px_rgba(15,23,42,0.08)]">
           <p className="text-xs font-medium tracking-[0.18em] text-stone-500 uppercase">
             Priorites direction
@@ -482,12 +482,12 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 xl:grid-cols-4">
+          <div className="mt-5 grid gap-5 xl:grid-cols-4">
             {kanbanColumns.map((column) => (
               <div
                 key={column.id}
                 className={cn(
-                  "rounded-[1.5rem] border p-4",
+                  "rounded-[1.5rem] border p-5",
                   columnAccentClasses[column.accent],
                 )}
               >
@@ -497,11 +497,11 @@ export function AdminCockpit({ data }: { data?: AdminCockpitData }) {
                     {column.cards.length}
                   </span>
                 </div>
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-4">
                   {column.cards.map((card) => (
                     <div
                       key={card.title}
-                      className="rounded-[1.2rem] border border-white/80 bg-white/90 p-3 text-sm text-stone-700 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                      className="rounded-[1.2rem] border border-white/80 bg-white/90 p-5 text-sm text-stone-700 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
                     >
                       <p className="font-medium text-stone-950">{card.title}</p>
                       <p className="mt-2 text-xs uppercase tracking-[0.14em] text-stone-500">

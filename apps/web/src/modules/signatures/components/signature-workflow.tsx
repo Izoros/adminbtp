@@ -56,7 +56,7 @@ export function SignatureWorkflow({
     <section className="space-y-6">
       <div className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.07)]">
         <p className="text-xs font-medium tracking-[0.22em] text-stone-500 uppercase">
-          Phase 5
+          Signatures
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-stone-950">
           Circuit de validation et signature

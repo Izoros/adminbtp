@@ -1,6 +1,7 @@
 import { Building2, LayoutDashboard, LogIn, LogOut, Settings2 } from "lucide-react";
 import Link from "next/link";
 
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { appNavigation } from "@/config/navigation";
 import { getSupabaseProjectRef } from "@/lib/env";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
@@ -53,9 +54,6 @@ export async function AppShell({
                             <p className="text-xs text-stone-400">{item.description}</p>
                           </div>
                         </div>
-                        <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-stone-300">
-                          {item.phase}
-                        </span>
                       </Link>
                     </li>
                   ))}
@@ -77,6 +75,7 @@ export async function AppShell({
                   <h1 className="text-2xl font-semibold tracking-[-0.04em] text-stone-950">
                     {title}
                   </h1>
+                  <Breadcrumbs />
                 </div>
               </div>
 

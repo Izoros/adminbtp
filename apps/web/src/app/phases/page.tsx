@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ModulePageFrame } from "@/components/layout/module-page-frame";
 import { loadOrganizationAccessData } from "@/modules/organizations/services/organization-source";
 import { ProjectPhaseBoard } from "@/modules/phases/components/project-phase-board";
 import {
@@ -47,20 +48,18 @@ export default async function PhasesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#efe3d0_0%,#f7f4ee_38%,#f5f2ec_100%)] px-4 py-10 md:px-6">
-      <div className="mx-auto max-w-6xl">
-        <ProjectPhaseBoard
-          activeRole={phaseDashboardData.activeRole}
-          phases={phaseDashboardData.phases}
-          checklistItems={phaseDashboardData.checklistItems}
-          alerts={phaseDashboardData.alerts}
-          source={phaseDashboardData.source}
-          sourceDetail={phaseDashboardData.sourceDetail}
-          toggleChecklistAction={toggleChecklistPageAction}
-          updatePhaseStatusAction={updatePhaseStatusPageAction}
-          resolveAlertAction={resolveAlertPageAction}
-        />
-      </div>
-    </main>
+    <ModulePageFrame>
+      <ProjectPhaseBoard
+        activeRole={phaseDashboardData.activeRole}
+        phases={phaseDashboardData.phases}
+        checklistItems={phaseDashboardData.checklistItems}
+        alerts={phaseDashboardData.alerts}
+        source={phaseDashboardData.source}
+        sourceDetail={phaseDashboardData.sourceDetail}
+        toggleChecklistAction={toggleChecklistPageAction}
+        updatePhaseStatusAction={updatePhaseStatusPageAction}
+        resolveAlertAction={resolveAlertPageAction}
+      />
+    </ModulePageFrame>
   );
 }
