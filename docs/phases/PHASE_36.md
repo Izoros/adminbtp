@@ -40,7 +40,7 @@ commit applicatif par cette phase.
 - suppression des metriques fictives mortes, des SVG Next.js inutilises et de
   la seconde source de verite SQL `database/`
 
-## Validation locale
+## Validation et deploiement
 
 - migration additive : `20260812200000_security_audit_hardening.sql`
 - verification PostgreSQL transactionnelle :
@@ -48,8 +48,13 @@ commit applicatif par cette phase.
 - tentative d'auto-elevation refusee avec le role `authenticated`
 - lecture RLS de `organization_members` reussie sans recursion
 - mise a jour autorisee de `full_name` conservee
-- tests unitaires et integration, lint, typage, build et smoke a rejouer avant
-  deploiement
+- `npm run verify` reussi : lint, typage, 316 tests et build Next.js
+- `npm audit --omit=dev` : aucune vulnerabilite connue
+- migration rejouee et contrats SQL valides sur la pile Supabase locale
+- commit applicatif `e7fe6dd` deploye par l'integration Git sur
+  `https://adminbtp.vercel.app`
+- recette de production reussie : 20 pages, 21 liens, 19 redirections privees,
+  en-tetes de securite, endpoint de sante et webhook WhatsApp ferme par defaut
 
 ## Limites et travaux suivants
 
