@@ -25,6 +25,7 @@
 - outbox d'alertes exploitee par reservation atomique et visible uniquement par les administrateurs plateforme
 - destinations d'alerte limitees a HTTPS et a une liste blanche d'hotes, avec refus des adresses locales/privees
 - purge quotidienne `service_role` des commandes a 90 jours et alertes a 365 jours
+- contrats de role et de purge verifies dans PostgreSQL local par transaction avec rollback
 - modules qui manipulent `SUPABASE_SERVICE_ROLE_KEY` marques `server-only`
 
 ## Points de vigilance

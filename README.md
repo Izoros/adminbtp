@@ -54,6 +54,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Runbook des alertes d'exploitation](/Users/symba/Documents/9_AdminBTP/docs/OPERATIONS_ALERTS.md)
 - [Validation d'execution de la phase 29](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_29.md)
 - [Validation d'execution de la phase 30](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_30.md)
+- [Validation d'execution de la phase 31](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_31.md)
 
 ## Finalite
 

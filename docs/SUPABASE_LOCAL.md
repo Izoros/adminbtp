@@ -20,6 +20,7 @@ npm run supabase:bootstrap
 npm run supabase:start
 npm run supabase:reset
 npm run supabase:lint
+npm run supabase:verify-migrations
 npm run supabase:types
 ```
 
@@ -36,10 +37,17 @@ Alternative pratique :
 
 - `npm run supabase:bootstrap` pour enchainer preflight, demarrage, reset et generation des types
 
+Verification non destructive recommandee :
+
+- `npm run supabase:verify-migrations` applique uniquement les migrations en attente,
+  lint le schema, execute les contrats d'exploitation dans une transaction puis
+  effectue un `ROLLBACK`
+
 ## Limites connues dans cet environnement
 
 - `npm run supabase:start` requiert un daemon Docker actif
 - `npx supabase migration list` sans `--local` ni projet lie requiert un projet distant relie
+- `npm run supabase:verify-migrations` requiert aussi le client local `psql`
 
 ## Historique des migrations
 
@@ -57,6 +65,8 @@ L'historique couvre :
 - IA metier
 - espace client
 - durcissement securite
+- journal et supervision des archives
+- commandes WhatsApp, alertes d'exploitation et retention
 
 ## Notes de securite
 
@@ -70,3 +80,4 @@ L'historique couvre :
 - migrations appliquees avec succes via `npm run supabase:reset`
 - types re-generes dans [apps/web/src/types/supabase.ts](/Users/symba/Documents/9_AdminBTP/apps/web/src/types/supabase.ts:1)
 - `.env.local` aligne sur les endpoints et cles locales Supabase
+- contrats d'exploitation verifies sans reset par transaction avec rollback

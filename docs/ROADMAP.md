@@ -155,6 +155,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 28 : livree localement, canal d'alerte externe en attente
 - phase 29 : livree localement, execution des commandes volontairement absente
 - phase 30 : livree localement, purge distante en attente de migration
+- phase 31 : livree et validee sur PostgreSQL Supabase local
 
 ### PHASE 0 - Socle projet
 
@@ -632,6 +633,23 @@ Validation :
 - le cron existant execute la purge avant l'analyse des alertes
 - les archives reglementaires de 25 ans restent hors perimetre
 
+### PHASE 31 - Validation d'integration Supabase locale
+
+Contenu :
+
+- application non destructive des migrations locales en attente
+- lint du schema PostgreSQL
+- scenario transactionnel des roles et fonctions d'exploitation
+- rollback systematique des donnees factices
+
+Validation :
+
+- la revue WhatsApp fonctionne sous un vrai role `authenticated` plateforme
+- la purge fonctionne sous `service_role`
+- la suppression en cascade du journal est effective
+- le schema ne remonte aucune erreur au lint Supabase
+- aucune donnee de test ne subsiste apres le scenario
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -676,3 +694,4 @@ Ordre cible :
 29. Phase 28
 30. Phase 29
 31. Phase 30
+32. Phase 31

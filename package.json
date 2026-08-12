@@ -25,6 +25,7 @@
     "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset",
     "supabase:lint": "npx supabase db lint",
+    "supabase:verify-migrations": "bash ./scripts/verify-supabase-migrations.sh",
     "supabase:types": "npx supabase gen types typescript --local --schema public > apps/web/src/types/supabase.ts"
   },
   "devDependencies": {

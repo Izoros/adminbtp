@@ -8,6 +8,10 @@
 4. connecter l'outbox d'alertes a un webhook HTTPS controle et verifier une livraison de test
 5. ajouter la sauvegarde des pieces binaires Supabase Storage et un exercice de restauration
 
+Note d'audit : aucun bucket ou objet metier n'est encore utilise par le code
+AdminBTP. Le lot Storage doit donc commencer par le modele de pieces jointes et
+ses controles d'upload, avant la replication binaire.
+
 ## Priorite equipe
 
 1. ouvrir les tickets GitHub par module
