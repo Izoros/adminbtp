@@ -153,6 +153,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 26 : livree
 - phase 27 : livree localement, activation externe en attente
 - phase 28 : livree localement, canal d'alerte externe en attente
+- phase 29 : livree localement, execution des commandes volontairement absente
 
 ### PHASE 0 - Socle projet
 
@@ -595,6 +596,24 @@ Validation :
 - un evenement deja livre n'est pas renvoye
 - un non administrateur ne peut pas lire l'outbox
 
+### PHASE 29 - Revue humaine des commandes WhatsApp
+
+Contenu :
+
+- approbation ou refus depuis `/admin/commands`
+- controle du role plateforme dans la Server Action et PostgreSQL
+- transition atomique depuis `pending_review`
+- journal immuable de la decision et de l'acteur
+- approbation explicitement sans execution
+
+Validation :
+
+- seules les decisions `approve` et `reject` sont acceptees
+- une commande deja traitee ne peut pas changer arbitrairement de decision
+- un utilisateur non plateforme ne declenche aucune mutation
+- chaque nouvelle decision cree un evenement d'audit
+- aucun shell, deploiement ou appel OpenAI n'est branche
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -637,3 +656,4 @@ Ordre cible :
 27. Phase 26
 28. Phase 27
 29. Phase 28
+30. Phase 29

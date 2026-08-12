@@ -41,6 +41,7 @@
 - pas de secret en dur
 - en-tetes HTTP actifs
 - pas d'action IA irreversible sans validation
+- une approbation WhatsApp reste sans effet metier tant qu'aucun moteur borne n'est livre
 - pas de fuite inter-organisation
 - webhook WhatsApp ferme sans challenge et passerelle desactivee sans configuration complete
 - crons refuses sans `CRON_SECRET` et alertes externes desactivees sans configuration complete

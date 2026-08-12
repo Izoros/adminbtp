@@ -12,6 +12,7 @@ import type {
   WhatsAppCommandQueueItem,
   WhatsAppCommandStatus,
 } from "@/modules/whatsapp/types/command";
+import { CommandReviewControls } from "@/modules/whatsapp/components/command-review-controls";
 
 const statusPresentation: Record<
   WhatsAppCommandStatus,
@@ -85,6 +86,9 @@ function CommandCard({ command }: { command: WhatsAppCommandQueueItem }) {
           </div>
         </dl>
       </div>
+      {command.status === "pending_review" ? (
+        <CommandReviewControls commandId={command.id} />
+      ) : null}
     </article>
   );
 }

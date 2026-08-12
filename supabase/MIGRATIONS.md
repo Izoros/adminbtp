@@ -18,6 +18,7 @@
 14. `20260811194500_archive_runs.sql`
 15. `20260812100000_whatsapp_command_requests.sql`
 16. `20260812143000_operations_alerts.sql`
+17. `20260812160000_whatsapp_command_reviews.sql`
 
 ## Intention de chaque migration
 
@@ -37,6 +38,7 @@
 - `archive_runs` : journal serveur, checksums et verification des archives longue duree
 - `whatsapp_command_requests` : file de demandes WhatsApp authentifiees, sans execution automatique
 - `operations_alerts` : outbox, reservation atomique et suivi des alertes d'exploitation
+- `whatsapp_command_reviews` : decisions humaines atomiques et journal immuable des commandes WhatsApp
 
 ## Regle de travail
 

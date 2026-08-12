@@ -2,7 +2,7 @@
 
 ## Priorite immediate
 
-1. appliquer les migrations `archive_runs`, `whatsapp_command_requests` et `operations_alerts` sur une preproduction Supabase controlee
+1. appliquer les migrations `archive_runs`, `whatsapp_command_requests`, `whatsapp_command_reviews` et `operations_alerts` sur une preproduction Supabase controlee
 2. executer un test controle de transfert et de relecture sur la cible LWS
 3. configurer un compte WhatsApp Business de test selon `WHATSAPP_COMMAND_GATEWAY.md`, sans activer l'execution automatique
 4. connecter l'outbox d'alertes a un webhook HTTPS controle et verifier une livraison de test

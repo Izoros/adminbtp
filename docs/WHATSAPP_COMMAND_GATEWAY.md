@@ -24,7 +24,10 @@ Le webhook suit le contrat de la plateforme WhatsApp Cloud API de Meta :
 
 ## Limite de securite volontaire
 
-Une demande recue reste au statut `pending_review`. Elle ne lance jamais :
+Une demande recue reste au statut `pending_review` jusqu'a sa revue dans
+`/admin/commands`. L'approbation ou le refus est atomique, reserve au role
+plateforme et journalise dans `whatsapp_command_events`. Meme approuvee, elle ne
+lance jamais :
 
 - une commande systeme
 - une modification de base
@@ -32,9 +35,10 @@ Une demande recue reste au statut `pending_review`. Elle ne lance jamais :
 - une action Codex
 - un appel OpenAI
 
-Cette phase construit le transport et la file de confiance. Un futur moteur de
-traitement devra conserver une liste d'actions autorisees, une validation
-explicite pour toute mutation et un journal d'execution.
+Le transport, la file de confiance et la revue humaine sont donc disponibles.
+Un futur moteur de traitement devra encore conserver une liste d'actions
+autorisees, une confirmation specifique pour toute mutation et un journal
+d'execution distinct.
 
 ## Variables serveur
 
@@ -56,7 +60,7 @@ Regles :
 
 ## Activation controlee
 
-1. appliquer `20260812100000_whatsapp_command_requests.sql`
+1. appliquer `20260812100000_whatsapp_command_requests.sql`, puis `20260812160000_whatsapp_command_reviews.sql`
 2. renseigner les trois secrets serveur et la liste blanche dans Vercel
 3. conserver la passerelle desactivee
 4. declarer `https://adminbtp.vercel.app/api/webhooks/whatsapp` comme callback Meta
@@ -64,7 +68,8 @@ Regles :
 6. passer `ADMINBTP_WHATSAPP_COMMANDS_ENABLED=true`
 7. envoyer un message depuis un seul numero de test autorise
 8. verifier son apparition dans `/admin/commands`
-9. controler qu'un numero non autorise et un doublon ne creent aucune nouvelle demande
+9. approuver puis refuser deux demandes de test et verifier le journal SQL
+10. controler qu'un numero non autorise et un doublon ne creent aucune nouvelle demande
 
 ## Desactivation d'urgence
 

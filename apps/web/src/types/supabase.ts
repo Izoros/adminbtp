@@ -292,6 +292,41 @@ export type Database = {
           },
         ]
       }
+      whatsapp_command_events: {
+        Row: {
+          actor_user_id: string
+          command_request_id: string
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_user_id: string
+          command_request_id: string
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_user_id?: string
+          command_request_id?: string
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_command_events_command_request_id_fkey"
+            columns: ["command_request_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_command_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action_type: Database["public"]["Enums"]["audit_action_type"]
@@ -1848,6 +1883,13 @@ export type Database = {
           target_title: string
         }
         Returns: Database["public"]["Tables"]["operations_alerts"]["Row"][]
+      }
+      review_whatsapp_command: {
+        Args: {
+          target_command_id: string
+          target_decision: string
+        }
+        Returns: Database["public"]["Tables"]["whatsapp_command_requests"]["Row"][]
       }
     }
     Enums: {
