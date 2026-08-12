@@ -6,6 +6,7 @@ import {
   Bot,
   BriefcaseBusiness,
   MessageCircleMore,
+  PlugZap,
   Wallet,
 } from "lucide-react";
 
@@ -82,6 +83,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 >
                   <BellRing className="size-4" />
                   Alertes exploitation
+                </Link>
+                <Link
+                  href="/admin/readiness"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+                >
+                  <PlugZap className="size-4" />
+                  Etat des connexions
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">

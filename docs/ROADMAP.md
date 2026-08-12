@@ -156,6 +156,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 29 : livree localement, execution des commandes volontairement absente
 - phase 30 : livree localement, purge distante en attente de migration
 - phase 31 : livree et validee sur PostgreSQL Supabase local
+- phase 32 : livree localement, connexions externes encore a tester
 
 ### PHASE 0 - Socle projet
 
@@ -650,6 +651,22 @@ Validation :
 - le schema ne remonte aucune erreur au lint Supabase
 - aucune donnee de test ne subsiste apres le scenario
 
+### PHASE 32 - Tableau de preparation des integrations
+
+Contenu :
+
+- page plateforme `/admin/readiness`
+- controles non sensibles de Supabase, WhatsApp, archives et alertes
+- statuts distincts pour configuration complete, incomplete et desactivee
+- lien depuis le cockpit admin et couverture smoke
+
+Validation :
+
+- le role plateforme est verifie avant la lecture des variables
+- aucune valeur de secret, URL ou numero n'est transmise au rendu
+- la presence des variables est distinguee d'un test de connexion reel
+- aucun service externe n'est active automatiquement
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -695,3 +712,4 @@ Ordre cible :
 30. Phase 29
 31. Phase 30
 32. Phase 31
+33. Phase 32

@@ -2,11 +2,14 @@
 
 ## Priorite immediate
 
+La page `/admin/readiness` centralise maintenant ces prerequis sans afficher les
+secrets. Un statut `Pret a tester` confirme la configuration, pas la connexion.
+
 1. appliquer dans l'ordre les migrations `archive_runs`, `whatsapp_command_requests`, `operations_alerts`, `whatsapp_command_reviews` et `operations_retention` sur une preproduction Supabase controlee
 2. executer un test controle de transfert et de relecture sur la cible LWS
 3. configurer un compte WhatsApp Business de test selon `WHATSAPP_COMMAND_GATEWAY.md`, sans activer l'execution automatique
 4. connecter l'outbox d'alertes a un webhook HTTPS controle et verifier une livraison de test
-5. ajouter la sauvegarde des pieces binaires Supabase Storage et un exercice de restauration
+5. definir le contrat des pieces jointes avant d'ajouter Supabase Storage et un exercice de restauration
 
 Note d'audit : aucun bucket ou objet metier n'est encore utilise par le code
 AdminBTP. Le lot Storage doit donc commencer par le modele de pieces jointes et

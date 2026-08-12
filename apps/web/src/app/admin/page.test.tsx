@@ -55,5 +55,8 @@ describe("page admin", () => {
     expect(
       screen.getByRole("link", { name: /Alertes exploitation/i }),
     ).toHaveAttribute("href", "/admin/alerts");
+    expect(
+      screen.getByRole("link", { name: /Etat des connexions/i }),
+    ).toHaveAttribute("href", "/admin/readiness");
   });
 });

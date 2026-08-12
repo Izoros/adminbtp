@@ -25,6 +25,7 @@
 - supervision des archives `/admin/archives`
 - supervision des commandes `/admin/commands`
 - supervision des alertes `/admin/alerts`
+- preparation des integrations `/admin/readiness`
 - isolation multi-tenant `/organizations`
 - vue chantier `/projects`
 - documents `/documents`
@@ -46,5 +47,6 @@
 - webhook WhatsApp ferme sans challenge et passerelle desactivee sans configuration complete
 - crons refuses sans `CRON_SECRET` et alertes externes desactivees sans configuration complete
 - purge d'exploitation testee sur des donnees factices avant toute activation distante
+- tableau de preparation reserve au role plateforme et depourvu de valeur secrete
 - `npm run audit:prod` analyse et documente
 - les alertes ou risques de dependances sont traces dans [docs/SECURITY.md](/Users/symba/Documents/9_AdminBTP/docs/SECURITY.md:1)

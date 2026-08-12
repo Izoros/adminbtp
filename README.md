@@ -55,6 +55,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 29](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_29.md)
 - [Validation d'execution de la phase 30](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_30.md)
 - [Validation d'execution de la phase 31](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_31.md)
+- [Validation d'execution de la phase 32](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_32.md)
 
 ## Finalite
 
@@ -118,6 +119,7 @@ npm run supabase:bootstrap
 npm run supabase:start
 npm run supabase:reset
 npm run supabase:types
+npm run supabase:verify-migrations
 ```
 
 ## Etat actuel du socle
@@ -132,6 +134,8 @@ Le depot est maintenant aligne sur un fonctionnement production :
 - endpoint `/api/health`, verification locale ciblee `npm run verify:guards` et verification distante `npm run verify:prod`
 - archivage longue duree journalise dans `archive_runs`, relu et verifie par checksum apres stockage
 - supervision `/admin/archives` reservee aux administrateurs plateforme, avec detection des echecs et executions bloquees
+- tableau `/admin/readiness` reserve aux administrateurs plateforme, sans restitution des secrets
+- passerelle WhatsApp, revue humaine, alertes et purge d'exploitation livrees mais desactivees sans configuration externe complete
 - socle Next.js aligne sur `16.3.0`, avec audit de production sans vulnerabilite detectee au `2026-08-12`
 - modules serveurs branches sur des etats Supabase reels ou des etats vides honnetes, sans injection de donnees de demonstration au runtime
 

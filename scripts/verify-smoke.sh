@@ -19,6 +19,7 @@ route_specs=(
   "/admin/archives|200,302,303,307,308|text/html|"
   "/admin/alerts|200,302,303,307,308|text/html|"
   "/admin/commands|200,302,303,307,308|text/html|"
+  "/admin/readiness|200,302,303,307,308|text/html|"
   "/organizations|200,302,303,307,308|text/html|"
   "/projects|200,302,303,307,308|text/html|"
   "/documents|200,302,303,307,308|text/html|"

@@ -26,12 +26,14 @@
 - destinations d'alerte limitees a HTTPS et a une liste blanche d'hotes, avec refus des adresses locales/privees
 - purge quotidienne `service_role` des commandes a 90 jours et alertes a 365 jours
 - contrats de role et de purge verifies dans PostgreSQL local par transaction avec rollback
+- tableau `/admin/readiness` autorise avant lecture des variables et limite a des indicateurs sans valeur sensible
 - modules qui manipulent `SUPABASE_SERVICE_ROLE_KEY` marques `server-only`
 
 ## Points de vigilance
 
 - le `SUPABASE_SERVICE_ROLE_KEY` ne doit jamais etre expose au navigateur
 - toute nouvelle lecture `service_role` doit etre precedee d'une autorisation utilisateur explicite et testee
+- aucun tableau de configuration ne doit restituer une cle, un token, un numero, une URL complete ou une liste blanche
 - les webhooks `n8n` doivent etre proteges par `ADMINBTP_N8N_WEBHOOK_TOKEN`
 - le webhook WhatsApp ne doit jamais etre active sans secret Meta, liste blanche et migration appliquee
 - aucune commande WhatsApp ne doit atteindre directement un shell, Codex ou une mutation metier
@@ -50,8 +52,8 @@
 - date : `2026-08-12`
 - `next` et `eslint-config-next` : `16.3.0`
 - `npm audit --omit=dev` : `0` vulnerabilite detectee
-- `npm run verify` : lint, types, garde-fous, `290` tests et build passes
-- build Next.js : `30` pages generees, dont `/admin/alerts` et `/api/cron/operations-alerts`
+- `npm run verify` : lint, types, garde-fous, `296` tests et build passes
+- build Next.js : `31` routes generees, dont `/admin/readiness` et `/api/cron/operations-alerts`
 - `scripts/verify-smoke.sh http://127.0.0.1:3100` : parcours publics et admin passes
 
 Ce resultat decrit l'etat local des dependances verrouillees. Il ne remplace ni
