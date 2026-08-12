@@ -46,5 +46,8 @@ describe("page admin", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("File active AdminBTP")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "90 jours" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Surveiller les archives/i }),
+    ).toHaveAttribute("href", "/admin/archives");
   });
 });

@@ -45,6 +45,9 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 21](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_21.md)
 - [Validation d'execution de la phase 22](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_22.md)
 - [Validation d'execution de la phase 23](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_23.md)
+- [Validation d'execution de la phase 24](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_24.md)
+- [Validation d'execution de la phase 25](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_25.md)
+- [Validation d'execution de la phase 26](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_26.md)
 
 ## Finalite
 
@@ -120,6 +123,9 @@ Le depot est maintenant aligne sur un fonctionnement production :
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`
 - endpoint `/api/health`, verification locale ciblee `npm run verify:guards` et verification distante `npm run verify:prod`
+- archivage longue duree journalise dans `archive_runs`, relu et verifie par checksum apres stockage
+- supervision `/admin/archives` reservee aux administrateurs plateforme, avec detection des echecs et executions bloquees
+- socle Next.js aligne sur `16.3.0`, avec audit de production sans vulnerabilite detectee au `2026-08-12`
 - modules serveurs branches sur des etats Supabase reels ou des etats vides honnetes, sans injection de donnees de demonstration au runtime
 
 ## Structure projet

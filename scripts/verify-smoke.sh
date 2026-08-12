@@ -15,6 +15,8 @@ trap cleanup EXIT
 route_specs=(
   "/|200|text/html|AdminBTP"
   "/login|200|text/html|Acces AdminBTP"
+  "/admin|200,302,303,307,308|text/html|"
+  "/admin/archives|200,302,303,307,308|text/html|"
   "/organizations|200,302,303,307,308|text/html|"
   "/projects|200,302,303,307,308|text/html|"
   "/documents|200,302,303,307,308|text/html|"

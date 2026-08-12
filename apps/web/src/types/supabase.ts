@@ -116,6 +116,66 @@ export type Database = {
           },
         ]
       }
+      archive_runs: {
+        Row: {
+          archive_version: number
+          byte_length: number | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          file_name: string
+          generated_at: string
+          id: string
+          retention_years: number
+          sha256: string | null
+          started_at: string
+          status: string
+          storage_mode: string
+          storage_path: string
+          summary: Json
+          verification_status: string
+          verified_at: string | null
+        }
+        Insert: {
+          archive_version?: number
+          byte_length?: number | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          generated_at: string
+          id?: string
+          retention_years?: number
+          sha256?: string | null
+          started_at?: string
+          status?: string
+          storage_mode: string
+          storage_path: string
+          summary?: Json
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          archive_version?: number
+          byte_length?: number | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          generated_at?: string
+          id?: string
+          retention_years?: number
+          sha256?: string | null
+          started_at?: string
+          status?: string
+          storage_mode?: string
+          storage_path?: string
+          summary?: Json
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action_type: Database["public"]["Enums"]["audit_action_type"]
@@ -1634,6 +1694,10 @@ export type Database = {
         Args: { target_phase_id: string }
         Returns: boolean
       }
+      can_manage_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
       create_organization_with_owner: {
         Args: {
           target_legal_name?: string | null
@@ -1649,20 +1713,12 @@ export type Database = {
           target_ends_on?: string | null
           target_name: string
           target_owner_organization_id: string
-          target_role?:
-            | Database["public"]["Enums"]["project_role"]
-            | null
+          target_role?: Database["public"]["Enums"]["project_role"]
           target_slug: string
           target_starts_on?: string | null
-          target_status?:
-            | Database["public"]["Enums"]["project_status"]
-            | null
+          target_status?: Database["public"]["Enums"]["project_status"]
         }
         Returns: string
-      }
-      can_manage_project: {
-        Args: { target_project_id: string }
-        Returns: boolean
       }
       is_org_manager: { Args: { target_org_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }

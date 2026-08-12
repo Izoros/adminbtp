@@ -1,45 +1,32 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { gzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
 
 import SftpClient from "ssh2-sftp-client";
-import { createClient } from "@supabase/supabase-js";
 
-import type { SupabaseDatabase } from "@/types/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { Json, SupabaseDatabase } from "@/types/supabase";
 import type {
   MarketArchiveDigest,
   MarketArchivePayload,
   MarketArchiveResult,
   MarketArchiveStorageTarget,
+  MarketArchiveVerification,
 } from "@/modules/archival/types/archival";
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
+type SupabaseAdminClient = NonNullable<ReturnType<typeof createSupabaseAdminClient>>;
 type OrganizationArchiveRow = SupabaseDatabase["public"]["Tables"]["organizations"]["Row"];
+type ArchiveRunInsert = SupabaseDatabase["public"]["Tables"]["archive_runs"]["Insert"];
 
 const DEFAULT_RETENTION_YEARS = 25;
 const DEFAULT_REMOTE_BASE_PATH = "/adminbtp/archives";
-const DEFAULT_LOCAL_ARCHIVE_DIR = ".archives/market-archive";
+const DEFAULT_LOCAL_ARCHIVE_BASE_PATH = "/market-archive";
+const MARKET_ARCHIVE_VERSION = 1;
 
 function readRequiredEnv(name: string) {
   const value = process.env[name]?.trim();
   return value && value.length > 0 ? value : null;
-}
-
-function createSupabaseAdminClient() {
-  const supabaseUrl = readRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const serviceRoleKey = readRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null;
-  }
-
-  return createClient<SupabaseDatabase>(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
 }
 
 export function resolveMarketArchiveStorageTarget(): MarketArchiveStorageTarget {
@@ -117,6 +104,79 @@ export function compressMarketArchivePayload(payloadBuffer: Buffer) {
   });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function restoreMarketArchivePayload(archiveBuffer: Buffer): MarketArchivePayload {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(gunzipSync(archiveBuffer).toString("utf8"));
+  } catch {
+    throw new Error("Archive illisible: le contenu gzip ou JSON est invalide.");
+  }
+
+  if (!isRecord(parsed) || !isRecord(parsed.metadata)) {
+    throw new Error("Archive invalide: les metadonnees sont absentes.");
+  }
+
+  if (
+    typeof parsed.metadata.archiveVersion !== "number" ||
+    typeof parsed.metadata.generatedAt !== "string" ||
+    typeof parsed.metadata.retentionYears !== "number"
+  ) {
+    throw new Error("Archive invalide: les metadonnees obligatoires sont incorrectes.");
+  }
+
+  const collectionNames = [
+    "organizations",
+    "projects",
+    "documentTemplates",
+    "documents",
+    "signatures",
+    "situations",
+    "followups",
+    "consultingMissions",
+    "consultingHours",
+    "expertRequests",
+    "technicalReviews",
+  ] as const;
+
+  if (collectionNames.some((collectionName) => !Array.isArray(parsed[collectionName]))) {
+    throw new Error("Archive invalide: une collection metier obligatoire est absente.");
+  }
+
+  return parsed as MarketArchivePayload;
+}
+
+export function verifyMarketArchiveArtifact(
+  archiveBuffer: Buffer,
+  expectedDigest: MarketArchiveDigest,
+  expectedGeneratedAt: string,
+): MarketArchiveVerification {
+  const actualDigest = buildMarketArchiveDigest(archiveBuffer);
+
+  if (
+    actualDigest.sha256 !== expectedDigest.sha256 ||
+    actualDigest.byteLength !== expectedDigest.byteLength
+  ) {
+    throw new Error("Verification archive impossible: le checksum ou la taille differe.");
+  }
+
+  const restoredPayload = restoreMarketArchivePayload(archiveBuffer);
+
+  if (restoredPayload.metadata.generatedAt !== expectedGeneratedAt) {
+    throw new Error("Verification archive impossible: la date de generation differe.");
+  }
+
+  return {
+    status: "verified",
+    verifiedAt: new Date().toISOString(),
+    ...actualDigest,
+  };
+}
+
 async function uploadArchiveToLocalTarget(
   target: Extract<MarketArchiveStorageTarget, { mode: "local" }>,
   remotePath: string,
@@ -125,7 +185,10 @@ async function uploadArchiveToLocalTarget(
   const localPath = join(target.localDirectory, remotePath.replace(/^\/+/, ""));
   await mkdir(join(localPath, ".."), { recursive: true });
   await writeFile(localPath, archiveBuffer);
-  return localPath;
+  return {
+    localPath,
+    storedBuffer: await readFile(localPath),
+  };
 }
 
 async function uploadArchiveToSftpTarget(
@@ -151,13 +214,84 @@ async function uploadArchiveToSftpTarget(
     }
 
     await sftp.put(archiveBuffer, remotePath);
+    const storedArchive = await sftp.get(remotePath);
+
+    if (!Buffer.isBuffer(storedArchive)) {
+      throw new Error("Verification SFTP impossible: la relecture n'a pas retourne de buffer.");
+    }
+
+    return storedArchive;
   } finally {
     await sftp.end().catch(() => undefined);
   }
 }
 
+async function createArchiveRun(
+  supabase: SupabaseAdminClient,
+  input: ArchiveRunInsert,
+) {
+  const { data, error } = await supabase
+    .from("archive_runs")
+    .insert(input)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Journal d'archive impossible: ${error?.message ?? "identifiant absent"}`);
+  }
+
+  return data.id;
+}
+
+async function markArchiveRunSucceeded(
+  supabase: SupabaseAdminClient,
+  runId: string,
+  result: MarketArchiveResult,
+) {
+  const { error } = await supabase
+    .from("archive_runs")
+    .update({
+      status: "succeeded",
+      verification_status: "verified",
+      completed_at: result.verifiedAt,
+      verified_at: result.verifiedAt,
+      sha256: result.sha256,
+      byte_length: result.byteLength,
+      summary: result.summary as Json,
+      error_message: null,
+    })
+    .eq("id", runId);
+
+  if (error) {
+    throw new Error(`Finalisation du journal d'archive impossible: ${error.message}`);
+  }
+}
+
+async function markArchiveRunFailed(
+  supabase: SupabaseAdminClient,
+  runId: string,
+  errorMessage: string,
+  digest?: MarketArchiveDigest,
+) {
+  const { error } = await supabase
+    .from("archive_runs")
+    .update({
+      status: "failed",
+      verification_status: "failed",
+      completed_at: new Date().toISOString(),
+      sha256: digest?.sha256,
+      byte_length: digest?.byteLength,
+      error_message: errorMessage.slice(0, 2_000),
+    })
+    .eq("id", runId);
+
+  if (error) {
+    throw new Error(`Echec de journalisation de l'archive en erreur: ${error.message}`);
+  }
+}
+
 async function fetchArchiveRows(
-  supabase: NonNullable<SupabaseAdminClient>,
+  supabase: SupabaseAdminClient,
   tableName: keyof SupabaseDatabase["public"]["Tables"],
   columns = "*",
 ) {
@@ -170,8 +304,11 @@ async function fetchArchiveRows(
   return ((data ?? []) as unknown) as Record<string, unknown>[];
 }
 
-export async function buildMarketArchivePayload(): Promise<MarketArchivePayload> {
-  const supabase = createSupabaseAdminClient();
+export async function buildMarketArchivePayload(
+  adminClient?: SupabaseAdminClient,
+  generatedAt = new Date().toISOString(),
+): Promise<MarketArchivePayload> {
+  const supabase = adminClient ?? createSupabaseAdminClient();
 
   if (!supabase) {
     throw new Error(
@@ -209,8 +346,8 @@ export async function buildMarketArchivePayload(): Promise<MarketArchivePayload>
 
   return {
     metadata: {
-      archiveVersion: 1,
-      generatedAt: new Date().toISOString(),
+      archiveVersion: MARKET_ARCHIVE_VERSION,
+      generatedAt,
       retentionYears: resolveMarketArchiveRetentionYears(),
       environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development",
       organizationCount: mappedOrganizations.length,
@@ -254,6 +391,7 @@ export async function runMarketArchiveBackup(): Promise<MarketArchiveResult> {
       fileName,
       sha256: "",
       byteLength: 0,
+      verificationStatus: "not_applicable",
       summary: {
         organizations: 0,
         projects: 0,
@@ -269,43 +407,96 @@ export async function runMarketArchiveBackup(): Promise<MarketArchiveResult> {
     };
   }
 
-  const payload = await buildMarketArchivePayload();
-  const archiveBuffer = compressMarketArchivePayload(
-    serializeMarketArchivePayload(payload),
-  );
-  const digest = buildMarketArchiveDigest(archiveBuffer);
+  const supabase = createSupabaseAdminClient();
+
+  if (!supabase) {
+    throw new Error(
+      "Supabase admin indisponible. NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont requis.",
+    );
+  }
+
   const remotePath = buildMarketArchiveRemotePath(
     generatedAt,
     fileName,
-    target.mode === "local" ? DEFAULT_LOCAL_ARCHIVE_DIR : target.remoteBasePath,
+    target.mode === "local" ? DEFAULT_LOCAL_ARCHIVE_BASE_PATH : target.remoteBasePath,
   );
+  const runId = await createArchiveRun(supabase, {
+    status: "running",
+    storage_mode: target.mode,
+    verification_status: "pending",
+    generated_at: generatedAt,
+    file_name: fileName,
+    storage_path: remotePath,
+    archive_version: MARKET_ARCHIVE_VERSION,
+    retention_years: resolveMarketArchiveRetentionYears(),
+  });
+  let digest: MarketArchiveDigest | undefined;
 
-  let localPath: string | undefined;
+  try {
+    const payload = await buildMarketArchivePayload(supabase, generatedAt);
+    const archiveBuffer = compressMarketArchivePayload(
+      serializeMarketArchivePayload(payload),
+    );
+    digest = buildMarketArchiveDigest(archiveBuffer);
 
-  if (target.mode === "local") {
-    localPath = await uploadArchiveToLocalTarget(target, remotePath, archiveBuffer);
-  } else {
-    await uploadArchiveToSftpTarget(target, remotePath, archiveBuffer);
+    let localPath: string | undefined;
+    let storedBuffer: Buffer;
+
+    if (target.mode === "local") {
+      const localArtifact = await uploadArchiveToLocalTarget(
+        target,
+        remotePath,
+        archiveBuffer,
+      );
+      localPath = localArtifact.localPath;
+      storedBuffer = localArtifact.storedBuffer;
+    } else {
+      storedBuffer = await uploadArchiveToSftpTarget(target, remotePath, archiveBuffer);
+    }
+
+    const verification = verifyMarketArchiveArtifact(
+      storedBuffer,
+      digest,
+      generatedAt,
+    );
+    const result: MarketArchiveResult = {
+      ok: true,
+      mode: target.mode,
+      runId,
+      generatedAt,
+      fileName,
+      remotePath: target.mode === "sftp" ? remotePath : undefined,
+      localPath,
+      sha256: digest.sha256,
+      byteLength: digest.byteLength,
+      verificationStatus: verification.status,
+      verifiedAt: verification.verifiedAt,
+      summary: {
+        organizations: payload.metadata.organizationCount,
+        projects: payload.metadata.projectCount,
+        documents: payload.metadata.documentCount,
+        signatures: payload.metadata.signatureCount,
+        situations: payload.metadata.situationCount,
+        followups: payload.metadata.followupCount,
+        consultingMissions: payload.metadata.consultingMissionCount,
+        technicalReviews: payload.metadata.technicalReviewCount,
+      },
+    };
+
+    await markArchiveRunSucceeded(supabase, runId, result);
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "market_archive_failed";
+
+    try {
+      await markArchiveRunFailed(supabase, runId, errorMessage, digest);
+    } catch (journalError) {
+      throw new AggregateError(
+        [error, journalError],
+        "L'archivage et sa journalisation ont echoue.",
+      );
+    }
+
+    throw error;
   }
-
-  return {
-    ok: true,
-    mode: target.mode,
-    generatedAt,
-    fileName,
-    remotePath: target.mode === "sftp" ? remotePath : undefined,
-    localPath,
-    sha256: digest.sha256,
-    byteLength: digest.byteLength,
-    summary: {
-      organizations: payload.metadata.organizationCount,
-      projects: payload.metadata.projectCount,
-      documents: payload.metadata.documentCount,
-      signatures: payload.metadata.signatureCount,
-      situations: payload.metadata.situationCount,
-      followups: payload.metadata.followupCount,
-      consultingMissions: payload.metadata.consultingMissionCount,
-      technicalReviews: payload.metadata.technicalReviewCount,
-    },
-  };
 }

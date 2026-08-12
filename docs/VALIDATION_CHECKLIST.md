@@ -210,6 +210,96 @@ Chaque phase ne peut etre consideree comme livree que si :
 - la commande `npm run verify:guards` est disponible et documentee
 - `npm run verify` execute cette verification ciblee avant la batterie complete
 
+## PHASE 18 - Cockpit admin alimente par les donnees metier
+
+- agregateur serveur du cockpit disponible
+- indicateurs reels construits depuis les tables accessibles
+- source et etat vide affiches explicitement
+- kanban d'exploitation alimente par les flux metier
+- tests de construction de l'agregation presents
+
+## PHASE 19 - Cockpit admin pilotable par periode
+
+- periodes `7d`, `30d` et `90d` normalisees
+- parametre de periode lu cote serveur
+- syntheses et graphes recalcules selon la periode
+- valeur sure utilisee pour une periode invalide
+- tests de regression de la page admin presents
+
+## PHASE 20 - Cockpit admin multi-rails
+
+- priorites direction calculees
+- sante du socle affichee
+- actions rapides vers les modules critiques disponibles
+- contrat de donnees du cockpit type
+- tests des nouveaux rails presents
+
+## PHASE 21 - Focus portefeuille admin
+
+- organisations sous charge calculees
+- projets exposes calcules
+- liens vers les modules concernes disponibles
+- signaux derives des flux metier reels
+- tests d'agregation portefeuille presents
+
+## PHASE 22 - Archivage 25 ans et sauvegarde LWS
+
+- service `market-archive` disponible
+- route cron protegee par `CRON_SECRET`
+- export `json.gz` disponible
+- mode local testable sans transport distant
+- transport SFTP configure par variables d'environnement
+- runbook d'archivage et limites documentes
+- tests du service et de la route cron presents
+
+## PHASE 23 - Guide de demarrage des utilisateurs connectes
+
+- guide visible pour un utilisateur connecte sans fermeture enregistree
+- parcours vers organisations, chantiers et documents disponible
+- fermeture accessible par bouton et par action principale
+- etat de fermeture isole par identifiant utilisateur
+- fermeture persistante dans le navigateur
+- tests d'affichage et de fermeture presents
+
+## PHASE 24 - Journal et verification des archives
+
+- migration `archive_runs` versionnee
+- table inaccessible aux roles `anon` et `authenticated`
+- execution active journalisee avec le statut `running`
+- succes journalise avec checksum, taille, chemin, synthese et date de verification
+- echec journalise avec un message borne
+- archive locale relue apres ecriture
+- archive SFTP relue apres transfert
+- checksum SHA-256 et taille controles sur l'artefact relu
+- payload gzip/JSON restaure et structure minimale controlee
+- tests de succes, corruption et echec metier presents
+
+## PHASE 25 - Supervision admin des archives
+
+- `/admin` et ses sous-routes proteges par le proxy d'authentification
+- module privilegie marque `server-only`
+- session Supabase verifiee avant toute autorisation
+- RPC `is_platform_admin` verifiee avant la creation du client `service_role`
+- aucune lecture privilegiee pour un utilisateur non administrateur
+- historique limite aux 50 executions les plus recentes
+- echecs recents signales comme critiques
+- execution `running` depuis plus de 15 minutes signalee comme bloquee
+- derniere archive reussie de plus de 26 heures signalee en retard
+- etat vide et indisponibilite rendus explicitement
+- tests d'acces, calcul de sante, rendu et navigation presents
+
+## PHASE 26 - Maintenance securite Next.js
+
+- `next` et `eslint-config-next` alignes sur `16.3.0`
+- dependances transitives actualisees sans `--force`
+- `npm audit --omit=dev` sans vulnerabilite detectee
+- lint et typecheck passes
+- garde-fous serveur passes
+- suite complete de `249` tests passee
+- build de production local passe avec `26` pages
+- smoke test local passe sur les routes publiques et admin
+- absence de deploiement ou de modification des secrets explicitement documentee
+
 ## Checklist de merge
 
 Avant merge dans `develop` :

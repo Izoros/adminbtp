@@ -8,6 +8,8 @@ import {
 
 describe("navigation auth", () => {
   it("identifie les routes protegees de l'application", () => {
+    expect(isProtectedPath("/admin")).toBe(true);
+    expect(isProtectedPath("/admin/archives")).toBe(true);
     expect(isProtectedPath("/organizations")).toBe(true);
     expect(isProtectedPath("/projects/alpha")).toBe(true);
     expect(isProtectedPath("/login")).toBe(false);

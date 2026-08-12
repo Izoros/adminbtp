@@ -16,16 +16,32 @@
 - verification distante automatisee via `npm run verify:prod`
 - audit des suggestions IA dans le module `ai`
 - filtrage de l'espace client par organisation
+- routes `/admin` protegees par session Supabase
+- journal `/admin/archives` autorise par `is_platform_admin` avant toute creation du client `service_role`
+- modules qui manipulent `SUPABASE_SERVICE_ROLE_KEY` marques `server-only`
 
 ## Points de vigilance
 
 - le `SUPABASE_SERVICE_ROLE_KEY` ne doit jamais etre expose au navigateur
+- toute nouvelle lecture `service_role` doit etre precedee d'une autorisation utilisateur explicite et testee
 - les webhooks `n8n` doivent etre proteges par `ADMINBTP_N8N_WEBHOOK_TOKEN`
 - les futures integrations Gmail, Outlook et Odoo devront etre journalisees
 - les uploads documentaires devront etre controles par type et taille
 - un `200` HTTP seul ne suffit pas: les controles smoke doivent aussi rejeter les pages d erreur Next.js ou Vercel servies avec un statut trompeur
 - toute route critique exposee doit continuer a servir un `content-type` coherent apres redirection d authentification
-- `npm audit --omit=dev` remonte encore `2` vulnerabilites moderees transitives sur `next -> postcss`, sans correctif non cassant applique
+- maintenir `next` et `eslint-config-next` sur la meme version supportee
+- relancer `npm run audit:prod` apres chaque changement de dependances et avant chaque release
+
+## Dernier audit local
+
+- date : `2026-08-12`
+- `next` et `eslint-config-next` : `16.3.0`
+- `npm audit --omit=dev` : `0` vulnerabilite detectee
+- `npm run verify` : lint, types, garde-fous, `249` tests et build passes
+- `scripts/verify-smoke.sh http://127.0.0.1:3100` : parcours publics et admin passes
+
+Ce resultat decrit l'etat local des dependances verrouillees. Il ne remplace ni
+la verification de l'environnement Vercel ni un audit de securite independant.
 
 ## Procedure minimale en cas d'incident
 

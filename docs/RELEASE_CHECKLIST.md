@@ -21,6 +21,8 @@
 ## Parcours critiques a verifier
 
 - connexion `/login`
+- cockpit `/admin`
+- supervision des archives `/admin/archives`
 - isolation multi-tenant `/organizations`
 - vue chantier `/projects`
 - documents `/documents`

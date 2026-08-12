@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bot, BriefcaseBusiness, Wallet } from "lucide-react";
+import { ArchiveRestore, ArrowRight, Bot, BriefcaseBusiness, Wallet } from "lucide-react";
 
 import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
 import { loadAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
@@ -53,6 +53,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   className="inline-flex h-11 items-center justify-center rounded-full border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
                 >
                   Ouvrir la tresorerie
+                </Link>
+                <Link
+                  href="/admin/archives"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+                >
+                  <ArchiveRestore className="size-4" />
+                  Surveiller les archives
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">

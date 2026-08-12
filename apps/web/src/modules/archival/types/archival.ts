@@ -36,6 +36,17 @@ export type MarketArchiveDigest = {
   byteLength: number;
 };
 
+export type MarketArchiveVerificationStatus =
+  | "not_applicable"
+  | "pending"
+  | "verified"
+  | "failed";
+
+export type MarketArchiveVerification = MarketArchiveDigest & {
+  status: Extract<MarketArchiveVerificationStatus, "verified">;
+  verifiedAt: string;
+};
+
 export type MarketArchiveStorageTarget =
   | {
       mode: "disabled";
@@ -57,12 +68,15 @@ export type MarketArchiveStorageTarget =
 export type MarketArchiveResult = {
   ok: boolean;
   mode: MarketArchiveStorageTarget["mode"];
+  runId?: string;
   generatedAt: string;
   fileName: string;
   remotePath?: string;
   localPath?: string;
   sha256: string;
   byteLength: number;
+  verificationStatus: MarketArchiveVerificationStatus;
+  verifiedAt?: string;
   summary: {
     organizations: number;
     projects: number;

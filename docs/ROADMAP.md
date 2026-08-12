@@ -142,6 +142,14 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 15 : livree
 - phase 16 : livree
 - phase 17 : livree
+- phase 18 : livree
+- phase 19 : livree
+- phase 20 : livree
+- phase 21 : livree
+- phase 22 : livree
+- phase 23 : livree
+- phase 24 : livree
+- phase 25 : livree
 
 ### PHASE 0 - Socle projet
 
@@ -420,6 +428,133 @@ Validation :
 - le noyau permissions partage reste documente a jour
 - `npm run verify:guards` passe avant la suite de validation globale
 
+### PHASE 18 - Cockpit admin alimente par les donnees metier
+
+Contenu :
+
+- agregation serveur des donnees metier accessibles
+- indicateurs, graphes et kanban construits depuis Supabase
+- etat vide explicite quand le perimetre ne contient aucune donnee
+
+Validation :
+
+- `/admin` distingue clairement une source Supabase d'un etat de demonstration
+- les agregations du cockpit sont couvertes par des tests
+
+### PHASE 19 - Cockpit admin pilotable par periode
+
+Contenu :
+
+- periodes `7d`, `30d` et `90d` pilotees par URL
+- cartes de synthese et graphes recalcules selon la fenetre active
+
+Validation :
+
+- les periodes invalides retombent sur une valeur sure
+- `/admin?range=7d`, `/admin?range=30d` et `/admin?range=90d` restent fonctionnelles
+
+### PHASE 20 - Cockpit admin multi-rails
+
+Contenu :
+
+- priorites direction
+- radar de sante plateforme
+- actions rapides vers les modules critiques
+
+Validation :
+
+- les rails sont derives des donnees metier accessibles
+- les liens rapides conduisent aux modules concernes
+
+### PHASE 21 - Focus portefeuille admin
+
+Contenu :
+
+- organisations sous charge
+- projets les plus exposes
+- signaux portefeuille calcules depuis les flux metier
+
+Validation :
+
+- le cockpit permet d'identifier ou concentrer l'action
+- les agregations portefeuille sont couvertes par des tests
+
+### PHASE 22 - Archivage 25 ans et sauvegarde LWS
+
+Contenu :
+
+- archive logique quotidienne `json.gz`
+- route cron protegee par `CRON_SECRET`
+- transports local et SFTP vers la cible LWS
+- runbook d'archivage longue duree
+
+Validation :
+
+- une archive peut etre generee sans toucher au serveur distant en mode local
+- la route cron refuse les appels non autorises
+
+### PHASE 23 - Guide de demarrage des utilisateurs connectes
+
+Contenu :
+
+- guide d'accueil affiche aux utilisateurs connectes
+- parcours court vers organisations, chantiers et documents
+- fermeture memorisee par utilisateur dans le navigateur
+
+Validation :
+
+- un nouvel utilisateur voit le guide
+- la fermeture masque le guide lors des visites suivantes sur le meme navigateur
+
+### PHASE 24 - Journal et verification des archives
+
+Contenu :
+
+- table serveur `archive_runs`
+- etats `running`, `succeeded` et `failed`
+- checksum SHA-256, taille, chemin de stockage et synthese metier
+- relecture locale ou SFTP apres ecriture
+- restauration logique du payload gzip/JSON pour verifier sa lisibilite
+
+Validation :
+
+- une execution active est journalisee avant l'extraction
+- une archive n'est declaree reussie qu'apres relecture, checksum et validation du format
+- un echec metier ou de verification est journalise sans exposer les secrets
+
+### PHASE 25 - Supervision admin des archives
+
+Contenu :
+
+- protection d'authentification des routes `/admin`
+- lecteur `service_role` marque `server-only`
+- autorisation explicite par `is_platform_admin`
+- tableau de supervision `/admin/archives`
+- detection des echecs, archives quotidiennes en retard et executions bloquees
+
+Validation :
+
+- un utilisateur non authentifie est redirige vers le login
+- un utilisateur non administrateur ne declenche aucune lecture privilegiee
+- les chemins, checksums et erreurs ne sont rendus qu'apres autorisation plateforme
+- une execution `running` depuis plus de 15 minutes est signalee comme bloquee
+
+### PHASE 26 - Maintenance securite Next.js
+
+Contenu :
+
+- mise a niveau coordonnee de `next` et `eslint-config-next` vers `16.3.0`
+- actualisation non forcee des dependances transitives vulnerables
+- verification complete de l'application apres mise a niveau
+- smoke test des routes publiques et admin sur le build de production local
+
+Validation :
+
+- `npm audit --omit=dev` ne detecte aucune vulnerabilite
+- les `249` tests passent
+- le build Next.js 16.3.0 compile les `26` pages attendues
+- `/admin` et `/admin/archives` passent le smoke test
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -451,3 +586,12 @@ Ordre cible :
 16. Phase 15
 17. Phase 16
 18. Phase 17
+19. Phase 18
+20. Phase 19
+21. Phase 20
+22. Phase 21
+23. Phase 22
+24. Phase 23
+25. Phase 24
+26. Phase 25
+27. Phase 26

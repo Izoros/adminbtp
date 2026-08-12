@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { runMarketArchiveBackup } from "@/modules/archival/services/market-archive";
 
+export const runtime = "nodejs";
 export const maxDuration = 300;
 
 function isCronAuthorized(request: NextRequest) {

@@ -14,6 +14,8 @@
 10. `20260521190839_ai_governance.sql`
 11. `20260521190841_client_space.sql`
 12. `20260521190842_security_hardening.sql`
+13. `20260522101500_organizations_projects_write.sql`
+14. `20260811194500_archive_runs.sql`
 
 ## Intention de chaque migration
 
@@ -29,6 +31,8 @@
 - `ai_governance` : suggestions IA et audit
 - `client_space` : acces client et commentaires
 - `security_hardening` : contraintes et RLS complementaires
+- `organizations_projects_write` : fonctions SQL atomiques pour les creations d'organisation et de chantier
+- `archive_runs` : journal serveur, checksums et verification des archives longue duree
 
 ## Regle de travail
 

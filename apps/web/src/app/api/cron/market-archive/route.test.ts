@@ -29,6 +29,8 @@ describe("market-archive-route", () => {
       localPath: ".archives/market-archive/2026/05/25/archive.json.gz",
       sha256: "abc123",
       byteLength: 512,
+      verificationStatus: "verified",
+      verifiedAt: "2026-05-25T12:00:01.000Z",
       summary: {
         organizations: 1,
         projects: 2,

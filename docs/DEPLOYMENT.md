@@ -86,7 +86,7 @@ npx vercel deploy --prod --yes --scope izoros-projects --project adminbtp
 - verifier les logs d'execution Vercel
 - verifier que `/` et `/api/health` repondent en `200`
 - verifier que le deploiement pointe bien vers le projet `adminbtp`
-- verifier que le smoke couvre au minimum `/`, `/login`, `/organizations`, `/projects`, `/documents`, `/signatures`, `/n8n`, `/consulting`, `/ai`, `/client-space` et `/followups`
+- verifier que le smoke couvre au minimum `/`, `/login`, `/admin`, `/admin/archives`, `/organizations`, `/projects`, `/documents`, `/signatures`, `/n8n`, `/consulting`, `/ai`, `/client-space` et `/followups`
 - verifier que `npm run verify:prod` controle aussi les en-tetes `CSP`, `HSTS`, `nosniff`, `DENY` et `permissions-policy`
 - verifier qu aucune route smoke ne remonte une page d erreur Next.js ou Vercel apres redirection
 

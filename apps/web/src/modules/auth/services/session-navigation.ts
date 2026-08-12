@@ -1,6 +1,7 @@
 const DEFAULT_AUTH_REDIRECT = "/organizations";
 
 const PROTECTED_PATH_PREFIXES = [
+  "/admin",
   "/organizations",
   "/projects",
   "/client-space",
