@@ -17,36 +17,6 @@ export default async function PhasesPage() {
     organizationAccessData.memberships.map((membership) => membership.organizationId),
   );
 
-  async function toggleChecklistPageAction(formData: FormData) {
-    "use server";
-
-    await togglePhaseChecklistItemAction({
-      status: "idle",
-      mode: "supabase",
-      message: "",
-    }, formData);
-  }
-
-  async function updatePhaseStatusPageAction(formData: FormData) {
-    "use server";
-
-    await updateProjectPhaseStatusAction({
-      status: "idle",
-      mode: "supabase",
-      message: "",
-    }, formData);
-  }
-
-  async function resolveAlertPageAction(formData: FormData) {
-    "use server";
-
-    await resolvePhaseAlertAction({
-      status: "idle",
-      mode: "supabase",
-      message: "",
-    }, formData);
-  }
-
   return (
     <ModulePageFrame>
       <ProjectPhaseBoard
@@ -56,9 +26,9 @@ export default async function PhasesPage() {
         alerts={phaseDashboardData.alerts}
         source={phaseDashboardData.source}
         sourceDetail={phaseDashboardData.sourceDetail}
-        toggleChecklistAction={toggleChecklistPageAction}
-        updatePhaseStatusAction={updatePhaseStatusPageAction}
-        resolveAlertAction={resolveAlertPageAction}
+        toggleChecklistAction={togglePhaseChecklistItemAction}
+        updatePhaseStatusAction={updateProjectPhaseStatusAction}
+        resolveAlertAction={resolvePhaseAlertAction}
       />
     </ModulePageFrame>
   );

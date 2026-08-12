@@ -18,6 +18,22 @@ export type ProjectDraftInput = {
   endsOn?: string;
 };
 
+export const projectErrorMessages = {
+  supabase_unavailable:
+    "Supabase est indisponible. La creation de chantier est bloquee en mode production.",
+  session_unavailable:
+    "Session Supabase indisponible. Connectez-vous pour creer un chantier reel.",
+  invalid_form: "Le formulaire chantier est incomplet ou invalide.",
+  scope_unavailable:
+    "Le scope organisation de la session est introuvable. Reconnectez-vous avant de creer un chantier.",
+  organization_forbidden:
+    "Vous ne pouvez pas creer un chantier pour cette organisation.",
+  create_failed:
+    "La creation du chantier a echoue. Verifiez le code et le slug, puis reessayez.",
+} as const;
+
+export type ProjectErrorCode = keyof typeof projectErrorMessages;
+
 function normalizeText(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return "";
@@ -124,7 +140,7 @@ export function getProjectFeedbackFromSearchParams(
   searchParams: Record<string, string | string[] | undefined>,
 ): ProjectFormFeedback | null {
   const projectStatus = searchParams.projectStatus;
-  const projectError = searchParams.projectError;
+  const projectErrorCode = searchParams.projectErrorCode;
 
   if (typeof projectStatus === "string") {
     if (projectStatus === "created") {
@@ -142,10 +158,13 @@ export function getProjectFeedbackFromSearchParams(
     }
   }
 
-  if (typeof projectError === "string") {
+  if (
+    typeof projectErrorCode === "string" &&
+    projectErrorCode in projectErrorMessages
+  ) {
     return {
       tone: "error",
-      message: decodeURIComponent(projectError),
+      message: projectErrorMessages[projectErrorCode as ProjectErrorCode],
     };
   }
 

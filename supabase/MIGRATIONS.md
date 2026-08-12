@@ -20,6 +20,8 @@
 16. `20260812143000_operations_alerts.sql`
 17. `20260812160000_whatsapp_command_reviews.sql`
 18. `20260812173000_operations_retention.sql`
+19. `20260812190000_odoo_social_bindings.sql`
+20. `20260812200000_security_audit_hardening.sql`
 
 ## Intention de chaque migration
 
@@ -41,9 +43,15 @@
 - `operations_alerts` : outbox, reservation atomique et suivi des alertes d'exploitation
 - `whatsapp_command_reviews` : decisions humaines atomiques et journal immuable des commandes WhatsApp
 - `operations_retention` : purge quotidienne des commandes et alertes arrivees a echeance
+- `odoo_social_bindings` : vocabulaire de liaison Odoo pour les donnees sociales et RH
+- `security_audit_hardening` : verrouillage des roles internes, helpers RLS sans recursion et role lecteur strict
 
 ## Regle de travail
 
 Toute nouvelle evolution base de donnees doit passer par une nouvelle
 migration `supabase/migrations` et ne doit pas modifier retroactivement
 les migrations deja partagees sans validation explicite.
+
+Le dossier historique `database/` a ete retire en phase 36. Les migrations
+ci-dessus sont l'unique source de verite du schema. Les jeux de donnees
+facultatifs et non appliques automatiquement vivent sous `supabase/examples/`.

@@ -20,8 +20,8 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Guide Supabase distant](/Users/symba/Documents/9_AdminBTP/docs/SUPABASE_REMOTE.md)
 - [Plan de workstreams paralleles](/Users/symba/Documents/9_AdminBTP/docs/PARALLEL_WORKSTREAMS.md)
 - [CDC minimal V1](/Users/symba/Documents/9_AdminBTP/docs/CDC/AdminBTP_V1.md)
-- [Schema SQL du pole expertise](/Users/symba/Documents/9_AdminBTP/database/adminbtp_consulting_foundation.sql)
-- [Seed SQL des profils experts](/Users/symba/Documents/9_AdminBTP/database/adminbtp_consulting_seed.sql)
+- [Migrations Supabase canoniques](/Users/symba/Documents/9_AdminBTP/supabase/MIGRATIONS.md)
+- [Exemple de seed des profils experts](/Users/symba/Documents/9_AdminBTP/supabase/examples/consulting-seed.sql)
 - [Validation d'execution de la phase 0](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_0.md)
 - [Validation d'execution de la phase 1](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_1.md)
 - [Validation d'execution de la phase 2](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_2.md)
@@ -61,6 +61,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 33](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_33.md)
 - [Validation d'execution de la phase 34](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_34.md)
 - [Validation d'execution de la phase 35](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_35.md)
+- [Validation d'execution de la phase 36](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_36.md)
 
 ## Finalite
 
@@ -138,6 +139,9 @@ Le depot est maintenant aligne sur un fonctionnement production :
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`
+- role interne non modifiable par l'utilisateur, helpers RLS sans recursion verifies transactionnellement
+- navigation applicative unifiee sur les modules, menu complet et raccourcis disponibles sur mobile
+- redirections par origine, webhooks n8n fermes sans secret et CSP script par nonce
 - endpoint `/api/health`, verification locale ciblee `npm run verify:guards` et verification distante `npm run verify:prod`
 - archivage longue duree journalise dans `archive_runs`, relu et verifie par checksum apres stockage
 - supervision `/admin/archives` reservee aux administrateurs plateforme, avec detection des echecs et executions bloquees
@@ -154,9 +158,9 @@ Le depot est maintenant aligne sur un fonctionnement production :
 ```text
 apps/
   web/
-database/
 docs/
 packages/
+supabase/
 ```
 
 ## Orientation produit

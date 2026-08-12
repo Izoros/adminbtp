@@ -6,10 +6,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   parseOrganizationDraft,
+  type OrganizationErrorCode,
 } from "@/modules/organizations/services/organization-write";
 
 function buildRedirectUrl(searchKey: string, value: string) {
   return `/organizations?${searchKey}=${encodeURIComponent(value)}`;
+}
+
+function buildOrganizationErrorRedirect(code: OrganizationErrorCode) {
+  return buildRedirectUrl("organizationErrorCode", code);
 }
 
 export async function createOrganizationAction(formData: FormData) {
@@ -17,10 +22,7 @@ export async function createOrganizationAction(formData: FormData) {
 
   if (!supabase) {
     redirect(
-      buildRedirectUrl(
-        "organizationError",
-        "Supabase indisponible. La creation d'organisation est bloquee en mode production.",
-      ),
+      buildOrganizationErrorRedirect("supabase_unavailable"),
     );
   }
 
@@ -28,23 +30,15 @@ export async function createOrganizationAction(formData: FormData) {
 
   if (authError || !authData.user) {
     redirect(
-      buildRedirectUrl(
-        "organizationError",
-        "Session Supabase indisponible. Connectez-vous pour creer une organisation reelle.",
-      ),
+      buildOrganizationErrorRedirect("session_unavailable"),
     );
   }
 
   const payload = (() => {
     try {
       return parseOrganizationDraft(formData);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Impossible de lire le formulaire organisation.";
-
-      redirect(buildRedirectUrl("organizationError", message));
+    } catch {
+      redirect(buildOrganizationErrorRedirect("invalid_form"));
     }
   })();
 
@@ -55,12 +49,12 @@ export async function createOrganizationAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(
-      buildRedirectUrl(
-        "organizationError",
-        `Creation impossible: ${error.message}`,
-      ),
-    );
+    console.error("[AdminBTP][organizations] create_organization_failed", {
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    redirect(buildOrganizationErrorRedirect("create_failed"));
   }
 
   revalidatePath("/organizations");

@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import {
   getDefaultAuthRedirect,
+  getLoginErrorMessage,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
 
 type LoginPageProps = {
   searchParams?: Promise<{
     next?: string | string[];
-    error?: string | string[];
+    errorCode?: string | string[];
   }>;
 };
 
@@ -18,9 +19,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const nextValue = Array.isArray(resolvedSearchParams?.next)
     ? resolvedSearchParams.next[0]
     : resolvedSearchParams?.next;
-  const errorMessage = Array.isArray(resolvedSearchParams?.error)
-    ? resolvedSearchParams.error[0]
-    : resolvedSearchParams?.error;
+  const errorCode = Array.isArray(resolvedSearchParams?.errorCode)
+    ? resolvedSearchParams.errorCode[0]
+    : resolvedSearchParams?.errorCode;
   const nextPath = sanitizeRedirectPath(nextValue);
   const user = await getAuthenticatedUser();
 
@@ -30,7 +31,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const params = new URLSearchParams();
   if (nextPath !== getDefaultAuthRedirect()) params.set("next", nextPath);
-  if (errorMessage) params.set("error", errorMessage);
+  if (getLoginErrorMessage(errorCode) && errorCode) {
+    params.set("errorCode", errorCode);
+  }
 
   redirect(`/${params.size ? `?${params.toString()}` : ""}#connexion`);
 }

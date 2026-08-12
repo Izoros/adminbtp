@@ -48,7 +48,7 @@ export function LoginForm({
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage("Le lien de connexion n'a pas pu etre envoye. Reessayez plus tard.");
       setActiveAction(null);
       return;
     }

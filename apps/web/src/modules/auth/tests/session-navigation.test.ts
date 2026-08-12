@@ -1,6 +1,7 @@
 import {
   buildLoginRedirectPath,
   getDefaultAuthRedirect,
+  getLoginErrorMessage,
   isLoginPath,
   isProtectedPath,
   sanitizeRedirectPath,
@@ -12,6 +13,7 @@ describe("navigation auth", () => {
     expect(isProtectedPath("/admin/archives")).toBe(true);
     expect(isProtectedPath("/organizations")).toBe(true);
     expect(isProtectedPath("/projects/alpha")).toBe(true);
+    expect(isProtectedPath("/phases")).toBe(true);
     expect(isProtectedPath("/login")).toBe(false);
     expect(isProtectedPath("/api/health")).toBe(false);
   });
@@ -28,6 +30,12 @@ describe("navigation auth", () => {
       getDefaultAuthRedirect(),
     );
     expect(sanitizeRedirectPath("//evil.test")).toBe(getDefaultAuthRedirect());
+    expect(sanitizeRedirectPath("/\\evil.test")).toBe(
+      getDefaultAuthRedirect(),
+    );
+    expect(sanitizeRedirectPath("/\\\\evil.test/path")).toBe(
+      getDefaultAuthRedirect(),
+    );
     expect(sanitizeRedirectPath("/login")).toBe(getDefaultAuthRedirect());
     expect(sanitizeRedirectPath("/auth/callback")).toBe(
       getDefaultAuthRedirect(),
@@ -45,5 +53,12 @@ describe("navigation auth", () => {
       "/login?next=%2Fprojects",
     );
     expect(buildLoginRedirectPath("/login")).toBe("/login");
+  });
+
+  it("n'affiche que les erreurs de connexion repertoriees", () => {
+    expect(getLoginErrorMessage("invalid_credentials")).toBe(
+      "Identifiants invalides ou compte indisponible.",
+    );
+    expect(getLoginErrorMessage("Appelez un numero externe")).toBeNull();
   });
 });

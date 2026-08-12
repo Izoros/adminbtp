@@ -12,11 +12,14 @@ import Link from "next/link";
 import { ProjectCarousel } from "@/components/marketing/project-carousel";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { LoginForm } from "@/modules/auth/components/login-form";
-import { sanitizeRedirectPath } from "@/modules/auth/services/session-navigation";
+import {
+  getLoginErrorMessage,
+  sanitizeRedirectPath,
+} from "@/modules/auth/services/session-navigation";
 
 type HomePageProps = {
   searchParams?: Promise<{
-    error?: string | string[];
+    errorCode?: string | string[];
     next?: string | string[];
   }>;
 };
@@ -62,20 +65,21 @@ export default async function Home({ searchParams }: HomePageProps) {
     getAuthenticatedUser(),
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
-  const errorMessage = Array.isArray(resolvedSearchParams?.error)
-    ? resolvedSearchParams.error[0]
-    : resolvedSearchParams?.error;
+  const errorCode = Array.isArray(resolvedSearchParams?.errorCode)
+    ? resolvedSearchParams.errorCode[0]
+    : resolvedSearchParams?.errorCode;
+  const errorMessage = getLoginErrorMessage(errorCode);
   const nextValue = Array.isArray(resolvedSearchParams?.next)
     ? resolvedSearchParams.next[0]
     : resolvedSearchParams?.next;
   const nextPath = sanitizeRedirectPath(nextValue);
 
   return (
-    <div className="min-h-screen bg-[#f4efe6] text-stone-950">
-      <header className="border-b border-stone-200/80 bg-[#f4efe6]/95 backdrop-blur">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-5 lg:px-8">
           <Link href="/" className="flex items-center gap-3" aria-label="AdminBTP, accueil">
-            <span className="grid size-11 place-items-center rounded-2xl bg-[#df765d] text-white shadow-[0_10px_24px_rgba(223,118,93,0.24)]">
+            <span className="grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg">
               <Building2 className="size-5" />
             </span>
             <span>
@@ -101,10 +105,10 @@ export default async function Home({ searchParams }: HomePageProps) {
 
       <main>
         <section className="relative overflow-hidden border-b border-stone-200/80">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,rgba(223,118,93,0.17),transparent_28%),radial-gradient(circle_at_90%_20%,rgba(31,89,78,0.12),transparent_26%)]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-emerald-900/10" />
           <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-14 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
             <div className="flex flex-col justify-center">
-              <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.22em] text-[#a44935] uppercase">
+              <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.22em] text-primary uppercase">
                 <HardHat className="size-4" />
                 Gestion administrative et technique BTP
               </p>
@@ -128,7 +132,7 @@ export default async function Home({ searchParams }: HomePageProps) {
 
             <section
               id="connexion"
-              className="scroll-mt-6 rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-[0_28px_80px_rgba(61,47,35,0.14)] backdrop-blur sm:p-8"
+              className="scroll-mt-6 rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur sm:p-8"
               aria-labelledby="connexion-title"
             >
               {user ? (
@@ -146,7 +150,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                   </div>
                   <Link
                     href="/admin"
-                    className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#df765d] px-6 font-medium text-white transition hover:brightness-95"
+                    className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 font-medium text-primary-foreground transition hover:brightness-95"
                   >
                     Acceder au cockpit
                     <ArrowRight className="size-4" />
@@ -179,15 +183,15 @@ export default async function Home({ searchParams }: HomePageProps) {
         <section id="plateforme" className="scroll-mt-8 bg-white py-16 lg:py-20">
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold tracking-[0.22em] text-[#a44935] uppercase">En bref</p>
+              <p className="text-xs font-semibold tracking-[0.22em] text-primary uppercase">En bref</p>
               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
                 L&apos;essentiel du pilotage, sans multiplier les outils.
               </h2>
             </div>
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {presentationItems.map((item) => (
-                <article key={item.title} className="rounded-[1.75rem] border border-stone-200 bg-[#faf8f4] p-6">
-                  <item.icon className="size-6 text-[#bd5942]" />
+                <article key={item.title} className="rounded-2xl border border-border bg-card p-6">
+                  <item.icon className="size-6 text-primary" aria-hidden="true" />
                   <h3 className="mt-6 text-xl font-semibold tracking-[-0.03em]">{item.title}</h3>
                   <p className="mt-3 text-sm leading-7 text-stone-600">{item.description}</p>
                 </article>
@@ -200,7 +204,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
               <div>
-                <p className="text-xs font-semibold tracking-[0.22em] text-[#ef9b84] uppercase">Vlog chantier</p>
+                <p className="text-xs font-semibold tracking-[0.22em] text-orange-300 uppercase">Vlog chantier</p>
                 <h2 className="mt-4 text-4xl font-semibold tracking-[-0.055em]">
                   Les projets racontes simplement.
                 </h2>
@@ -212,7 +216,7 @@ export default async function Home({ searchParams }: HomePageProps) {
               <div className="divide-y divide-white/10 border-y border-white/10">
                 {vlogEntries.map((entry) => (
                   <article key={entry.number} className="grid gap-3 py-6 sm:grid-cols-[4rem_0.75fr_1.25fr] sm:items-center">
-                    <span className="font-mono text-sm text-[#ef9b84]">{entry.number}</span>
+                    <span className="font-mono text-sm text-orange-300">{entry.number}</span>
                     <h3 className="text-lg font-medium">{entry.label}</h3>
                     <p className="text-sm leading-6 text-stone-400">{entry.description}</p>
                   </article>
@@ -222,11 +226,11 @@ export default async function Home({ searchParams }: HomePageProps) {
           </div>
         </section>
 
-        <section id="projets" className="scroll-mt-8 bg-[#f4efe6] py-16 lg:py-20">
+        <section id="projets" className="scroll-mt-8 bg-background py-16 lg:py-20">
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <div className="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div className="max-w-2xl">
-                <p className="text-xs font-semibold tracking-[0.22em] text-[#a44935] uppercase">Projets & architecture</p>
+                <p className="text-xs font-semibold tracking-[0.22em] text-primary uppercase">Projets & architecture</p>
                 <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
                   Concevoir pour le territoire mahorais.
                 </h2>

@@ -42,4 +42,21 @@ describe("ecriture des organisations", () => {
         "L'organisation a ete creee dans Supabase puis rattachee a votre session.",
     });
   });
+
+  it("ignore les messages d'erreur forges dans l'URL", () => {
+    expect(
+      getOrganizationFeedbackFromSearchParams({
+        organizationErrorCode: "create_failed",
+      }),
+    ).toEqual({
+      tone: "error",
+      message:
+        "La creation de l'organisation a echoue. Verifiez le nom et le slug, puis reessayez.",
+    });
+    expect(
+      getOrganizationFeedbackFromSearchParams({
+        organizationError: "Message arbitraire",
+      }),
+    ).toBeNull();
+  });
 });

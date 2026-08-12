@@ -1,6 +1,7 @@
--- Donnees d'amorcage AdminBTP pour le pole expertise
+-- Exemple facultatif et non applique automatiquement.
+-- Donnees d'amorcage AdminBTP pour le pole expertise.
 
-INSERT INTO expert_profiles (
+INSERT INTO public.expert_profiles (
     slug,
     full_name,
     role,
@@ -29,9 +30,7 @@ VALUES
         'analyse PPSPS',
         'reponse appels d''offres'
     ],
-    ARRAY[
-        'Ingenieur BTP experimente'
-    ],
+    ARRAY['Ingenieur BTP experimente'],
     12,
     TRUE,
     15000,
@@ -53,9 +52,7 @@ VALUES
         'PMR',
         'urbanisme'
     ],
-    ARRAY[
-        'Architecte HMONP'
-    ],
+    ARRAY['Architecte HMONP'],
     10,
     TRUE,
     16500,
@@ -64,8 +61,7 @@ VALUES
 )
 ON CONFLICT (slug) DO NOTHING;
 
--- Exemple de demande d'expertise
-INSERT INTO expert_requests (
+INSERT INTO public.expert_requests (
     request_number,
     title,
     description,

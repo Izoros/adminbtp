@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
+import {
+  buildAdminCockpitData,
+  isAdminCockpitReadTruncated,
+} from "@/components/dashboard/admin-cockpit-data";
 
 describe("buildAdminCockpitData", () => {
+  it("detecte une reponse PostgREST tronquee avant de calculer les KPI", () => {
+    expect(
+      isAdminCockpitReadTruncated({ count: 1001, data: Array(1000).fill({}) }),
+    ).toBe(true);
+    expect(
+      isAdminCockpitReadTruncated({ count: 2, data: [{}, {}] }),
+    ).toBe(false);
+    expect(isAdminCockpitReadTruncated({ count: null, data: [] })).toBe(false);
+  });
+
   it("construit des indicateurs reels et un kanban honnete depuis le snapshot", () => {
     const data = buildAdminCockpitData({
       source: "supabase",

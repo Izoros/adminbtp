@@ -55,7 +55,7 @@ describe("createOrganizationAction", () => {
 
     await expectRedirect(
       createOrganizationAction(buildOrganizationFormData()),
-      "/organizations?organizationError=Supabase%20indisponible.%20La%20creation%20d'organisation%20est%20bloquee%20en%20mode%20production.",
+      "/organizations?organizationErrorCode=supabase_unavailable",
     );
 
     expect(revalidatePathMock).not.toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe("createOrganizationAction", () => {
 
     await expectRedirect(
       createOrganizationAction(buildOrganizationFormData()),
-      "/organizations?organizationError=Session%20Supabase%20indisponible.%20Connectez-vous%20pour%20creer%20une%20organisation%20reelle.",
+      "/organizations?organizationErrorCode=session_unavailable",
     );
   });
 
@@ -92,7 +92,7 @@ describe("createOrganizationAction", () => {
 
     await expectRedirect(
       createOrganizationAction(formData),
-      "/organizations?organizationError=Le%20nom%20de%20l'organisation%20est%20obligatoire.",
+      "/organizations?organizationErrorCode=invalid_form",
     );
   });
 
@@ -115,7 +115,7 @@ describe("createOrganizationAction", () => {
 
     await expectRedirect(
       createOrganizationAction(buildOrganizationFormData()),
-      "/organizations?organizationError=Creation%20impossible%3A%20slug%20deja%20utilise",
+      "/organizations?organizationErrorCode=create_failed",
     );
 
     expect(rpcMock).toHaveBeenCalledWith("create_organization_with_owner", {

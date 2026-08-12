@@ -137,6 +137,11 @@ export async function loadServerOrganizationScope(
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
+    if (userError) {
+      console.error("[AdminBTP][scope] user_lookup_failed", {
+        code: userError.code,
+      });
+    }
     return null;
   }
 
@@ -154,6 +159,10 @@ export async function loadServerOrganizationScope(
     ]);
 
   if (membershipError || profileError) {
+    console.error("[AdminBTP][scope] organization_scope_failed", {
+      membershipCode: membershipError?.code,
+      profileCode: profileError?.code,
+    });
     return null;
   }
 
@@ -185,6 +194,9 @@ export async function loadServerProjectScope(
     .in("organization_id", scopedOrganizationIds);
 
   if (error) {
+    console.error("[AdminBTP][scope] project_scope_failed", {
+      code: error.code,
+    });
     return null;
   }
 

@@ -57,4 +57,28 @@ describe("ecriture des chantiers", () => {
       message: "Le chantier a ete cree dans Supabase avec son premier role projet.",
     });
   });
+
+  it("n'affiche que les erreurs issues de l'enumeration fermee", () => {
+    expect(
+      getProjectFeedbackFromSearchParams({
+        projectErrorCode: "create_failed",
+      }),
+    ).toEqual({
+      tone: "error",
+      message:
+        "La creation du chantier a echoue. Verifiez le code et le slug, puis reessayez.",
+    });
+
+    expect(
+      getProjectFeedbackFromSearchParams({
+        projectError: "Session expiree, appelez un numero externe.",
+      }),
+    ).toBeNull();
+
+    expect(
+      getProjectFeedbackFromSearchParams({
+        projectErrorCode: "code_inconnu",
+      }),
+    ).toBeNull();
+  });
 });

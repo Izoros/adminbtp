@@ -7,6 +7,7 @@ import {
   renderTemplate,
   replaceVariables,
 } from "@/modules/documents/services/template-renderer";
+import { PDFDocument } from "pdf-lib";
 
 describe("rendu de templates documentaires", () => {
   it("remplace correctement les variables dynamiques", () => {
@@ -39,5 +40,23 @@ describe("rendu de templates documentaires", () => {
     );
 
     expect(pdfBytes.length).toBeGreaterThan(500);
+  });
+
+  it("gere les caracteres hors WinAnsi, le repli et les pages multiples", async () => {
+    const template = demoDocumentTemplates[0]!;
+    const generatedDocument = {
+      ...renderTemplate(template, demoDocumentVariables),
+      subject: "Controle ≤ 5 ㎡ 🏗️",
+      bodyRendered: Array.from(
+        { length: 90 },
+        (_, index) =>
+          `Ligne ${index + 1} — verification technique avec une phrase suffisamment longue pour provoquer un repli automatique sans chevauchement.`,
+      ).join("\n"),
+    };
+
+    const pdfBytes = await generateSimplePdf(template, generatedDocument);
+    const pdf = await PDFDocument.load(pdfBytes);
+
+    expect(pdf.getPageCount()).toBeGreaterThan(1);
   });
 });

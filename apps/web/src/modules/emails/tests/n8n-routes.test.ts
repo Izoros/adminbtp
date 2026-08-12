@@ -21,7 +21,7 @@ describe("routes n8n", () => {
     persistInboundEmail.mockReset();
     createEmailSupabaseReader.mockReset();
     resolveSignatureWebhookContext.mockReset();
-    delete process.env.ADMINBTP_N8N_WEBHOOK_TOKEN;
+    process.env.ADMINBTP_N8N_WEBHOOK_TOKEN = "secret-test";
   });
 
   it("retourne 415 si le content-type n'est pas JSON", async () => {
@@ -52,6 +52,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           organizationId: "org_adminbtp_001",
@@ -75,6 +76,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: "{invalid-json",
       }),
@@ -108,6 +110,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           organizationId: "org_adminbtp_001",
@@ -123,7 +126,7 @@ describe("routes n8n", () => {
 
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.authorization.protectionEnabled).toBe(false);
+    expect(body.authorization.protectionEnabled).toBe(true);
     expect(body.task.source).toBe("n8n");
     expect(body.mailboxResolution.mailboxId).toBe("mailbox_001");
     expect(body.mailboxResolution.mailboxCreated).toBe(false);
@@ -196,6 +199,34 @@ describe("routes n8n", () => {
     expect(body.errors).toContain("Le token webhook est invalide ou absent.");
   });
 
+  it("retourne 503 si le secret webhook n8n n'est pas configure", async () => {
+    delete process.env.ADMINBTP_N8N_WEBHOOK_TOKEN;
+    const { POST } = await import("@/app/api/n8n/inbound-task/route");
+
+    const response = await POST(
+      new Request("http://localhost/api/n8n/inbound-task", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: "org_adminbtp_001",
+          sourceEmail: "client@adminbtp.yt",
+          subject: "Document manquant",
+          bodyText: "Relancer le sous-traitant",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.ok).toBe(false);
+    expect(body.errors).toContain(
+      "Le webhook n8n est indisponible tant que son secret n'est pas configure.",
+    );
+  });
+
   it("retourne 502 si le traitement aval du webhook entrant echoue", async () => {
     resolveMailboxForInboundWebhook.mockRejectedValue(new Error("mailbox down"));
 
@@ -206,6 +237,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           organizationId: "org_adminbtp_001",
@@ -244,6 +276,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           organizationId: "org_adminbtp_001",
@@ -274,6 +307,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           signatureRequestId: "",
@@ -305,6 +339,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           signatureRequestId: " signature_request_001 ",
@@ -318,7 +353,7 @@ describe("routes n8n", () => {
 
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.authorization.protectionEnabled).toBe(false);
+    expect(body.authorization.protectionEnabled).toBe(true);
     expect(body.outboundPayload.channel).toBe("whatsapp");
     expect(body.outboundPayload.destination).toBe("+262690000000");
     expect(body.dataOrigin).toBe("demo");
@@ -351,6 +386,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           signatureRequestId: "signature_request_001",
@@ -384,6 +420,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           signatureRequestId: "signature_request_001",
@@ -428,6 +465,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: "{invalid-json",
       }),
@@ -450,6 +488,7 @@ describe("routes n8n", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-adminbtp-webhook-token": "secret-test",
         },
         body: JSON.stringify({
           signatureRequestId: "signature_request_001",

@@ -74,7 +74,7 @@ describe("createProjectAction", () => {
 
     await expectRedirect(
       createProjectAction(buildProjectFormData()),
-      "/projects?projectError=Supabase%20indisponible.%20La%20creation%20de%20chantier%20est%20bloquee%20en%20mode%20production.",
+      "/projects?projectErrorCode=supabase_unavailable",
     );
 
     expect(revalidatePathMock).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe("createProjectAction", () => {
 
     await expectRedirect(
       createProjectAction(buildProjectFormData()),
-      "/projects?projectError=Session%20Supabase%20indisponible.%20Connectez-vous%20pour%20creer%20un%20chantier%20reel.",
+      "/projects?projectErrorCode=session_unavailable",
     );
   });
 
@@ -111,7 +111,7 @@ describe("createProjectAction", () => {
 
     await expectRedirect(
       createProjectAction(formData),
-      "/projects?projectError=L'organisation%20proprietaire%20est%20obligatoire.",
+      "/projects?projectErrorCode=invalid_form",
     );
   });
 
@@ -128,7 +128,7 @@ describe("createProjectAction", () => {
 
     await expectRedirect(
       createProjectAction(buildProjectFormData()),
-      "/projects?projectError=Le%20scope%20organisation%20de%20la%20session%20est%20introuvable.%20Reconnectez-vous%20avant%20de%20creer%20un%20chantier.",
+      "/projects?projectErrorCode=scope_unavailable",
     );
   });
 
@@ -148,7 +148,7 @@ describe("createProjectAction", () => {
 
     await expectRedirect(
       createProjectAction(buildProjectFormData()),
-      "/projects?projectError=Vous%20ne%20pouvez%20pas%20creer%20un%20chantier%20pour%20cette%20organisation.",
+      "/projects?projectErrorCode=organization_forbidden",
     );
   });
 
@@ -175,7 +175,7 @@ describe("createProjectAction", () => {
 
     await expectRedirect(
       createProjectAction(buildProjectFormData()),
-      "/projects?projectError=Creation%20impossible%3A%20code%20chantier%20deja%20utilise",
+      "/projects?projectErrorCode=create_failed",
     );
 
     expect(rpcMock).toHaveBeenCalledWith("create_project_with_owner_role", {

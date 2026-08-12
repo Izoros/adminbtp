@@ -58,8 +58,10 @@ export function validateWebhookAuthorization(request: Request) {
 
   if (!expectedToken) {
     return {
-      success: true as const,
+      success: false as const,
       protectionEnabled: false,
+      status: 503,
+      errors: ["Le webhook n8n est indisponible tant que son secret n'est pas configure."],
     };
   }
 

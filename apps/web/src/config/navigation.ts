@@ -35,18 +35,11 @@ const coreItems: NavigationDefinition[] = [
     icon: BookOpenCheck,
   },
   {
-    label: "Dashboard admin",
-    description: "Cockpit de pilotage global AdminBTP.",
+    label: "Vue du jour",
+    description: "Priorites, alertes et activite des chantiers.",
     href: "/admin",
     phase: "OPS",
     icon: LayoutDashboard,
-  },
-  {
-    label: "Auth",
-    description: "Connexion et controle d'acces multi-tenant.",
-    href: "/login",
-    phase: "P1",
-    icon: Building2,
   },
   {
     label: "Organisations",
@@ -94,8 +87,8 @@ const businessItems: NavigationDefinition[] = [
     icon: Mail,
   },
   {
-    label: "n8n",
-    description: "Webhooks, relances et validations orchestrees.",
+    label: "Automatisations",
+    description: "Relances et validations orchestrees.",
     href: "/n8n",
     phase: "P7",
     icon: Workflow,
@@ -108,8 +101,8 @@ const businessItems: NavigationDefinition[] = [
     icon: ReceiptText,
   },
   {
-    label: "Odoo",
-    description: "Mappings commerciaux, sociaux et RH.",
+    label: "Social et RH",
+    description: "Connexion Odoo pour les donnees sociales et RH.",
     href: "/odoo",
     phase: "P9",
     icon: Network,
@@ -122,8 +115,8 @@ const businessItems: NavigationDefinition[] = [
     icon: HandHelping,
   },
   {
-    label: "IA metier",
-    description: "Assistances IA sous validation humaine.",
+    label: "Suggestions assistees",
+    description: "Gouvernance et validation humaine des suggestions.",
     href: "/ai",
     phase: "P11",
     icon: Bot,
@@ -138,6 +131,6 @@ const businessItems: NavigationDefinition[] = [
 ];
 
 export const appNavigation: NavigationSection[] = [
-  { title: "Core", items: coreItems },
-  { title: "Modules", items: businessItems },
+  { title: "Pilotage", items: coreItems },
+  { title: "Metier", items: businessItems },
 ];

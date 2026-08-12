@@ -7,17 +7,18 @@ import {
 } from "@/lib/supabase/route-handler";
 import {
   getDefaultAuthRedirect,
+  type LoginErrorCode,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
 
 function buildLoginErrorRedirect(
   request: NextRequest,
   nextPath: string,
-  message: string,
+  errorCode: LoginErrorCode,
   loginPath: "/" | "/login",
 ) {
   const redirectUrl = new URL(loginPath, request.url);
-  redirectUrl.searchParams.set("error", message);
+  redirectUrl.searchParams.set("errorCode", errorCode);
 
   if (nextPath !== getDefaultAuthRedirect()) {
     redirectUrl.searchParams.set("next", nextPath);
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       buildLoginErrorRedirect(
         request,
         nextPath,
-        "Configuration Supabase indisponible pour cette instance.",
+        "configuration_unavailable",
         loginPath,
       ),
     );
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
       buildLoginErrorRedirect(
         request,
         nextPath,
-        "Email et mot de passe obligatoires.",
+        "missing_credentials",
         loginPath,
       ),
     );
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       buildLoginErrorRedirect(
         request,
         nextPath,
-        "Configuration Supabase indisponible pour cette instance.",
+        "configuration_unavailable",
         loginPath,
       ),
     );
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       buildLoginErrorRedirect(
         request,
         nextPath,
-        "Identifiants invalides ou compte indisponible.",
+        "invalid_credentials",
         loginPath,
       ),
     );

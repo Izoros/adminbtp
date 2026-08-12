@@ -1,6 +1,6 @@
 -- Seed neutre par defaut.
 -- Les donnees de demonstration plus riches restent dans :
--- - database/adminbtp_consulting_seed.sql
+-- - supabase/examples/consulting-seed.sql
 -- - les modules frontend de demonstration
 --
 -- Activer ce seed dans supabase/config.toml lorsqu'un jeu de donnees

@@ -1,4 +1,6 @@
 import type { ProjectRole } from "@/modules/projects/types/project";
+import { PhaseActionForm } from "@/modules/phases/components/phase-action-form";
+import type { PhaseMutationState } from "@/modules/phases/services/phase-actions";
 import type {
   PhaseAlert,
   PhaseChecklistItem,
@@ -19,9 +21,18 @@ type ProjectPhaseBoardProps = {
   alerts: PhaseAlert[];
   source: "supabase";
   sourceDetail: string;
-  toggleChecklistAction: (formData: FormData) => Promise<void>;
-  updatePhaseStatusAction: (formData: FormData) => Promise<void>;
-  resolveAlertAction: (formData: FormData) => Promise<void>;
+  toggleChecklistAction: (
+    previousState: PhaseMutationState,
+    formData: FormData,
+  ) => Promise<PhaseMutationState>;
+  updatePhaseStatusAction: (
+    previousState: PhaseMutationState,
+    formData: FormData,
+  ) => Promise<PhaseMutationState>;
+  resolveAlertAction: (
+    previousState: PhaseMutationState,
+    formData: FormData,
+  ) => Promise<PhaseMutationState>;
 };
 
 export function ProjectPhaseBoard({
@@ -120,20 +131,19 @@ export function ProjectPhaseBoard({
                             </span>{" "}
                             {item.label}
                           </div>
-                          <form action={toggleChecklistAction}>
+                          <PhaseActionForm
+                            action={toggleChecklistAction}
+                            submitLabel={item.isCompleted ? "Reouvrir" : "Valider"}
+                            pendingLabel="Mise a jour..."
+                            buttonClassName="min-h-11 rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950 disabled:cursor-wait disabled:opacity-60"
+                          >
                             <input type="hidden" name="checklistItemId" value={item.id} />
                             <input
                               type="hidden"
                               name="nextCompletedValue"
                               value={item.isCompleted ? "false" : "true"}
                             />
-                            <button
-                              type="submit"
-                              className="rounded-full border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
-                            >
-                              {item.isCompleted ? "Reouvrir" : "Valider"}
-                            </button>
-                          </form>
+                          </PhaseActionForm>
                         </div>
                       </li>
                     ))}
@@ -150,16 +160,16 @@ export function ProjectPhaseBoard({
                         ? "Le passage de phase est autorise: tous les points obligatoires sont completes."
                         : "Le passage de phase reste bloque: il manque au moins un point obligatoire."}
                     </p>
-                    <form action={updatePhaseStatusAction} className="mt-4">
+                    <PhaseActionForm
+                      action={updatePhaseStatusAction}
+                      className="mt-4"
+                      submitLabel={`Appliquer le statut ${nextStatus}`}
+                      pendingLabel="Application..."
+                      buttonClassName="min-h-11 rounded-lg bg-stone-950 px-4 py-2 text-xs font-medium text-white transition hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+                    >
                       <input type="hidden" name="phaseId" value={phase.id} />
                       <input type="hidden" name="nextStatus" value={nextStatus} />
-                      <button
-                        type="submit"
-                        className="rounded-full bg-stone-950 px-4 py-2 text-xs font-medium text-white transition hover:bg-stone-800"
-                      >
-                        Appliquer le statut {nextStatus}
-                      </button>
-                    </form>
+                    </PhaseActionForm>
                   </div>
 
                   <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5">
@@ -185,15 +195,15 @@ export function ProjectPhaseBoard({
                               Statut : {alert.isResolved ? "Resolue" : "Active"}
                             </p>
                             {!alert.isResolved ? (
-                              <form action={resolveAlertAction} className="mt-3">
+                              <PhaseActionForm
+                                action={resolveAlertAction}
+                                className="mt-3"
+                                submitLabel="Marquer comme resolue"
+                                pendingLabel="Resolution..."
+                                buttonClassName="min-h-11 rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950 disabled:cursor-wait disabled:opacity-60"
+                              >
                                 <input type="hidden" name="alertId" value={alert.id} />
-                                <button
-                                  type="submit"
-                                  className="rounded-full border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 transition hover:border-stone-500 hover:text-stone-950"
-                                >
-                                  Marquer comme resolue
-                                </button>
-                              </form>
+                              </PhaseActionForm>
                             ) : null}
                           </div>
                         ))

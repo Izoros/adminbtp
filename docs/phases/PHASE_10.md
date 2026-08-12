@@ -2,7 +2,7 @@
 
 ## Perimetre livre
 
-- schema SQL de reference `database/adminbtp_consulting_foundation.sql`
+- schema SQL livre par la migration canonique `supabase/migrations/20260521190838_consulting_foundation.sql`
 - types TypeScript pour `expert_profiles`, `expert_requests`, `consulting_missions`, `consulting_hours` et `technical_reviews`
 - services de liaison entre demande expert, mission, heures et avis technique
 - jeu de donnees local pour la demonstration du parcours de conseil

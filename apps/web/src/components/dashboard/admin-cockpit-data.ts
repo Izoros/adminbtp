@@ -93,6 +93,17 @@ const adminCockpitBucketConfig: Record<
   "30d": { bucketCount: 6, bucketSizeDays: 5 },
   "90d": { bucketCount: 6, bucketSizeDays: 15 },
 };
+const adminCockpitRowLimit = 1000;
+
+export function isAdminCockpitReadTruncated(result: {
+  count: number | null;
+  data: unknown[] | null;
+}) {
+  return (
+    typeof result.count === "number" &&
+    result.count > (result.data?.length ?? 0)
+  );
+}
 
 function buildEmptyAdminCockpitData(sourceMessage: string): AdminCockpitData {
   return {
@@ -905,44 +916,68 @@ async function loadRowsForAdminCockpit(organizationIds: string[]) {
     await Promise.all([
       supabase
         .from("projects")
-        .select("id,name,status,updated_at,created_at,owner_organization_id")
+        .select("id,name,status,updated_at,created_at,owner_organization_id", {
+          count: "exact",
+        })
         .in("owner_organization_id", organizationIds)
-        .order("updated_at", { ascending: false }),
+        .order("updated_at", { ascending: false })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("documents")
-        .select("id,title,status,updated_at,created_at,organization_id,project_id")
+        .select("id,title,status,updated_at,created_at,organization_id,project_id", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("updated_at", { ascending: false }),
+        .order("updated_at", { ascending: false })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("signature_requests")
-        .select("id,status,updated_at,created_at,organization_id,document_id")
+        .select("id,status,updated_at,created_at,organization_id,document_id", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("updated_at", { ascending: false }),
+        .order("updated_at", { ascending: false })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("payment_followups")
-        .select("id,status,step_label,scheduled_for,updated_at,organization_id")
+        .select("id,status,step_label,scheduled_for,updated_at,organization_id", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("scheduled_for", { ascending: true }),
+        .order("scheduled_for", { ascending: true })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("consulting_missions")
-        .select("id,title,status,sold_hours,consumed_hours,updated_at,created_at,organization_id,related_entity_id,related_entity_type")
+        .select("id,title,status,sold_hours,consumed_hours,updated_at,created_at,organization_id,related_entity_id,related_entity_type", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("updated_at", { ascending: false }),
+        .order("updated_at", { ascending: false })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("situations")
-        .select("id,reference,status,amount_cents,issued_on,organization_id,project_id")
+        .select("id,reference,status,amount_cents,issued_on,organization_id,project_id", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("issued_on", { ascending: false }),
+        .order("issued_on", { ascending: false })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("emails")
-        .select("id,subject,classification,received_at,organization_id,project_id")
+        .select("id,subject,classification,received_at,organization_id,project_id", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("received_at", { ascending: false }),
+        .order("received_at", { ascending: false })
+        .limit(adminCockpitRowLimit),
       supabase
         .from("ai_suggestions")
-        .select("id,title,status,created_at,organization_id,project_id")
+        .select("id,title,status,created_at,organization_id,project_id", {
+          count: "exact",
+        })
         .in("organization_id", organizationIds)
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .limit(adminCockpitRowLimit),
     ]);
 
   return {
@@ -1011,12 +1046,16 @@ export async function loadAdminCockpitData(
     rows.emails.error ||
     rows.aiSuggestions.error;
 
-  if (hasReadError) {
+  const hasTruncatedRead = Object.values(rows).some(isAdminCockpitReadTruncated);
+
+  if (hasReadError || hasTruncatedRead) {
     return buildAdminCockpitData(
       {
         source: "supabase",
         sourceMessage:
-          "Supabase est accessible, mais une partie des indicateurs admin n'a pas pu etre chargee.",
+          hasTruncatedRead
+            ? "Le volume depasse la limite de lecture du cockpit. Les indicateurs sont suspendus pour eviter d'afficher des totaux partiels."
+            : "Supabase est accessible, mais une partie des indicateurs admin n'a pas pu etre chargee.",
         organizationCount: organizationAccess.organizations.length,
         organizations: organizationAccess.organizations.map((organization) => ({
           id: organization.id,

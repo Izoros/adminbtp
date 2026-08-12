@@ -1,4 +1,10 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import {
+  PDFDocument,
+  type PDFFont,
+  type PDFPage,
+  StandardFonts,
+  rgb,
+} from "pdf-lib";
 
 import type {
   DocumentTemplate,
@@ -7,6 +13,21 @@ import type {
 } from "@/modules/documents/types/document";
 
 const variablePattern = /{{\s*([a-zA-Z0-9_]+)\s*}}/g;
+const pdfFallbacks: Record<string, string> = {
+  "≤": "<=",
+  "≥": ">=",
+  "㎡": "m2",
+  "–": "-",
+  "—": "-",
+  " ": " ",
+  " ": " ",
+};
+const pdfPageSize: [number, number] = [595.28, 841.89];
+const pdfLeftMargin = 40;
+const pdfBodyWidth = 510;
+const pdfBodyFontSize = 11;
+const pdfBodyLineHeight = 15;
+const pdfBodyBottom = 115;
 
 export function renderTemplate(
   template: DocumentTemplate,
@@ -31,25 +52,124 @@ export function replaceVariables(source: string, variables: DocumentVariableMap)
   });
 }
 
-export async function generateSimplePdf(
+function sanitizePdfText(value: string, font: PDFFont) {
+  let result = "";
+
+  for (const character of value.replaceAll("\t", "    ")) {
+    if (character === "\n" || character === "\r") {
+      result += character;
+      continue;
+    }
+
+    try {
+      font.encodeText(character);
+      result += character;
+    } catch {
+      result += pdfFallbacks[character] ?? "?";
+    }
+  }
+
+  return result;
+}
+
+function splitOversizedWord(word: string, font: PDFFont, maxWidth: number) {
+  const chunks: string[] = [];
+  let chunk = "";
+
+  for (const character of word) {
+    const candidate = `${chunk}${character}`;
+
+    if (chunk && font.widthOfTextAtSize(candidate, pdfBodyFontSize) > maxWidth) {
+      chunks.push(chunk);
+      chunk = character;
+    } else {
+      chunk = candidate;
+    }
+  }
+
+  if (chunk) {
+    chunks.push(chunk);
+  }
+
+  return chunks;
+}
+
+function wrapPdfLine(line: string, font: PDFFont, maxWidth: number) {
+  if (!line.trim()) {
+    return [""];
+  }
+
+  const words = line.trim().split(/\s+/).flatMap((word) =>
+    font.widthOfTextAtSize(word, pdfBodyFontSize) > maxWidth
+      ? splitOversizedWord(word, font, maxWidth)
+      : [word],
+  );
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+
+    if (
+      currentLine &&
+      font.widthOfTextAtSize(candidate, pdfBodyFontSize) > maxWidth
+    ) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = candidate;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
+function drawPdfFooter(
+  page: PDFPage,
+  template: DocumentTemplate,
+  font: PDFFont,
+  fontBold: PDFFont,
+) {
+  page.drawText(sanitizePdfText(template.stampLabel, fontBold), {
+    x: pdfLeftMargin,
+    y: 70,
+    size: 10,
+    font: fontBold,
+    color: rgb(0.5, 0.24, 0.14),
+  });
+
+  page.drawText(sanitizePdfText(template.signatureLabel, fontBold), {
+    x: 420,
+    y: 70,
+    size: 10,
+    font: fontBold,
+    color: rgb(0.18, 0.18, 0.18),
+  });
+}
+
+function addPdfPage(
+  pdf: PDFDocument,
   template: DocumentTemplate,
   document: GeneratedDocument,
+  font: PDFFont,
+  fontBold: PDFFont,
+  includeSubject: boolean,
 ) {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const page = pdf.addPage(pdfPageSize);
 
-  // On garde un PDF simple et robuste pour la phase 4 : entete, metadonnees et corps texte.
-  page.drawText(template.letterheadName, {
-    x: 40,
+  page.drawText(sanitizePdfText(template.letterheadName, fontBold), {
+    x: pdfLeftMargin,
     y: 800,
     size: 18,
     font: fontBold,
     color: rgb(0.14, 0.14, 0.14),
   });
 
-  page.drawText(template.logoLabel, {
+  page.drawText(sanitizePdfText(template.logoLabel, font), {
     x: 440,
     y: 800,
     size: 10,
@@ -57,44 +177,78 @@ export async function generateSimplePdf(
     color: rgb(0.45, 0.45, 0.45),
   });
 
-  page.drawText(document.subject, {
-    x: 40,
-    y: 760,
-    size: 13,
-    font: fontBold,
-    color: rgb(0.18, 0.18, 0.18),
-  });
+  drawPdfFooter(page, template, font, fontBold);
 
-  const bodyLines = document.bodyRendered.split("\n");
-  let cursorY = 720;
+  if (!includeSubject) {
+    return { page, cursorY: 765 };
+  }
 
-  bodyLines.forEach((line) => {
-    page.drawText(line, {
-      x: 40,
-      y: cursorY,
-      size: 11,
-      font,
-      color: rgb(0.2, 0.2, 0.2),
-      maxWidth: 510,
+  const subjectLines = wrapPdfLine(
+    sanitizePdfText(document.subject, fontBold),
+    fontBold,
+    pdfBodyWidth,
+  );
+  let subjectY = 760;
+
+  for (const subjectLine of subjectLines) {
+    page.drawText(subjectLine, {
+      x: pdfLeftMargin,
+      y: subjectY,
+      size: 13,
+      font: fontBold,
+      color: rgb(0.18, 0.18, 0.18),
     });
-    cursorY -= line.trim() === "" ? 14 : 18;
-  });
+    subjectY -= 18;
+  }
 
-  page.drawText(template.stampLabel, {
-    x: 40,
-    y: 80,
-    size: 10,
-    font: fontBold,
-    color: rgb(0.62, 0.35, 0.22),
-  });
+  return { page, cursorY: subjectY - 18 };
+}
 
-  page.drawText(template.signatureLabel, {
-    x: 420,
-    y: 80,
-    size: 10,
-    font: fontBold,
-    color: rgb(0.18, 0.18, 0.18),
-  });
+export async function generateSimplePdf(
+  template: DocumentTemplate,
+  document: GeneratedDocument,
+) {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  let { page, cursorY } = addPdfPage(
+    pdf,
+    template,
+    document,
+    font,
+    fontBold,
+    true,
+  );
+  const bodyLines = sanitizePdfText(document.bodyRendered, font)
+    .split("\n")
+    .flatMap((line) => wrapPdfLine(line, font, pdfBodyWidth));
+
+  for (const line of bodyLines) {
+    const lineHeight = line ? pdfBodyLineHeight : 12;
+
+    if (cursorY - lineHeight < pdfBodyBottom) {
+      ({ page, cursorY } = addPdfPage(
+        pdf,
+        template,
+        document,
+        font,
+        fontBold,
+        false,
+      ));
+    }
+
+    if (line) {
+      page.drawText(line, {
+        x: pdfLeftMargin,
+        y: cursorY,
+        size: pdfBodyFontSize,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+    }
+
+    cursorY -= lineHeight;
+  }
 
   return pdf.save();
 }

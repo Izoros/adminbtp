@@ -55,5 +55,10 @@
 - tableau de preparation reserve au role plateforme et depourvu de valeur secrete
 - connecteur Odoo desactive sans configuration complete, destination HTTPS autorisee et secrets cote serveur
 - aucun contenu de bulletin ou montant salarial persiste dans les mappings AdminBTP
+- tentative `authenticated` de modification de `user_profiles.internal_role` refusee
+- fonctions RLS sensibles avec `prosecdef = true` et `search_path` explicite
+- lecture multi-tenant testee avec plusieurs comptes sur l'environnement cible
+- webhooks n8n en `503` sans secret et en `401` avec un token invalide
+- CSP de production sans `unsafe-inline` ni `unsafe-eval` dans `script-src`
 - `npm run audit:prod` analyse et documente
 - les alertes ou risques de dependances sont traces dans [docs/SECURITY.md](/Users/symba/Documents/9_AdminBTP/docs/SECURITY.md:1)

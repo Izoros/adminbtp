@@ -1,9 +1,10 @@
-const DEFAULT_AUTH_REDIRECT = "/organizations";
+const DEFAULT_AUTH_REDIRECT = "/admin";
 
 const PROTECTED_PATH_PREFIXES = [
   "/admin",
   "/organizations",
   "/projects",
+  "/phases",
   "/client-space",
   "/consulting",
   "/documents",
@@ -16,6 +17,16 @@ const PROTECTED_PATH_PREFIXES = [
 ];
 
 const AUTH_INTERNAL_PATH_PREFIXES = ["/login", "/auth"];
+const REDIRECT_VALIDATION_ORIGIN = "https://adminbtp.local";
+
+export const loginErrorMessages = {
+  configuration_unavailable:
+    "Configuration Supabase indisponible pour cette instance.",
+  missing_credentials: "Email et mot de passe obligatoires.",
+  invalid_credentials: "Identifiants invalides ou compte indisponible.",
+} as const;
+
+export type LoginErrorCode = keyof typeof loginErrorMessages;
 
 function normalizePathname(pathname: string) {
   if (!pathname.startsWith("/")) {
@@ -27,6 +38,16 @@ function normalizePathname(pathname: string) {
 
 export function getDefaultAuthRedirect() {
   return DEFAULT_AUTH_REDIRECT;
+}
+
+export function getLoginErrorMessage(
+  value: string | null | undefined,
+): string | null {
+  if (!value || !(value in loginErrorMessages)) {
+    return null;
+  }
+
+  return loginErrorMessages[value as LoginErrorCode];
 }
 
 export function isProtectedPath(pathname: string) {
@@ -58,21 +79,23 @@ export function sanitizeRedirectPath(path: string | null | undefined) {
     return DEFAULT_AUTH_REDIRECT;
   }
 
-  if (!path.startsWith("/")) {
+  let candidate: URL;
+
+  try {
+    candidate = new URL(path, REDIRECT_VALIDATION_ORIGIN);
+  } catch {
     return DEFAULT_AUTH_REDIRECT;
   }
 
-  if (path.startsWith("//")) {
+  if (candidate.origin !== REDIRECT_VALIDATION_ORIGIN) {
     return DEFAULT_AUTH_REDIRECT;
   }
 
-  const [pathname] = path.split("?");
-
-  if (isAuthInternalPath(pathname ?? path)) {
+  if (isAuthInternalPath(candidate.pathname)) {
     return DEFAULT_AUTH_REDIRECT;
   }
 
-  return path;
+  return `${candidate.pathname}${candidate.search}`;
 }
 
 export function buildLoginRedirectPath(path: string) {

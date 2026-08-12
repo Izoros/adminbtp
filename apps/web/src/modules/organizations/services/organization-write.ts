@@ -10,6 +10,18 @@ export type OrganizationDraftInput = {
   legalName?: string;
 };
 
+export const organizationErrorMessages = {
+  supabase_unavailable:
+    "Supabase est indisponible. La creation d'organisation est bloquee en mode production.",
+  session_unavailable:
+    "Session Supabase indisponible. Connectez-vous pour creer une organisation reelle.",
+  invalid_form: "Le formulaire organisation est incomplet ou invalide.",
+  create_failed:
+    "La creation de l'organisation a echoue. Verifiez le nom et le slug, puis reessayez.",
+} as const;
+
+export type OrganizationErrorCode = keyof typeof organizationErrorMessages;
+
 function normalizeText(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return "";
@@ -67,7 +79,7 @@ export function getOrganizationFeedbackFromSearchParams(
   searchParams: Record<string, string | string[] | undefined>,
 ): OrganizationFormFeedback | null {
   const organizationStatus = searchParams.organizationStatus;
-  const organizationError = searchParams.organizationError;
+  const organizationErrorCode = searchParams.organizationErrorCode;
 
   if (typeof organizationStatus === "string") {
     if (organizationStatus === "created") {
@@ -79,10 +91,16 @@ export function getOrganizationFeedbackFromSearchParams(
 
   }
 
-  if (typeof organizationError === "string") {
+  if (
+    typeof organizationErrorCode === "string" &&
+    organizationErrorCode in organizationErrorMessages
+  ) {
     return {
       tone: "error",
-      message: decodeURIComponent(organizationError),
+      message:
+        organizationErrorMessages[
+          organizationErrorCode as OrganizationErrorCode
+        ],
     };
   }
 

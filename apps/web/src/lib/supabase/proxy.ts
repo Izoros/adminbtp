@@ -11,10 +11,15 @@ import {
 } from "@/modules/auth/services/session-navigation";
 import type { SupabaseDatabase } from "@/types/supabase";
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  forwardedHeaders: Headers = request.headers,
+) {
   const requestUrl = new URL(request.url);
   let response = NextResponse.next({
-    request,
+    request: {
+      headers: forwardedHeaders,
+    },
   });
 
   if (!hasSupabaseConfig() || !shouldHandleAuthGuard(requestUrl.pathname)) {
@@ -33,7 +38,9 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
 
           response = NextResponse.next({
-            request,
+            request: {
+              headers: forwardedHeaders,
+            },
           });
 
           cookiesToSet.forEach(({ name, value, options }) => {
@@ -63,6 +70,24 @@ export async function updateSession(request: NextRequest) {
         request.url,
       ),
     );
+  }
+
+  if (!user && isLoginPath(requestUrl.pathname)) {
+    const publicLoginUrl = new URL("/", request.url);
+    const nextPath = sanitizeRedirectPath(requestUrl.searchParams.get("next"));
+    const errorCode = requestUrl.searchParams.get("errorCode");
+
+    if (nextPath !== getDefaultAuthRedirect()) {
+      publicLoginUrl.searchParams.set("next", nextPath);
+    }
+
+    if (errorCode) {
+      publicLoginUrl.searchParams.set("errorCode", errorCode);
+    }
+
+    publicLoginUrl.hash = "connexion";
+
+    return createRedirectResponse(response, publicLoginUrl);
   }
 
   if (user && isLoginPath(requestUrl.pathname)) {

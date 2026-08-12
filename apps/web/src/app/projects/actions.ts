@@ -8,10 +8,17 @@ import {
   loadServerOrganizationScope,
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { parseProjectDraft } from "@/modules/projects/services/project-write";
+import {
+  parseProjectDraft,
+  type ProjectErrorCode,
+} from "@/modules/projects/services/project-write";
 
 function buildRedirectUrl(searchKey: string, value: string) {
   return `/projects?${searchKey}=${encodeURIComponent(value)}`;
+}
+
+function buildProjectErrorRedirect(code: ProjectErrorCode) {
+  return buildRedirectUrl("projectErrorCode", code);
 }
 
 export async function createProjectAction(formData: FormData) {
@@ -19,10 +26,7 @@ export async function createProjectAction(formData: FormData) {
 
   if (!supabase) {
     redirect(
-      buildRedirectUrl(
-        "projectError",
-        "Supabase indisponible. La creation de chantier est bloquee en mode production.",
-      ),
+      buildProjectErrorRedirect("supabase_unavailable"),
     );
   }
 
@@ -30,23 +34,15 @@ export async function createProjectAction(formData: FormData) {
 
   if (authError || !authData.user) {
     redirect(
-      buildRedirectUrl(
-        "projectError",
-        "Session Supabase indisponible. Connectez-vous pour creer un chantier reel.",
-      ),
+      buildProjectErrorRedirect("session_unavailable"),
     );
   }
 
   const payload = (() => {
     try {
       return parseProjectDraft(formData);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Impossible de lire le formulaire chantier.";
-
-      redirect(buildRedirectUrl("projectError", message));
+    } catch {
+      redirect(buildProjectErrorRedirect("invalid_form"));
     }
   })();
 
@@ -54,20 +50,14 @@ export async function createProjectAction(formData: FormData) {
 
   if (!organizationScope) {
     redirect(
-      buildRedirectUrl(
-        "projectError",
-        "Le scope organisation de la session est introuvable. Reconnectez-vous avant de creer un chantier.",
-      ),
+      buildProjectErrorRedirect("scope_unavailable"),
     );
   }
 
   // On interdit la creation de chantier pour une organisation hors perimetre de gestion.
   if (!canManageOrganization(organizationScope, payload.ownerOrganizationId)) {
     redirect(
-      buildRedirectUrl(
-        "projectError",
-        "Vous ne pouvez pas creer un chantier pour cette organisation.",
-      ),
+      buildProjectErrorRedirect("organization_forbidden"),
     );
   }
 
@@ -84,9 +74,12 @@ export async function createProjectAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(
-      buildRedirectUrl("projectError", `Creation impossible: ${error.message}`),
-    );
+    console.error("[AdminBTP][projects] create_project_failed", {
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    redirect(buildProjectErrorRedirect("create_failed"));
   }
 
   revalidatePath("/projects");

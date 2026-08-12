@@ -723,6 +723,24 @@ Validation :
 - les images sont locales, optimiseables par Next.js et accompagnees de textes alternatifs
 - le serveur et le navigateur partagent la meme configuration publique Supabase
 
+### PHASE 36 - Durcissement post-audit et navigation terrain
+
+Contenu :
+
+- verrouillage de `internal_role` et droits de colonne minimaux
+- helpers RLS `SECURITY DEFINER` verifies en base locale
+- redirections, webhooks n8n, messages d'erreur et CSP durcis
+- distinction effective de `org_viewer` en lecture seule
+- navigation unifiee, menu mobile, retours d'action phases et pages d'etat
+- PDF multi-page et source de verite SQL unique
+
+Validation :
+
+- tentative d'auto-elevation refusee en transaction avec le role `authenticated`
+- lecture `organization_members` reussie sans erreur de recursion RLS
+- tests de redirection externe, webhook sans secret et PDF long verts
+- `npm run supabase:verify-migrations` et chaine `npm run verify` passes
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -772,3 +790,4 @@ Ordre cible :
 34. Phase 33
 35. Phase 34
 36. Phase 35
+37. Phase 36
