@@ -60,6 +60,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 32](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_32.md)
 - [Validation d'execution de la phase 33](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_33.md)
 - [Validation d'execution de la phase 34](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_34.md)
+- [Validation d'execution de la phase 35](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_35.md)
 
 ## Finalite
 
@@ -133,6 +134,7 @@ Le depot est maintenant aligne sur un fonctionnement production :
 
 - authentification reelle Supabase par mot de passe ou lien magique, avec cookies SSR
 - guide d'accueil affiche une fois et didacticiel permanent en 8 etapes avec progression locale
+- accueil public avec connexion, presentation courte, vlog et carrousel architectural mahorais
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`

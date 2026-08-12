@@ -11,9 +11,14 @@ import { getDefaultAuthRedirect } from "@/modules/auth/services/session-navigati
 type LoginFormProps = {
   nextPath?: string;
   initialMessage?: string | null;
+  loginPath?: "/" | "/login";
 };
 
-export function LoginForm({ nextPath, initialMessage = null }: LoginFormProps) {
+export function LoginForm({
+  nextPath,
+  initialMessage = null,
+  loginPath = "/login",
+}: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(initialMessage);
@@ -63,6 +68,7 @@ export function LoginForm({ nextPath, initialMessage = null }: LoginFormProps) {
       }}
     >
       <input type="hidden" name="next" value={nextPath ?? getDefaultAuthRedirect()} />
+      <input type="hidden" name="login_path" value={loginPath} />
 
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-stone-800">

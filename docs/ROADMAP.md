@@ -159,6 +159,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 32 : livree localement, connexions externes encore a tester
 - phase 33 : livree et validee localement et en production, recette utilisateur a effectuer
 - phase 34 : deployee, connexion Odoo reelle encore a tester
+- phase 35 : livree localement, deploiement de l'accueil public a verifier
 
 ### PHASE 0 - Socle projet
 
@@ -703,6 +704,25 @@ Validation :
 - aucun contenu ou montant salarial n'est copie dans les mappings
 - une connexion reelle n'est annoncee qu'apres un test controle sur l'instance cible
 
+### PHASE 35 - Accueil public et vitrine mahoraise
+
+Contenu :
+
+- page d'accueil publique centree sur la connexion
+- presentation courte de la plateforme
+- rubrique vlog chantier
+- carrousel accessible de trois visuels originaux autour de Mayotte, des plans et de l'architecture
+- redirection de `/login` vers l'accueil en preservant la destination demandee
+- pied de page credite `FAST976.yt`
+
+Validation :
+
+- le formulaire mot de passe et le lien magique restent disponibles
+- une erreur de connexion revient sur l'accueil
+- le carrousel fonctionne au clavier et au clic sans defilement automatique impose
+- les images sont locales, optimiseables par Next.js et accompagnees de textes alternatifs
+- le serveur et le navigateur partagent la meme configuration publique Supabase
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -751,3 +771,4 @@ Ordre cible :
 33. Phase 32
 34. Phase 33
 35. Phase 34
+36. Phase 35

@@ -60,7 +60,7 @@
 - `npm audit --omit=dev` : `0` vulnerabilite detectee
 - `npm run verify` : lint, types, garde-fous, `307` tests et build passes
 - build Next.js : `32` routes generees, dont `/guide`, `/odoo`, `/admin/readiness` et `/api/cron/operations-alerts`
-- audit des liens : `20` pages, `21` cibles et `6` redirections de session attendues
+- audit des liens : `20` pages, `21` cibles et `7` redirections de session attendues
 - `scripts/verify-smoke.sh http://127.0.0.1:3100` : parcours publics et admin passes
 
 Ce resultat decrit l'etat local des dependances verrouillees. Il ne remplace ni

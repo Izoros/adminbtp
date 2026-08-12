@@ -1,11 +1,4 @@
-function readPublicEnv(
-  name:
-    | "NEXT_PUBLIC_SUPABASE_URL"
-    | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
-    | "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-) {
-  const value = process.env[name];
-
+function normalizePublicEnv(value: string | undefined) {
   // On laisse la phase 0 demarrer meme sans variables, tout en rendant l'absence visible.
   if (!value) {
     return null;
@@ -15,10 +8,12 @@ function readPublicEnv(
 }
 
 export const publicEnv = {
-  supabaseUrl: readPublicEnv("NEXT_PUBLIC_SUPABASE_URL"),
+  // Next.js remplace uniquement les acces statiques NEXT_PUBLIC_* dans le bundle client.
+  // Ne pas repasser par process.env[name], sinon serveur et navigateur divergent.
+  supabaseUrl: normalizePublicEnv(process.env.NEXT_PUBLIC_SUPABASE_URL),
   supabasePublishableKey:
-    readPublicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ??
-    readPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    normalizePublicEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
+    normalizePublicEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
 };
 
 export function hasSupabaseConfig() {

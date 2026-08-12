@@ -15,7 +15,7 @@ Date de la revue : `2026-08-12`.
 
 - `20` pages statiques detectees automatiquement ;
 - `21` cibles internes controlees ;
-- `6` redirections attendues vers `/login` ;
+- `7` redirections d'authentification attendues ;
 - aucune cible interne sans route connue ;
 - aucune page vide, erreur HTTP ou reponse non HTML ;
 - controle visuel effectue sur l'accueil, le didacticiel et le module Odoo ;
@@ -23,14 +23,15 @@ Date de la revue : `2026-08-12`.
 
 Les redirections attendues concernent `/admin/alerts`, `/admin/archives`,
 `/admin/commands`, `/admin/readiness`, `/projects` et `/auth/logout` lorsque la
-session requise est absente.
+session requise est absente. `/login` rejoint desormais la connexion canonique
+de l'accueil.
 
 ## Revue page par page
 
 | A verifier | Page | Fonction | Etat constate | Controle manuel conseille |
 | --- | --- | --- | --- | --- |
-| [ ] | `/` | Accueil, synthese des modules et raccourcis de pilotage | Verifie | Ouvrir chaque carte et confirmer que le vocabulaire correspond a votre activite |
-| [ ] | `/login` | Connexion par mot de passe ou lien magique Supabase | Sous conditions | Tester un compte autorise, un mauvais mot de passe et le retour vers la page demandee |
+| [ ] | `/` | Accueil public, connexion, presentation, vlog et carrousel architectural | Verifie | Tester la connexion, parcourir les trois visuels et controler le pied de page |
+| [ ] | `/login` | Redirection vers la connexion de l'accueil en preservant la destination demandee | Sous conditions | Tester un compte autorise, un mauvais mot de passe et le retour vers la page demandee |
 | [ ] | `/guide` | Didacticiel permanent en 8 etapes avec progression locale | Verifie | Cocher les 8 etapes, recharger la page puis reinitialiser la progression |
 | [ ] | `/admin` | Cockpit operationnel et acces aux outils plateforme | Verifie, donnees sous conditions | Verifier les compteurs avec un compte plateforme |
 | [ ] | `/admin/archives` | Etat des archives, echecs, retards et executions bloquees | Sous conditions | Tester avec un administrateur puis avec un utilisateur standard |

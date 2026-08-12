@@ -1,144 +1,251 @@
-import { ArrowRight, Building2, FileStack, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  FileCheck2,
+  FolderKanban,
+  HardHat,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 
-import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
-import { loadAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
-import { AppShell } from "@/components/layout/app-shell";
-import { SectionCard } from "@/components/ui/section-card";
-import { dashboardHighlights, validationChecklist } from "@/config/dashboard";
+import { ProjectCarousel } from "@/components/marketing/project-carousel";
+import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { LoginForm } from "@/modules/auth/components/login-form";
+import { sanitizeRedirectPath } from "@/modules/auth/services/session-navigation";
 
-export default async function Home() {
-  const adminCockpitData = await loadAdminCockpitData({
-    range: "30d",
-  });
+type HomePageProps = {
+  searchParams?: Promise<{
+    error?: string | string[];
+    next?: string | string[];
+  }>;
+};
+
+const presentationItems = [
+  {
+    title: "Chantiers structures",
+    description: "Organisations, roles, phases et priorites reunis dans un meme espace.",
+    icon: FolderKanban,
+  },
+  {
+    title: "Documents maitrises",
+    description: "Pieces, validations, signatures et echanges rattaches au bon dossier.",
+    icon: FileCheck2,
+  },
+  {
+    title: "Pilotage securise",
+    description: "Acces cloisonnes, actions sensibles tracees et arbitrage humain conserve.",
+    icon: ShieldCheck,
+  },
+] as const;
+
+const vlogEntries = [
+  {
+    number: "01",
+    label: "Du plan au chantier",
+    description: "Lire les choix techniques et suivre leur traduction sur le terrain.",
+  },
+  {
+    number: "02",
+    label: "Vie du projet",
+    description: "Partager les jalons, les documents utiles et les decisions qui comptent.",
+  },
+  {
+    number: "03",
+    label: "Construire a Mayotte",
+    description: "Mettre en avant des projets sobres, adaptes au climat et au contexte local.",
+  },
+] as const;
+
+export default async function Home({ searchParams }: HomePageProps) {
+  const [user, resolvedSearchParams] = await Promise.all([
+    getAuthenticatedUser(),
+    searchParams ? searchParams : Promise.resolve(undefined),
+  ]);
+  const errorMessage = Array.isArray(resolvedSearchParams?.error)
+    ? resolvedSearchParams.error[0]
+    : resolvedSearchParams?.error;
+  const nextValue = Array.isArray(resolvedSearchParams?.next)
+    ? resolvedSearchParams.next[0]
+    : resolvedSearchParams?.next;
+  const nextPath = sanitizeRedirectPath(nextValue);
 
   return (
-    <AppShell eyebrow="Plateforme administrative et technique" title="Pilotage global">
-      <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-[radial-gradient(circle_at_top_left,_rgba(224,122,95,0.18),_transparent_32%),linear-gradient(135deg,#fffaf3_0%,#f7efe5_42%,#f1e4d1_100%)] p-8 shadow-[0_24px_80px_rgba(89,65,40,0.14)]">
-          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-            <div className="relative overflow-hidden">
-              <div className="absolute inset-y-0 right-0 hidden w-48 bg-[radial-gradient(circle_at_center,_rgba(31,41,55,0.12),_transparent_70%)] lg:block" />
-              <div className="relative space-y-6">
-                <div className="max-w-2xl space-y-4">
-                  <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-5xl">
-                    Le cockpit AdminBTP devient l&apos;ecran principal d&apos;exploitation.
-                  </h1>
-                  <p className="max-w-2xl text-base leading-8 text-stone-700 sm:text-lg">
-                    Toute la plateforme tourne maintenant en production reelle. Le tableau
-                    de bord centralise la charge chantier, les validations, la tresorerie
-                    et les dossiers de conseil pour piloter l&apos;activite sans bruit parasite.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="min-h-screen bg-[#f4efe6] text-stone-950">
+      <header className="border-b border-stone-200/80 bg-[#f4efe6]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-5 lg:px-8">
+          <Link href="/" className="flex items-center gap-3" aria-label="AdminBTP, accueil">
+            <span className="grid size-11 place-items-center rounded-2xl bg-[#df765d] text-white shadow-[0_10px_24px_rgba(223,118,93,0.24)]">
+              <Building2 className="size-5" />
+            </span>
+            <span>
+              <span className="block text-lg font-semibold tracking-[-0.04em]">AdminBTP</span>
+              <span className="block text-xs text-stone-500">Piloter. Tracer. Construire.</span>
+            </span>
+          </Link>
+
+          <nav className="hidden items-center gap-7 text-sm text-stone-600 md:flex" aria-label="Navigation publique">
+            <a href="#plateforme" className="transition hover:text-stone-950">La plateforme</a>
+            <a href="#vlog" className="transition hover:text-stone-950">Vlog</a>
+            <a href="#projets" className="transition hover:text-stone-950">Projets</a>
+          </nav>
+
+          <Link
+            href={user ? "/admin" : "#connexion"}
+            className="inline-flex h-10 items-center justify-center rounded-full bg-stone-950 px-5 text-sm font-medium text-white transition hover:bg-stone-800"
+          >
+            {user ? "Ouvrir AdminBTP" : "Se connecter"}
+          </Link>
+        </div>
+      </header>
+
+      <main>
+        <section className="relative overflow-hidden border-b border-stone-200/80">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,rgba(223,118,93,0.17),transparent_28%),radial-gradient(circle_at_90%_20%,rgba(31,89,78,0.12),transparent_26%)]" />
+          <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-14 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
+            <div className="flex flex-col justify-center">
+              <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.22em] text-[#a44935] uppercase">
+                <HardHat className="size-4" />
+                Gestion administrative et technique BTP
+              </p>
+              <h1 className="mt-6 max-w-3xl text-5xl font-semibold tracking-[-0.065em] text-balance sm:text-6xl lg:text-7xl">
+                Le chantier avance. L&apos;administratif aussi.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-stone-600 sm:text-lg">
+                AdminBTP rassemble le suivi des chantiers, les documents, les validations
+                et les relances dans un espace clair, pense pour les equipes du BTP.
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-stone-700">
+                {["Multi-organisations", "Suivi chantier", "Validation humaine"].map((item) => (
+                  <span key={item} className="inline-flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-emerald-700" />
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <section
+              id="connexion"
+              className="scroll-mt-6 rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-[0_28px_80px_rgba(61,47,35,0.14)] backdrop-blur sm:p-8"
+              aria-labelledby="connexion-title"
+            >
+              {user ? (
+                <div className="flex h-full min-h-96 flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-semibold tracking-[0.22em] text-emerald-700 uppercase">
+                      Session active
+                    </p>
+                    <h2 id="connexion-title" className="mt-3 text-3xl font-semibold tracking-[-0.045em]">
+                      Bienvenue dans AdminBTP.
+                    </h2>
+                    <p className="mt-4 leading-7 text-stone-600">
+                      Votre session est deja ouverte. Reprenez directement le pilotage de vos dossiers.
+                    </p>
+                  </div>
                   <Link
                     href="/admin"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[0_14px_28px_rgba(224,122,95,0.25)] transition hover:brightness-95"
+                    className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#df765d] px-6 font-medium text-white transition hover:brightness-95"
                   >
-                    Ouvrir le cockpit detaille
+                    Acceder au cockpit
                     <ArrowRight className="size-4" />
                   </Link>
-                  <Link
-                    href="/projects"
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
-                  >
-                    Creer ou suivre un chantier
-                  </Link>
                 </div>
-                <div className="grid gap-3 md:grid-cols-3">
-                  {dashboardHighlights.map((highlight) => (
-                    <SectionCard
-                      key={highlight.title}
-                      title={highlight.title}
-                      description={highlight.description}
-                      tone={highlight.tone}
+              ) : (
+                <>
+                  <p className="text-xs font-semibold tracking-[0.22em] text-stone-500 uppercase">
+                    Espace securise
+                  </p>
+                  <h2 id="connexion-title" className="mt-3 text-3xl font-semibold tracking-[-0.045em]">
+                    Connexion a votre espace
+                  </h2>
+                  <p className="mt-3 text-sm leading-7 text-stone-600">
+                    Utilisez votre compte professionnel ou recevez un lien de connexion par email.
+                  </p>
+                  <div className="mt-7">
+                    <LoginForm
+                      loginPath="/"
+                      nextPath={nextPath}
+                      initialMessage={errorMessage}
                     />
-                  ))}
-                </div>
+                  </div>
+                </>
+              )}
+            </section>
+          </div>
+        </section>
+
+        <section id="plateforme" className="scroll-mt-8 bg-white py-16 lg:py-20">
+          <div className="mx-auto max-w-7xl px-5 lg:px-8">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold tracking-[0.22em] text-[#a44935] uppercase">En bref</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
+                L&apos;essentiel du pilotage, sans multiplier les outils.
+              </h2>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {presentationItems.map((item) => (
+                <article key={item.title} className="rounded-[1.75rem] border border-stone-200 bg-[#faf8f4] p-6">
+                  <item.icon className="size-6 text-[#bd5942]" />
+                  <h3 className="mt-6 text-xl font-semibold tracking-[-0.03em]">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-stone-600">{item.description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="vlog" className="scroll-mt-8 bg-stone-950 py-16 text-white lg:py-20">
+          <div className="mx-auto max-w-7xl px-5 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.22em] text-[#ef9b84] uppercase">Vlog chantier</p>
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.055em]">
+                  Les projets racontes simplement.
+                </h2>
+                <p className="mt-5 max-w-md leading-8 text-stone-400">
+                  Un journal court pour montrer les etapes, expliquer les plans et partager
+                  la realite des projets a Mayotte.
+                </p>
+              </div>
+              <div className="divide-y divide-white/10 border-y border-white/10">
+                {vlogEntries.map((entry) => (
+                  <article key={entry.number} className="grid gap-3 py-6 sm:grid-cols-[4rem_0.75fr_1.25fr] sm:items-center">
+                    <span className="font-mono text-sm text-[#ef9b84]">{entry.number}</span>
+                    <h3 className="text-lg font-medium">{entry.label}</h3>
+                    <p className="text-sm leading-6 text-stone-400">{entry.description}</p>
+                  </article>
+                ))}
               </div>
             </div>
           </div>
+        </section>
 
-          <aside className="rounded-[2rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-            <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-              <div>
-                <p className="text-xs font-medium tracking-[0.2em] text-stone-500 uppercase">
-                  Controles de production
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-stone-950">
-                  Checklist exploitation
+        <section id="projets" className="scroll-mt-8 bg-[#f4efe6] py-16 lg:py-20">
+          <div className="mx-auto max-w-7xl px-5 lg:px-8">
+            <div className="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold tracking-[0.22em] text-[#a44935] uppercase">Projets & architecture</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
+                  Concevoir pour le territoire mahorais.
                 </h2>
               </div>
-              <ShieldCheck className="size-10 rounded-2xl bg-emerald-50 p-2.5 text-emerald-700" />
+              <p className="max-w-md text-sm leading-7 text-stone-600">
+                Visuels de conception originaux illustrant une architecture tropicale, les plans et le suivi de chantier.
+              </p>
             </div>
-            <ul className="mt-6 space-y-4">
-              {validationChecklist.map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-3 rounded-2xl border border-stone-200/80 bg-stone-50/80 px-4 py-3 text-sm text-stone-700"
-                >
-                  <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">
-                    ✓
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </aside>
+            <ProjectCarousel />
+          </div>
         </section>
+      </main>
 
-        <AdminCockpit data={adminCockpitData} />
-
-        <section className="grid gap-6 lg:grid-cols-3">
-          <article className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
-                <Building2 className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-stone-950">Core</h3>
-                <p className="text-sm text-stone-600">Auth, organisations, permissions.</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm leading-7 text-stone-700">
-              Le coeur d&apos;AdminBTP reste verrouille pour proteger le multi-tenant et les
-              regles d&apos;acces transverses.
-            </p>
-          </article>
-
-          <article className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-sky-100 p-3 text-sky-700">
-                <FileStack className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-stone-950">Modules</h3>
-                <p className="text-sm text-stone-600">Chantiers, documents, consulting, IA.</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm leading-7 text-stone-700">
-              Chaque module garde ses types, composants et services isoles pour faciliter
-              les evolutions en production.
-            </p>
-          </article>
-
-          <article className="rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-rose-100 p-3 text-rose-700">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-stone-950">Securite</h3>
-                <p className="text-sm text-stone-600">Controle des acces, audit et validation.</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm leading-7 text-stone-700">
-              La plateforme est controlee par typage, tests, verification de production et
-              garde-fous serveur.
-            </p>
-          </article>
-        </section>
-      </div>
-    </AppShell>
+      <footer className="border-t border-stone-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-8 text-sm text-stone-500 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+          <p>© {new Date().getFullYear()} AdminBTP. Pilotage administratif et technique.</p>
+          <p className="font-medium text-stone-800">Create and design par FAST976.yt</p>
+        </div>
+      </footer>
+    </div>
   );
 }
