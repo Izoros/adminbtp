@@ -159,7 +159,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 32 : livree localement, connexions externes encore a tester
 - phase 33 : livree et validee localement et en production, recette utilisateur a effectuer
 - phase 34 : deployee, connexion Odoo reelle encore a tester
-- phase 35 : livree localement, deploiement de l'accueil public a verifier
+- phase 35 : livree et validee localement et en production
 
 ### PHASE 0 - Socle projet
 

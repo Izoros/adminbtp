@@ -35,4 +35,6 @@ rapidement AdminBTP, se connecter et decouvrir son ancrage BTP a Mayotte.
 - smoke local : pages critiques et crons proteges passes ;
 - audit local : `20` pages, `21` cibles et `7` redirections attendues ;
 - `npm audit --omit=dev` : `0` vulnerabilite detectee ;
-- verification de production a executer apres deploiement.
+- deploiement Vercel `b781b0a` : `READY` ;
+- `npm run verify:prod` : pages, liens, redirections, sante et en-tetes passes ;
+- observabilite Vercel : aucune erreur runtime ou fatale detectee apres verification.

@@ -12,8 +12,8 @@ Dernier deploiement de production verifie le `2026-08-12`.
 - projet Vercel : `adminbtp`
 - statut Vercel : `READY`
 - alias principal : [adminbtp.vercel.app](https://adminbtp.vercel.app)
-- URL de deploiement : [adminbtp-r1719ol5t-izoros-projects.vercel.app](https://adminbtp-r1719ol5t-izoros-projects.vercel.app)
-- commit applicatif verifie : `c226489`
+- URL de deploiement : [adminbtp-n9woprcqb-izoros-projects.vercel.app](https://adminbtp-n9woprcqb-izoros-projects.vercel.app)
+- commit applicatif verifie : `b781b0a`
 
 Remarques :
 

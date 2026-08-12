@@ -97,7 +97,7 @@ Application web :
 Dernier deploiement Vercel verifie le `2026-08-12` :
 
 - URL de production principale : [adminbtp.vercel.app](https://adminbtp.vercel.app)
-- URL de deploiement validee : [adminbtp-r1719ol5t-izoros-projects.vercel.app](https://adminbtp-r1719ol5t-izoros-projects.vercel.app)
+- URL de deploiement validee : [adminbtp-n9woprcqb-izoros-projects.vercel.app](https://adminbtp-n9woprcqb-izoros-projects.vercel.app)
 
 Note d'exploitation :
 
