@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { runOperationsAlertScan } from "@/modules/archival/services/operations-alerts";
+import { runOperationsRetentionCleanup } from "@/modules/archival/services/operations-retention";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,8 +20,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const retention = await runOperationsRetentionCleanup();
     const result = await runOperationsAlertScan();
-    return Response.json(result, { status: result.ok ? 200 : 502 });
+    return Response.json(
+      { ...result, retention },
+      { status: result.ok ? 200 : 502 },
+    );
   } catch (error) {
     return Response.json(
       {

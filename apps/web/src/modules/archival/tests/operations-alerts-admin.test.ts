@@ -31,6 +31,7 @@ function buildRow(overrides: Partial<OperationsAlertRow> = {}): OperationsAlertR
     title: "Une archive AdminBTP a echoue",
     source_entity_id: "11111111-1111-4111-8111-111111111111",
     occurred_at: "2026-08-12T03:01:00.000Z",
+    retention_until: "2027-08-12T03:01:00.000Z",
     status: "delivered",
     attempts: 1,
     last_attempt_at: "2026-08-12T04:00:00.000Z",

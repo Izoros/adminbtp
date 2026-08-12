@@ -24,6 +24,7 @@
 - decisions WhatsApp atomiques, journalisees et controlees a la fois dans la Server Action et PostgreSQL
 - outbox d'alertes exploitee par reservation atomique et visible uniquement par les administrateurs plateforme
 - destinations d'alerte limitees a HTTPS et a une liste blanche d'hotes, avec refus des adresses locales/privees
+- purge quotidienne `service_role` des commandes a 90 jours et alertes a 365 jours
 - modules qui manipulent `SUPABASE_SERVICE_ROLE_KEY` marques `server-only`
 
 ## Points de vigilance
@@ -35,6 +36,7 @@
 - aucune commande WhatsApp ne doit atteindre directement un shell, Codex ou une mutation metier
 - le statut `approved` confirme seulement la revue humaine et ne vaut jamais execution
 - aucun payload d'alerte externe ne doit contenir chemin, checksum, contenu ou erreur brute d'archive
+- la purge d'exploitation ne doit jamais inclure les archives reglementaires conservees 25 ans
 - les futures integrations Gmail, Outlook et Odoo devront etre journalisees
 - les uploads documentaires devront etre controles par type et taille
 - un `200` HTTP seul ne suffit pas: les controles smoke doivent aussi rejeter les pages d erreur Next.js ou Vercel servies avec un statut trompeur
@@ -47,7 +49,7 @@
 - date : `2026-08-12`
 - `next` et `eslint-config-next` : `16.3.0`
 - `npm audit --omit=dev` : `0` vulnerabilite detectee
-- `npm run verify` : lint, types, garde-fous, `287` tests et build passes
+- `npm run verify` : lint, types, garde-fous, `290` tests et build passes
 - build Next.js : `30` pages generees, dont `/admin/alerts` et `/api/cron/operations-alerts`
 - `scripts/verify-smoke.sh http://127.0.0.1:3100` : parcours publics et admin passes
 

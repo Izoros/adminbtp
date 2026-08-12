@@ -21,6 +21,7 @@ Le webhook suit le contrat de la plateforme WhatsApp Cloud API de Meta :
 - file `whatsapp_command_requests` reservee au `service_role`
 - consultation reservee aux administrateurs plateforme sur `/admin/commands`
 - retention par defaut de 90 jours
+- purge quotidienne a echeance, avec suppression en cascade du journal de revue
 
 ## Limite de securite volontaire
 

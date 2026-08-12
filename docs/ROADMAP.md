@@ -154,6 +154,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 27 : livree localement, activation externe en attente
 - phase 28 : livree localement, canal d'alerte externe en attente
 - phase 29 : livree localement, execution des commandes volontairement absente
+- phase 30 : livree localement, purge distante en attente de migration
 
 ### PHASE 0 - Socle projet
 
@@ -614,6 +615,23 @@ Validation :
 - chaque nouvelle decision cree un evenement d'audit
 - aucun shell, deploiement ou appel OpenAI n'est branche
 
+### PHASE 30 - Retention automatique des donnees d'exploitation
+
+Contenu :
+
+- retention WhatsApp a 90 jours
+- retention des alertes a 365 jours
+- purge SQL reservee au `service_role`
+- suppression en cascade des journaux de revue WhatsApp
+- compteurs de purge dans le resultat du cron d'exploitation
+
+Validation :
+
+- aucune purge n'est accessible a une session utilisateur
+- les dates d'echeance determinent seules les suppressions
+- le cron existant execute la purge avant l'analyse des alertes
+- les archives reglementaires de 25 ans restent hors perimetre
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -657,3 +675,4 @@ Ordre cible :
 28. Phase 27
 29. Phase 28
 30. Phase 29
+31. Phase 30

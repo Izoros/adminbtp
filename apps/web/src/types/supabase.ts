@@ -187,6 +187,7 @@ export type Database = {
           last_attempt_at: string | null
           last_error: string | null
           occurred_at: string
+          retention_until: string
           severity: string
           source_entity_id: string | null
           status: string
@@ -203,6 +204,7 @@ export type Database = {
           last_attempt_at?: string | null
           last_error?: string | null
           occurred_at: string
+          retention_until?: string
           severity: string
           source_entity_id?: string | null
           status?: string
@@ -219,6 +221,7 @@ export type Database = {
           last_attempt_at?: string | null
           last_error?: string | null
           occurred_at?: string
+          retention_until?: string
           severity?: string
           source_entity_id?: string | null
           status?: string
@@ -1890,6 +1893,10 @@ export type Database = {
           target_decision: string
         }
         Returns: Database["public"]["Tables"]["whatsapp_command_requests"]["Row"][]
+      }
+      purge_expired_operations_data: {
+        Args: { target_now?: string }
+        Returns: Json
       }
     }
     Enums: {

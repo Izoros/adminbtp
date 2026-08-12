@@ -56,9 +56,16 @@ Cette cadence quotidienne respecte la limite de deux crons et la cadence
 minimale du plan Vercel Hobby. Une supervision plus rapide exigera un plan qui
 autorise une frequence superieure ou un ordonnanceur externe controle.
 
+Avant chaque analyse, le meme cron appelle `purge_expired_operations_data` :
+
+- demandes et journaux WhatsApp : 90 jours
+- alertes d'exploitation : 365 jours
+
+Cette purge ne concerne jamais les archives reglementaires conservees 25 ans.
+
 ## Activation controlee
 
-1. appliquer `20260812143000_operations_alerts.sql`
+1. appliquer `20260812143000_operations_alerts.sql`, puis `20260812173000_operations_retention.sql`
 2. verifier que `archive_runs` est deja appliquee et alimentee
 3. creer un endpoint HTTPS qui valide le bearer token
 4. ajouter son hote exact a `ADMINBTP_OPERATIONS_ALERT_ALLOWED_HOSTS`
