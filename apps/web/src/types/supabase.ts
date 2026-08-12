@@ -176,6 +176,57 @@ export type Database = {
         }
         Relationships: []
       }
+      operations_alerts: {
+        Row: {
+          alert_kind: string
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          fingerprint: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          occurred_at: string
+          severity: string
+          source_entity_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_kind: string
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          fingerprint: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          occurred_at: string
+          severity: string
+          source_entity_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_kind?: string
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          fingerprint?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          occurred_at?: string
+          severity?: string
+          source_entity_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_command_requests: {
         Row: {
           business_phone_number_id: string
@@ -1787,6 +1838,17 @@ export type Database = {
       }
       is_org_manager: { Args: { target_org_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
+      claim_operations_alert: {
+        Args: {
+          target_alert_kind: string
+          target_fingerprint: string
+          target_occurred_at: string
+          target_severity: string
+          target_source_entity_id: string | null
+          target_title: string
+        }
+        Returns: Database["public"]["Tables"]["operations_alerts"]["Row"][]
+      }
     }
     Enums: {
       alert_severity: "low" | "medium" | "high"

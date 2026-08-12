@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArchiveRestore,
   ArrowRight,
+  BellRing,
   Bot,
   BriefcaseBusiness,
   MessageCircleMore,
@@ -74,6 +75,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 >
                   <MessageCircleMore className="size-4" />
                   Commandes WhatsApp
+                </Link>
+                <Link
+                  href="/admin/alerts"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+                >
+                  <BellRing className="size-4" />
+                  Alertes exploitation
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">

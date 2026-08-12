@@ -17,6 +17,7 @@
 13. `20260522101500_organizations_projects_write.sql`
 14. `20260811194500_archive_runs.sql`
 15. `20260812100000_whatsapp_command_requests.sql`
+16. `20260812143000_operations_alerts.sql`
 
 ## Intention de chaque migration
 
@@ -35,6 +36,7 @@
 - `organizations_projects_write` : fonctions SQL atomiques pour les creations d'organisation et de chantier
 - `archive_runs` : journal serveur, checksums et verification des archives longue duree
 - `whatsapp_command_requests` : file de demandes WhatsApp authentifiees, sans execution automatique
+- `operations_alerts` : outbox, reservation atomique et suivi des alertes d'exploitation
 
 ## Regle de travail
 

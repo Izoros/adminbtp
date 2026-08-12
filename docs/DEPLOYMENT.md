@@ -52,6 +52,16 @@ Variables conditionnelles pour la passerelle WhatsApp :
 Voir le runbook [WHATSAPP_COMMAND_GATEWAY.md](/Users/symba/Documents/9_AdminBTP/docs/WHATSAPP_COMMAND_GATEWAY.md:1). La valeur
 `ADMINBTP_WHATSAPP_COMMANDS_ENABLED` doit rester a `false` jusqu'au test controle.
 
+Variables conditionnelles pour les alertes d'exploitation :
+
+- `ADMINBTP_OPERATIONS_ALERTS_ENABLED`
+- `ADMINBTP_OPERATIONS_ALERT_WEBHOOK_URL`
+- `ADMINBTP_OPERATIONS_ALERT_WEBHOOK_TOKEN`
+- `ADMINBTP_OPERATIONS_ALERT_ALLOWED_HOSTS`
+
+Voir [OPERATIONS_ALERTS.md](/Users/symba/Documents/9_AdminBTP/docs/OPERATIONS_ALERTS.md:1). Les alertes restent a
+`false` tant que l'outbox, le destinataire et sa liste blanche ne sont pas testes.
+
 ## Verification avant deploiement
 
 Executer depuis la racine du depot :
@@ -96,7 +106,7 @@ npx vercel deploy --prod --yes --scope izoros-projects --project adminbtp
 - verifier les logs d'execution Vercel
 - verifier que `/` et `/api/health` repondent en `200`
 - verifier que le deploiement pointe bien vers le projet `adminbtp`
-- verifier que le smoke couvre au minimum `/`, `/login`, `/admin`, `/admin/archives`, `/admin/commands`, `/organizations`, `/projects`, `/documents`, `/signatures`, `/n8n`, `/consulting`, `/ai`, `/client-space` et `/followups`
+- verifier que le smoke couvre au minimum `/`, `/login`, `/admin`, `/admin/archives`, `/admin/commands`, `/admin/alerts`, `/organizations`, `/projects`, `/documents`, `/signatures`, `/n8n`, `/consulting`, `/ai`, `/client-space`, `/followups` et les crons refuses sans secret
 - verifier que `npm run verify:prod` controle aussi les en-tetes `CSP`, `HSTS`, `nosniff`, `DENY` et `permissions-policy`
 - verifier qu aucune route smoke ne remonte une page d erreur Next.js ou Vercel apres redirection
 

@@ -17,6 +17,7 @@ route_specs=(
   "/login|200|text/html|Acces AdminBTP"
   "/admin|200,302,303,307,308|text/html|"
   "/admin/archives|200,302,303,307,308|text/html|"
+  "/admin/alerts|200,302,303,307,308|text/html|"
   "/admin/commands|200,302,303,307,308|text/html|"
   "/organizations|200,302,303,307,308|text/html|"
   "/projects|200,302,303,307,308|text/html|"
@@ -27,6 +28,8 @@ route_specs=(
   "/ai|200,302,303,307,308|text/html|"
   "/client-space|200,302,303,307,308|text/html|"
   "/followups|200,302,303,307,308|text/html|"
+  "/api/cron/market-archive|401|application/json|unauthorized"
+  "/api/cron/operations-alerts|401|application/json|unauthorized"
 )
 
 error_markers=(

@@ -152,6 +152,7 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 25 : livree
 - phase 26 : livree
 - phase 27 : livree localement, activation externe en attente
+- phase 28 : livree localement, canal d'alerte externe en attente
 
 ### PHASE 0 - Socle projet
 
@@ -576,6 +577,24 @@ Validation :
 - aucune demande ne declenche de code, shell, deploiement ou mutation
 - `/admin/commands` ne lit le `service_role` qu'apres verification du role plateforme
 
+### PHASE 28 - Alertes d'exploitation des archives
+
+Contenu :
+
+- detection des archives en echec, bloquees ou quotidiennes en retard
+- outbox Supabase et reservation atomique idempotente
+- livraison HTTPS vers une liste blanche d'hotes
+- cron quotidien protege par `CRON_SECRET`
+- supervision plateforme sur `/admin/alerts`
+
+Validation :
+
+- les alertes sont desactivees par defaut
+- une destination locale, privee, HTTP ou non autorisee est refusee
+- aucune metadonnee sensible d'archive n'est envoyee
+- un evenement deja livre n'est pas renvoye
+- un non administrateur ne peut pas lire l'outbox
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -617,3 +636,4 @@ Ordre cible :
 26. Phase 25
 27. Phase 26
 28. Phase 27
+29. Phase 28

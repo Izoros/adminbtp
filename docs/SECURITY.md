@@ -21,6 +21,8 @@
 - file `/admin/commands` autorisee par `is_platform_admin` avant toute lecture `service_role`
 - webhook WhatsApp verifie par signature HMAC, liste blanche E.164 et interrupteur serveur desactive par defaut
 - numeros WhatsApp remplaces par une empreinte HMAC avant persistance
+- outbox d'alertes exploitee par reservation atomique et visible uniquement par les administrateurs plateforme
+- destinations d'alerte limitees a HTTPS et a une liste blanche d'hotes, avec refus des adresses locales/privees
 - modules qui manipulent `SUPABASE_SERVICE_ROLE_KEY` marques `server-only`
 
 ## Points de vigilance
@@ -30,6 +32,7 @@
 - les webhooks `n8n` doivent etre proteges par `ADMINBTP_N8N_WEBHOOK_TOKEN`
 - le webhook WhatsApp ne doit jamais etre active sans secret Meta, liste blanche et migration appliquee
 - aucune commande WhatsApp ne doit atteindre directement un shell, Codex ou une mutation metier
+- aucun payload d'alerte externe ne doit contenir chemin, checksum, contenu ou erreur brute d'archive
 - les futures integrations Gmail, Outlook et Odoo devront etre journalisees
 - les uploads documentaires devront etre controles par type et taille
 - un `200` HTTP seul ne suffit pas: les controles smoke doivent aussi rejeter les pages d erreur Next.js ou Vercel servies avec un statut trompeur
@@ -42,8 +45,8 @@
 - date : `2026-08-12`
 - `next` et `eslint-config-next` : `16.3.0`
 - `npm audit --omit=dev` : `0` vulnerabilite detectee
-- `npm run verify` : lint, types, garde-fous, `268` tests et build passes
-- build Next.js : `28` pages generees, dont `/admin/commands` et `/api/webhooks/whatsapp`
+- `npm run verify` : lint, types, garde-fous, `282` tests et build passes
+- build Next.js : `30` pages generees, dont `/admin/alerts` et `/api/cron/operations-alerts`
 - `scripts/verify-smoke.sh http://127.0.0.1:3100` : parcours publics et admin passes
 
 Ce resultat decrit l'etat local des dependances verrouillees. Il ne remplace ni
