@@ -4,6 +4,7 @@ set -euo pipefail
 
 readonly PROD_URL="${1:-https://adminbtp.vercel.app}"
 readonly HEALTH_URL="${PROD_URL%/}/api/health"
+readonly WHATSAPP_WEBHOOK_URL="${PROD_URL%/}/api/webhooks/whatsapp"
 headers_file="$(mktemp)"
 
 cleanup() {
@@ -58,4 +59,12 @@ if [[ "${health_service}" != "adminbtp-web" ]]; then
 fi
 
 echo "==> Health OK (${HEALTH_URL})"
+
+whatsapp_status="$(curl -s -o /dev/null -w '%{http_code}' "${WHATSAPP_WEBHOOK_URL}")"
+if [[ "${whatsapp_status}" != "403" && "${whatsapp_status}" != "503" ]]; then
+  echo "Echec verification WhatsApp: le webhook sans challenge doit echouer ferme, statut ${whatsapp_status}" >&2
+  exit 1
+fi
+
+echo "==> Webhook WhatsApp ferme sans challenge (${whatsapp_status})"
 echo "==> Verification production terminee"

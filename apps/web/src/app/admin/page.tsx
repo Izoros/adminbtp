@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ArchiveRestore, ArrowRight, Bot, BriefcaseBusiness, Wallet } from "lucide-react";
+import {
+  ArchiveRestore,
+  ArrowRight,
+  Bot,
+  BriefcaseBusiness,
+  MessageCircleMore,
+  Wallet,
+} from "lucide-react";
 
 import { AdminCockpit } from "@/components/dashboard/admin-cockpit";
 import { loadAdminCockpitData } from "@/components/dashboard/admin-cockpit-data";
@@ -60,6 +67,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 >
                   <ArchiveRestore className="size-4" />
                   Surveiller les archives
+                </Link>
+                <Link
+                  href="/admin/commands"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+                >
+                  <MessageCircleMore className="size-4" />
+                  Commandes WhatsApp
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">

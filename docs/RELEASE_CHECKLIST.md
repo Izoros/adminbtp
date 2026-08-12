@@ -23,6 +23,7 @@
 - connexion `/login`
 - cockpit `/admin`
 - supervision des archives `/admin/archives`
+- supervision des commandes `/admin/commands`
 - isolation multi-tenant `/organizations`
 - vue chantier `/projects`
 - documents `/documents`
@@ -40,5 +41,6 @@
 - en-tetes HTTP actifs
 - pas d'action IA irreversible sans validation
 - pas de fuite inter-organisation
+- webhook WhatsApp ferme sans challenge et passerelle desactivee sans configuration complete
 - `npm run audit:prod` analyse et documente
 - les alertes ou risques de dependances sont traces dans [docs/SECURITY.md](/Users/symba/Documents/9_AdminBTP/docs/SECURITY.md:1)

@@ -150,6 +150,8 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 23 : livree
 - phase 24 : livree
 - phase 25 : livree
+- phase 26 : livree
+- phase 27 : livree localement, activation externe en attente
 
 ### PHASE 0 - Socle projet
 
@@ -555,6 +557,25 @@ Validation :
 - le build Next.js 16.3.0 compile les `26` pages attendues
 - `/admin` et `/admin/archives` passent le smoke test
 
+### PHASE 27 - Passerelle WhatsApp securisee
+
+Contenu :
+
+- webhook WhatsApp Business avec challenge et signature HMAC SHA-256
+- liste blanche stricte des expediteurs
+- file Supabase idempotente avec retention de 90 jours
+- anonymisation du numero avant persistance
+- supervision reservee aux administrateurs sur `/admin/commands`
+- interrupteur serveur desactive par defaut
+
+Validation :
+
+- une requete non signee ou mal signee est refusee
+- un expediteur non autorise ne cree aucune demande
+- un doublon Meta ne cree pas une seconde commande
+- aucune demande ne declenche de code, shell, deploiement ou mutation
+- `/admin/commands` ne lit le `service_role` qu'apres verification du role plateforme
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -595,3 +616,4 @@ Ordre cible :
 25. Phase 24
 26. Phase 25
 27. Phase 26
+28. Phase 27

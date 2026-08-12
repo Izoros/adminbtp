@@ -48,6 +48,8 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Validation d'execution de la phase 24](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_24.md)
 - [Validation d'execution de la phase 25](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_25.md)
 - [Validation d'execution de la phase 26](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_26.md)
+- [Validation d'execution de la phase 27](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_27.md)
+- [Runbook de la passerelle WhatsApp](/Users/symba/Documents/9_AdminBTP/docs/WHATSAPP_COMMAND_GATEWAY.md)
 
 ## Finalite
 

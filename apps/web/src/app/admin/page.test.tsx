@@ -49,5 +49,8 @@ describe("page admin", () => {
     expect(
       screen.getByRole("link", { name: /Surveiller les archives/i }),
     ).toHaveAttribute("href", "/admin/archives");
+    expect(
+      screen.getByRole("link", { name: /Commandes WhatsApp/i }),
+    ).toHaveAttribute("href", "/admin/commands");
   });
 });

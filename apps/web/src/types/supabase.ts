@@ -176,6 +176,71 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_command_requests: {
+        Row: {
+          business_phone_number_id: string
+          command_kind: string
+          command_text: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          provider_message_id: string
+          provider_sent_at: string | null
+          received_at: string
+          response_summary: string | null
+          retention_until: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_fingerprint: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_phone_number_id: string
+          command_kind?: string
+          command_text: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          provider_message_id: string
+          provider_sent_at?: string | null
+          received_at?: string
+          response_summary?: string | null
+          retention_until?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_fingerprint: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_phone_number_id?: string
+          command_kind?: string
+          command_text?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          provider_message_id?: string
+          provider_sent_at?: string | null
+          received_at?: string
+          response_summary?: string | null
+          retention_until?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_fingerprint?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_command_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action_type: Database["public"]["Enums"]["audit_action_type"]
