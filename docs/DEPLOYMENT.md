@@ -7,12 +7,13 @@ de preproduction ou de production avec `Vercel` et `Supabase`.
 
 ## Statut actuel
 
-Deploiement de production effectue le `2026-05-26`.
+Dernier deploiement de production verifie le `2026-08-12`.
 
 - projet Vercel : `adminbtp`
 - statut Vercel : `READY`
 - alias principal : [adminbtp.vercel.app](https://adminbtp.vercel.app)
-- URL de deploiement : [adminbtp-ovohepeob-izoros-projects.vercel.app](https://adminbtp-ovohepeob-izoros-projects.vercel.app)
+- URL de deploiement : [adminbtp-r1719ol5t-izoros-projects.vercel.app](https://adminbtp-r1719ol5t-izoros-projects.vercel.app)
+- commit applicatif verifie : `c226489`
 
 Remarques :
 

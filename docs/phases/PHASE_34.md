@@ -26,6 +26,7 @@ et preparer une connexion JSON-2 securisee, desactivee par defaut.
 - page `/odoo` verifiee visuellement avec les dix formulaires bloques sans scope.
 - `npm run audit:prod` : `0` vulnerabilite detectee ;
 - build Next.js : `32` routes generees.
+- page `/odoo` et etat desactive du connecteur verifies sur la production Vercel.
 
 ## Limites explicites
 

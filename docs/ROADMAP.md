@@ -157,8 +157,8 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 30 : livree localement, purge distante en attente de migration
 - phase 31 : livree et validee sur PostgreSQL Supabase local
 - phase 32 : livree localement, connexions externes encore a tester
-- phase 33 : livree et validee localement, recette utilisateur a effectuer
-- phase 34 : livree localement, connexion Odoo reelle encore a tester
+- phase 33 : livree et validee localement et en production, recette utilisateur a effectuer
+- phase 34 : deployee, connexion Odoo reelle encore a tester
 
 ### PHASE 0 - Socle projet
 

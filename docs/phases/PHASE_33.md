@@ -24,6 +24,7 @@ reproductible avant chaque livraison.
 - tests de non-regression du guide et du panneau de premiere connexion passes.
 - `npm run verify` : `70` fichiers et `307` tests passes ;
 - smoke du build local : `20` pages critiques et deux crons proteges verifies.
+- `npm run verify:prod` : pages, liens, redirections, sante et en-tetes de securite passes sur `adminbtp.vercel.app`.
 
 ## Limites
 
