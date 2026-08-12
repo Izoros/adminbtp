@@ -47,7 +47,7 @@ describe("preparation des integrations", () => {
     expect(data).toMatchObject({
       updatedAt: "2026-08-12T05:00:00.000Z",
       readyGroups: 0,
-      totalGroups: 4,
+      totalGroups: 5,
     });
     expect(data.groups.find((group) => group.id === "supabase")?.status).toBe(
       "attention",
@@ -59,6 +59,9 @@ describe("preparation des integrations", () => {
       "inactive",
     );
     expect(data.groups.find((group) => group.id === "alerts")?.status).toBe(
+      "inactive",
+    );
+    expect(data.groups.find((group) => group.id === "odoo")?.status).toBe(
       "inactive",
     );
   });
@@ -81,12 +84,17 @@ describe("preparation des integrations", () => {
         "https://alerts.private.invalid/adminbtp",
       ADMINBTP_OPERATIONS_ALERT_WEBHOOK_TOKEN: "alert-secret-unique",
       ADMINBTP_OPERATIONS_ALERT_ALLOWED_HOSTS: "alerts.private.invalid",
+      ADMINBTP_ODOO_ENABLED: "true",
+      ADMINBTP_ODOO_BASE_URL: "https://odoo.private.invalid",
+      ADMINBTP_ODOO_DATABASE: "adminbtp-production",
+      ADMINBTP_ODOO_API_KEY: "odoo-api-key-unique",
+      ADMINBTP_ODOO_ALLOWED_HOSTS: "odoo.private.invalid",
     };
 
     const data = buildIntegrationReadinessData(environment);
     const serialized = JSON.stringify(data);
 
-    expect(data.readyGroups).toBe(4);
+    expect(data.readyGroups).toBe(5);
     expect(data.groups.every((group) => group.status === "ready")).toBe(true);
     const valuesThatMustRemainServerOnly = [
       environment.NEXT_PUBLIC_SUPABASE_URL,
@@ -101,6 +109,10 @@ describe("preparation des integrations", () => {
       environment.ADMINBTP_OPERATIONS_ALERT_WEBHOOK_URL,
       environment.ADMINBTP_OPERATIONS_ALERT_WEBHOOK_TOKEN,
       environment.ADMINBTP_OPERATIONS_ALERT_ALLOWED_HOSTS,
+      environment.ADMINBTP_ODOO_BASE_URL,
+      environment.ADMINBTP_ODOO_DATABASE,
+      environment.ADMINBTP_ODOO_API_KEY,
+      environment.ADMINBTP_ODOO_ALLOWED_HOSTS,
     ];
 
     for (const secretValue of valuesThatMustRemainServerOnly) {
@@ -124,7 +136,7 @@ describe("preparation des integrations", () => {
 
     await expect(loadIntegrationReadiness()).resolves.toMatchObject({
       access: "ready",
-      data: { totalGroups: 4 },
+      data: { totalGroups: 5 },
     });
   });
 });

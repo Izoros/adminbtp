@@ -4,6 +4,7 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly CONTRACT_SQL="${REPO_ROOT}/scripts/sql/verify-operations-contracts.sql"
+readonly ODOO_CONTRACT_SQL="${REPO_ROOT}/scripts/sql/verify-odoo-social-contracts.sql"
 
 if ! command -v psql >/dev/null 2>&1; then
   echo "Echec: psql est requis pour verifier les contrats Supabase." >&2
@@ -26,5 +27,8 @@ local_database_url="$(
 
 echo "==> Verification transactionnelle des contrats d'exploitation"
 psql "${local_database_url}" --no-psqlrc --quiet --file "${CONTRACT_SQL}"
+
+echo "==> Verification des contrats de mapping Odoo social"
+psql "${local_database_url}" --no-psqlrc --quiet --file "${ODOO_CONTRACT_SQL}"
 
 echo "==> Verification Supabase terminee sans reset ni donnee persistante"

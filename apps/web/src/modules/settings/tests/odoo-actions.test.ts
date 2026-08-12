@@ -266,6 +266,72 @@ describe("actions odoo", () => {
     });
   });
 
+  it("cree un mapping collaborateur Odoo sans persister de donnee salariale", async () => {
+    const existingMaybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === "odoo_mappings") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: existingMaybeSingle,
+                })),
+              })),
+            })),
+          })),
+          insert,
+        };
+      }
+
+      throw new Error(`Table inattendue: ${table}`);
+    });
+
+    createClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user_admin_001" } },
+          error: null,
+        }),
+      },
+      from,
+    });
+
+    const formData = new FormData();
+    formData.set("organizationId", "org_adminbtp_001");
+    formData.set("bindingType", "employee");
+    formData.set("adminbtpEntityId", "employee_adminbtp_001");
+    formData.set("odooModel", "hr.employee");
+    formData.set("odooRecordId", "410");
+    formData.set("syncStatus", "linked");
+
+    const result = await upsertOdooMappingAction(
+      buildInitialOdooMutationState(),
+      formData,
+    );
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization_id: "org_adminbtp_001",
+        binding_type: "employee",
+        adminbtp_entity_id: "employee_adminbtp_001",
+        odoo_model: "hr.employee",
+        odoo_record_id: "410",
+        sync_status: "linked",
+        created_by: "user_admin_001",
+      }),
+    );
+    expect(result).toEqual({
+      status: "success",
+      mode: "supabase",
+      message: "Mapping collaborateur Odoo cree dans Supabase.",
+    });
+  });
+
   it("complete automatiquement l'entite AdminBTP pour le mapping client delegue", async () => {
     const existingMaybeSingle = vi.fn().mockResolvedValue({
       data: null,

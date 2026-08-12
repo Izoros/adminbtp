@@ -15,6 +15,7 @@ trap cleanup EXIT
 route_specs=(
   "/|200|text/html|AdminBTP"
   "/login|200|text/html|Acces AdminBTP"
+  "/guide|200,302,303,307,308|text/html|Didacticiel AdminBTP"
   "/admin|200,302,303,307,308|text/html|"
   "/admin/archives|200,302,303,307,308|text/html|"
   "/admin/alerts|200,302,303,307,308|text/html|"
@@ -24,7 +25,10 @@ route_specs=(
   "/projects|200,302,303,307,308|text/html|"
   "/documents|200,302,303,307,308|text/html|"
   "/signatures|200,302,303,307,308|text/html|"
+  "/emails|200,302,303,307,308|text/html|"
+  "/phases|200,302,303,307,308|text/html|"
   "/n8n|200,302,303,307,308|text/html|"
+  "/odoo|200,302,303,307,308|text/html|"
   "/consulting|200,302,303,307,308|text/html|"
   "/ai|200,302,303,307,308|text/html|"
   "/client-space|200,302,303,307,308|text/html|"

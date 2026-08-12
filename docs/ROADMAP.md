@@ -157,6 +157,8 @@ Avant chaque nouvelle phase, Codex doit :
 - phase 30 : livree localement, purge distante en attente de migration
 - phase 31 : livree et validee sur PostgreSQL Supabase local
 - phase 32 : livree localement, connexions externes encore a tester
+- phase 33 : livree et validee localement, recette utilisateur a effectuer
+- phase 34 : livree localement, connexion Odoo reelle encore a tester
 
 ### PHASE 0 - Socle projet
 
@@ -667,6 +669,40 @@ Validation :
 - la presence des variables est distinguee d'un test de connexion reel
 - aucun service externe n'est active automatiquement
 
+### PHASE 33 - Audit des parcours et didacticiel permanent
+
+Contenu :
+
+- page `/guide` en huit etapes
+- progression conservee dans le navigateur sans donnee metier
+- acces permanent depuis la navigation et le panneau de premiere connexion
+- detection automatique des pages et liens internes
+- revue fonctionnelle et checklist de recette utilisateur
+
+Validation :
+
+- toutes les pages statiques et cibles internes repondent correctement
+- les redirections de session attendues sont suivies
+- le didacticiel est lisible, actionnable et persiste apres rechargement
+- le controle est rejouable sur un serveur local ou l'URL de production
+
+### PHASE 34 - Connecteur Odoo social et RH
+
+Contenu :
+
+- mappings collaborateurs, contrats, presences, absences, temps et bulletins
+- migration additive Supabase
+- adaptateur Odoo 19 JSON-2 cote serveur
+- allowlist HTTPS, modele et methode bornes, connecteur desactive par defaut
+- etat de preparation sans exposition des secrets
+
+Validation :
+
+- les six types sociaux sont acceptes par PostgreSQL et les actions serveur
+- aucune ecriture n'est disponible sans scope d'organisation autorise
+- aucun contenu ou montant salarial n'est copie dans les mappings
+- une connexion reelle n'est annoncee qu'apres un test controle sur l'instance cible
+
 ## Ordre d'execution recommande
 
 Le projet doit avancer dans cet ordre :
@@ -713,3 +749,5 @@ Ordre cible :
 31. Phase 30
 32. Phase 31
 33. Phase 32
+34. Phase 33
+35. Phase 34

@@ -76,11 +76,11 @@ export async function createProjectAction(formData: FormData) {
     target_code: payload.code,
     target_slug: payload.slug,
     target_name: payload.name,
-    target_description: payload.description || null,
+    target_description: payload.description || undefined,
     target_status: payload.status,
     target_role: payload.role,
-    target_starts_on: payload.startsOn ?? null,
-    target_ends_on: payload.endsOn ?? null,
+    target_starts_on: payload.startsOn ?? undefined,
+    target_ends_on: payload.endsOn ?? undefined,
   });
 
   if (error) {

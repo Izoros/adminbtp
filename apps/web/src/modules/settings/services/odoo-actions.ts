@@ -9,6 +9,7 @@ import {
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import type { OdooMutationState } from "@/modules/settings/services/odoo-action-state";
+import { isOdooBindingType } from "@/modules/settings/services/odoo-social-catalog";
 import type { OdooBindingType } from "@/modules/settings/types/odoo";
 
 function readRequiredField(formData: FormData, key: string) {
@@ -16,26 +17,21 @@ function readRequiredField(formData: FormData, key: string) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-function isOdooBindingType(value: string | null): value is OdooBindingType {
-  return (
-    value === "customer" ||
-    value === "invoice" ||
-    value === "subscription" ||
-    value === "consulting_service"
-  );
-}
-
 function buildSuccessMessage(bindingType: OdooBindingType, mode: "create" | "update") {
-  const subject =
-    bindingType === "customer"
-      ? "Mapping client Odoo"
-      : bindingType === "invoice"
-        ? "Mapping facture Odoo"
-        : bindingType === "subscription"
-          ? "Mapping abonnement Odoo"
-          : "Mapping prestation conseil Odoo";
+  const subjects: Record<OdooBindingType, string> = {
+    customer: "Mapping client Odoo",
+    invoice: "Mapping facture Odoo",
+    subscription: "Mapping abonnement Odoo",
+    consulting_service: "Mapping prestation conseil Odoo",
+    employee: "Mapping collaborateur Odoo",
+    employment_contract: "Mapping contrat de travail Odoo",
+    attendance: "Mapping presence Odoo",
+    time_off: "Mapping absence Odoo",
+    timesheet: "Mapping feuille de temps Odoo",
+    payslip: "Mapping bulletin de paie Odoo",
+  };
 
-  return `${subject} ${mode === "create" ? "cree" : "mis a jour"} dans Supabase.`;
+  return `${subjects[bindingType]} ${mode === "create" ? "cree" : "mis a jour"} dans Supabase.`;
 }
 
 export async function upsertOdooMappingAction(

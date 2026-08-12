@@ -1,4 +1,11 @@
-import { Building2, LayoutDashboard, LogIn, LogOut, Settings2 } from "lucide-react";
+import {
+  BookOpenCheck,
+  Building2,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Settings2,
+} from "lucide-react";
 import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
@@ -87,6 +94,13 @@ export async function AppShell({
               </div>
 
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <Link
+                  href="/guide"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-50"
+                >
+                  <BookOpenCheck className="size-4" />
+                  Didacticiel
+                </Link>
                 <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
                   <Settings2 className="size-4 text-stone-500" />
                   {user ? "Session Supabase active" : "Session requise"}

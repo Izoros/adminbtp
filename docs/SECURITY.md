@@ -28,6 +28,9 @@
 - contrats de role et de purge verifies dans PostgreSQL local par transaction avec rollback
 - tableau `/admin/readiness` autorise avant lecture des variables et limite a des indicateurs sans valeur sensible
 - modules qui manipulent `SUPABASE_SERVICE_ROLE_KEY` marques `server-only`
+- adaptateur Odoo marque `server-only`, limite a HTTPS, liste blanche, modeles et methodes explicites
+- cle API et base Odoo reduites a des indicateurs de presence dans les modeles de vue
+- mappings sociaux limites aux identifiants, sans copie de bulletin ni montant salarial
 
 ## Points de vigilance
 
@@ -40,7 +43,10 @@
 - le statut `approved` confirme seulement la revue humaine et ne vaut jamais execution
 - aucun payload d'alerte externe ne doit contenir chemin, checksum, contenu ou erreur brute d'archive
 - la purge d'exploitation ne doit jamais inclure les archives reglementaires conservees 25 ans
-- les futures integrations Gmail, Outlook et Odoo devront etre journalisees
+- les futures integrations Gmail et Outlook devront etre journalisees
+- toute synchronisation Odoo devra ajouter idempotence, journal d'execution, reprise bornee et rapprochement
+- le probe Odoo doit commencer en lecture seule et les contrats reels doivent etre confirmes sur `/doc`
+- aucune donnee salariale ne doit etre copiee sans finalite, minimisation, retention et autorisation documentees
 - les uploads documentaires devront etre controles par type et taille
 - un `200` HTTP seul ne suffit pas: les controles smoke doivent aussi rejeter les pages d erreur Next.js ou Vercel servies avec un statut trompeur
 - toute route critique exposee doit continuer a servir un `content-type` coherent apres redirection d authentification
@@ -52,8 +58,9 @@
 - date : `2026-08-12`
 - `next` et `eslint-config-next` : `16.3.0`
 - `npm audit --omit=dev` : `0` vulnerabilite detectee
-- `npm run verify` : lint, types, garde-fous, `296` tests et build passes
-- build Next.js : `31` routes generees, dont `/admin/readiness` et `/api/cron/operations-alerts`
+- `npm run verify` : lint, types, garde-fous, `307` tests et build passes
+- build Next.js : `32` routes generees, dont `/guide`, `/odoo`, `/admin/readiness` et `/api/cron/operations-alerts`
+- audit des liens : `20` pages, `21` cibles et `6` redirections de session attendues
 - `scripts/verify-smoke.sh http://127.0.0.1:3100` : parcours publics et admin passes
 
 Ce resultat decrit l'etat local des dependances verrouillees. Il ne remplace ni

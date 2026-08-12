@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bot,
+  BookOpenCheck,
   Building2,
   FileText,
   FolderKanban,
@@ -26,6 +27,13 @@ type NavigationDefinition = {
 };
 
 const coreItems: NavigationDefinition[] = [
+  {
+    label: "Didacticiel",
+    description: "Parcours guide pour prendre AdminBTP en main.",
+    href: "/guide",
+    phase: "AIDE",
+    icon: BookOpenCheck,
+  },
   {
     label: "Dashboard admin",
     description: "Cockpit de pilotage global AdminBTP.",
@@ -101,7 +109,7 @@ const businessItems: NavigationDefinition[] = [
   },
   {
     label: "Odoo",
-    description: "Mappings clients, facturation et prestations.",
+    description: "Mappings commerciaux, sociaux et RH.",
     href: "/odoo",
     phase: "P9",
     icon: Network,

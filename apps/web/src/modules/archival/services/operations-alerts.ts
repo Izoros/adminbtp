@@ -198,7 +198,9 @@ async function dispatchAlert(
       target_alert_kind: candidate.kind,
       target_severity: candidate.severity,
       target_title: candidate.title,
-      target_source_entity_id: candidate.sourceEntityId,
+      // PostgreSQL accepte NULL ici, mais le generateur Supabase ne modelise pas
+      // la nullabilite des arguments de fonction sans valeur par defaut.
+      target_source_entity_id: candidate.sourceEntityId as string,
       target_occurred_at: candidate.occurredAt,
     },
   );

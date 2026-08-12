@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useMemo, useSyncExternalStore } from "react";
-import { ArrowRight, Building2, FileStack, LayoutDashboard, X } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Building2, FileStack, LayoutDashboard, X } from "lucide-react";
 
 type NewUserGuideProps = {
   userId: string;
@@ -67,6 +68,7 @@ function readDismissedState(storageKey: string) {
 }
 
 export function NewUserGuide({ userId, userLabel }: NewUserGuideProps) {
+  const pathname = usePathname();
   const storageKey = useMemo(() => buildStorageKey(userId), [userId]);
   const isDismissed = useSyncExternalStore(
     subscribeToGuideChanges,
@@ -79,7 +81,7 @@ export function NewUserGuide({ userId, userLabel }: NewUserGuideProps) {
     window.dispatchEvent(new Event("adminbtp-onboarding-change"));
   }
 
-  if (isDismissed) {
+  if (isDismissed || pathname === "/guide") {
     return null;
   }
 
@@ -138,13 +140,23 @@ export function NewUserGuide({ userId, userLabel }: NewUserGuideProps) {
           <p className="text-sm text-stone-600">
             Le guide ne s&apos;affiche qu&apos;une fois par compte sur ce navigateur.
           </p>
-          <button
-            type="button"
-            onClick={closeGuide}
-            className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
-          >
-            J&apos;ai compris
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/guide"
+              onClick={closeGuide}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800"
+            >
+              <BookOpenCheck className="size-4" />
+              Voir le didacticiel complet
+            </Link>
+            <button
+              type="button"
+              onClick={closeGuide}
+              className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+            >
+              J&apos;ai compris
+            </button>
+          </div>
         </div>
       </div>
     </div>

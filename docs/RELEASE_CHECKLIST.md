@@ -17,10 +17,12 @@
 - rollback prepare
 - `npm run verify:prod` passe pour l'environnement cible
 - les parcours critiques automatisees ne remontent ni `5xx`, ni page d erreur Next.js/Vercel, ni `content-type` inattendu
+- `npm run verify:links -- <URL>` ne trouve aucune page ou cible interne en erreur
 
 ## Parcours critiques a verifier
 
 - connexion `/login`
+- didacticiel `/guide`
 - cockpit `/admin`
 - supervision des archives `/admin/archives`
 - supervision des commandes `/admin/commands`
@@ -35,6 +37,9 @@
 - IA `/ai`
 - espace client `/client-space`
 - relances `/followups`
+- emails `/emails`
+- phases `/phases`
+- mappings et preparation Odoo `/odoo`
 - sante `/api/health`
 
 ## Verification securite minimale
@@ -48,5 +53,7 @@
 - crons refuses sans `CRON_SECRET` et alertes externes desactivees sans configuration complete
 - purge d'exploitation testee sur des donnees factices avant toute activation distante
 - tableau de preparation reserve au role plateforme et depourvu de valeur secrete
+- connecteur Odoo desactive sans configuration complete, destination HTTPS autorisee et secrets cote serveur
+- aucun contenu de bulletin ou montant salarial persiste dans les mappings AdminBTP
 - `npm run audit:prod` analyse et documente
 - les alertes ou risques de dependances sont traces dans [docs/SECURITY.md](/Users/symba/Documents/9_AdminBTP/docs/SECURITY.md:1)

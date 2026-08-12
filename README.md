@@ -9,6 +9,7 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Plan de deploiement V1/V2](/Users/symba/Documents/9_AdminBTP/docs/adminbtp-v1-v2-rollout.md)
 - [Roadmap de developpement](/Users/symba/Documents/9_AdminBTP/docs/ROADMAP.md)
 - [Checklist de validation](/Users/symba/Documents/9_AdminBTP/docs/VALIDATION_CHECKLIST.md)
+- [Revue fonctionnelle et checklist utilisateur](/Users/symba/Documents/9_AdminBTP/docs/REVUE_FONCTIONNELLE.md)
 - [Regles de contribution](/Users/symba/Documents/9_AdminBTP/docs/CONTRIBUTING.md)
 - [Runbook de deploiement](/Users/symba/Documents/9_AdminBTP/docs/DEPLOYMENT.md)
 - [Checklist de release](/Users/symba/Documents/9_AdminBTP/docs/RELEASE_CHECKLIST.md)
@@ -52,10 +53,13 @@ Depot monorepo de cadrage et de developpement initial pour la plateforme AdminBT
 - [Runbook de la passerelle WhatsApp](/Users/symba/Documents/9_AdminBTP/docs/WHATSAPP_COMMAND_GATEWAY.md)
 - [Validation d'execution de la phase 28](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_28.md)
 - [Runbook des alertes d'exploitation](/Users/symba/Documents/9_AdminBTP/docs/OPERATIONS_ALERTS.md)
+- [Runbook du connecteur Odoo social](/Users/symba/Documents/9_AdminBTP/docs/ODOO_SOCIAL_CONNECTOR.md)
 - [Validation d'execution de la phase 29](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_29.md)
 - [Validation d'execution de la phase 30](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_30.md)
 - [Validation d'execution de la phase 31](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_31.md)
 - [Validation d'execution de la phase 32](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_32.md)
+- [Validation d'execution de la phase 33](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_33.md)
+- [Validation d'execution de la phase 34](/Users/symba/Documents/9_AdminBTP/docs/phases/PHASE_34.md)
 
 ## Finalite
 
@@ -113,6 +117,7 @@ npm run verify:guards
 npm run build
 npm run verify
 npm run verify:prod
+npm run verify:links -- http://127.0.0.1:3000
 npm run audit:prod
 npm run supabase:check
 npm run supabase:bootstrap
@@ -127,7 +132,7 @@ npm run supabase:verify-migrations
 Le depot est maintenant aligne sur un fonctionnement production :
 
 - authentification reelle Supabase par mot de passe ou lien magique, avec cookies SSR
-- guide d'accueil affiche une fois par utilisateur connecte pour accelerer la prise en main
+- guide d'accueil affiche une fois et didacticiel permanent en 8 etapes avec progression locale
 - ecritures sensibles `organizations` et `projects` proteges par session + fonctions SQL dediees
 - garde-fous de scope serveur verifies sur `documents`, `signatures`, `consulting` et `client-space`
 - RLS consolidee sur les zones `ai` et `client-space`
@@ -135,6 +140,9 @@ Le depot est maintenant aligne sur un fonctionnement production :
 - archivage longue duree journalise dans `archive_runs`, relu et verifie par checksum apres stockage
 - supervision `/admin/archives` reservee aux administrateurs plateforme, avec detection des echecs et executions bloquees
 - tableau `/admin/readiness` reserve aux administrateurs plateforme, sans restitution des secrets
+- audit automatique des `20` pages et de leurs liens internes, rejouable localement et en production
+- mappings Odoo etendus aux collaborateurs, contrats, presences, absences, temps et bulletins
+- adaptateur Odoo 19 JSON-2 cote serveur, securise et desactive sans configuration complete
 - passerelle WhatsApp, revue humaine, alertes et purge d'exploitation livrees mais desactivees sans configuration externe complete
 - socle Next.js aligne sur `16.3.0`, avec audit de production sans vulnerabilite detectee au `2026-08-12`
 - modules serveurs branches sur des etats Supabase reels ou des etats vides honnetes, sans injection de donnees de demonstration au runtime

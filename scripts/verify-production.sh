@@ -17,6 +17,7 @@ echo "==> Verification production: ${PROD_URL}"
 
 # On commence par les parcours critiques pour echouer vite en cas de regression visible.
 bash "$(dirname "$0")/verify-smoke.sh" "${PROD_URL}"
+node "$(dirname "$0")/verify-app-links.mjs" "${PROD_URL}"
 
 root_status="$(curl -s -D "${headers_file}" -o /dev/null -w '%{http_code}' "${PROD_URL}")"
 if [[ "${root_status}" != "200" ]]; then

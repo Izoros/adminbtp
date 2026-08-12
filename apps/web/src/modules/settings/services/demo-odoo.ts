@@ -6,6 +6,7 @@ import {
   findCustomerMappingForOrganization,
   getMappingsByType,
 } from "@/modules/settings/services/odoo-mapping";
+import { buildOdooConnectionReadiness } from "@/modules/settings/services/odoo-connector";
 
 export const demoOdooMappings: OdooMapping[] = [
   {
@@ -61,6 +62,16 @@ export function getDemoOdooMappingBoardData(): OdooMappingBoardData {
       demoOdooMappings,
       "consulting_service",
     ),
+    socialMappings: {
+      employee: [],
+      employment_contract: [],
+      attendance: [],
+      time_off: [],
+      timesheet: [],
+      payslip: [],
+    },
+    connectionReadiness: buildOdooConnectionReadiness({}),
+    canWrite: true,
     dataOrigin: "supabase",
   };
 }

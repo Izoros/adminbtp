@@ -88,6 +88,26 @@ describe("mapping Odoo", () => {
     expect(getMappingsByType(demoOdooMappings, "consulting_service")).toHaveLength(1);
   });
 
+  it("classe les mappings sociaux Odoo", async () => {
+    const data = await getOdooMappingBoardData(
+      { organizationId: "org_adminbtp_001" },
+      createReader({
+        listMappings: async () => [
+          createOdooMapping({
+            id: "odoo_employee_001",
+            adminbtp_entity_id: "employee_001",
+            binding_type: "employee",
+            odoo_model: "hr.employee",
+            odoo_record_id: "410",
+          }),
+        ],
+      }),
+    );
+
+    expect(data.socialMappings.employee).toHaveLength(1);
+    expect(data.socialMappings.payslip).toHaveLength(0);
+  });
+
   it("applique le scope organisation sur la lecture des mappings Odoo", async () => {
     const mappingQuery = createSelectQueryResult([createOdooMapping()]);
     const from = vi.fn((table: string) => {
@@ -130,6 +150,7 @@ describe("mapping Odoo", () => {
 
     expect(data.dataOrigin).toBe("supabase");
     expect(data.customerMapping).toBeUndefined();
+    expect(data.canWrite).toBe(false);
   });
 
   it("retourne les mappings Supabase si le perimetre contient des liaisons", async () => {
@@ -154,9 +175,10 @@ describe("mapping Odoo", () => {
     expect(data.dataOrigin).toBe("supabase");
     expect(data.organizationId).toBe("org_adminbtp_001");
     expect(data.invoiceMappings).toHaveLength(1);
+    expect(data.canWrite).toBe(true);
   });
 
-  it("reste sur un etat vide Supabase si aucun mapping n'est encore disponible", async () => {
+  it("refuse un perimetre demande qui n'est pas autorise", async () => {
     const data = await getOdooMappingBoardData(
       {
         organizationId: "org_inconnue",
@@ -167,8 +189,9 @@ describe("mapping Odoo", () => {
     );
 
     expect(data.dataOrigin).toBe("supabase");
-    expect(data.organizationId).toBe("org_inconnue");
-    expect(data.fallbackReason).toContain("Aucun mapping Odoo");
+    expect(data.organizationId).toBe("organization_indisponible");
+    expect(data.canWrite).toBe(false);
+    expect(data.fallbackReason).toContain("perimetre autorise");
   });
 
   it("reste en source Supabase vide si le scope est resolu mais qu'aucun mapping n'existe encore", async () => {
@@ -187,6 +210,7 @@ describe("mapping Odoo", () => {
     expect(data.organizationId).toBe("org_adminbtp_001");
     expect(data.customerMapping).toBeUndefined();
     expect(data.invoiceMappings).toHaveLength(0);
+    expect(data.canWrite).toBe(true);
     expect(data.fallbackReason).toContain("Aucun mapping Odoo n'a encore ete trouve");
   });
 });

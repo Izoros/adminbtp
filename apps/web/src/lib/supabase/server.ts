@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { hasSupabaseConfig, publicEnv } from "@/lib/env";
 import type { SupabaseDatabase } from "@/types/supabase";
@@ -34,7 +35,7 @@ export async function createClient() {
   );
 }
 
-export async function getAuthenticatedUser(): Promise<User | null> {
+export const getAuthenticatedUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -48,4 +49,4 @@ export async function getAuthenticatedUser(): Promise<User | null> {
   }
 
   return data.user;
-}
+});

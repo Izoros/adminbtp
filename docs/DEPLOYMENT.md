@@ -62,6 +62,16 @@ Variables conditionnelles pour les alertes d'exploitation :
 Voir [OPERATIONS_ALERTS.md](/Users/symba/Documents/9_AdminBTP/docs/OPERATIONS_ALERTS.md:1). Les alertes restent a
 `false` tant que l'outbox, le destinataire et sa liste blanche ne sont pas testes.
 
+Variables conditionnelles pour Odoo :
+
+- `ADMINBTP_ODOO_ENABLED`
+- `ADMINBTP_ODOO_BASE_URL`
+- `ADMINBTP_ODOO_DATABASE`
+- `ADMINBTP_ODOO_API_KEY`
+- `ADMINBTP_ODOO_ALLOWED_HOSTS`
+
+Voir [ODOO_SOCIAL_CONNECTOR.md](/Users/symba/Documents/9_AdminBTP/docs/ODOO_SOCIAL_CONNECTOR.md:1). L'interrupteur doit rester a `false` tant que les contrats de l'instance cible n'ont pas ete confirmes sur `/doc` et qu'un probe de preproduction n'a pas reussi.
+
 ## Verification avant deploiement
 
 Executer depuis la racine du depot :
@@ -98,18 +108,22 @@ npx vercel deploy --prod --yes --scope izoros-projects --project adminbtp
 ## Controles post-deploiement
 
 - lancer `npm run verify:prod` pour controler les parcours critiques publies
+- verifier la decouverte complete des pages et liens via `npm run verify:links -- https://adminbtp.vercel.app`
 - ouvrir `/login`
 - ouvrir `/projects`
+- ouvrir `/guide`
+- ouvrir `/odoo`
 - ouvrir `/ai`
 - verifier `/api/health`
 - verifier les entetes HTTP de securite
 - verifier les logs d'execution Vercel
 - verifier que `/` et `/api/health` repondent en `200`
 - verifier que le deploiement pointe bien vers le projet `adminbtp`
-- verifier que le smoke couvre au minimum `/`, `/login`, `/admin`, `/admin/archives`, `/admin/commands`, `/admin/alerts`, `/organizations`, `/projects`, `/documents`, `/signatures`, `/n8n`, `/consulting`, `/ai`, `/client-space`, `/followups` et les crons refuses sans secret
+- verifier que le smoke couvre au minimum `/`, `/login`, `/guide`, `/admin`, `/admin/archives`, `/admin/commands`, `/admin/alerts`, `/organizations`, `/projects`, `/phases`, `/documents`, `/signatures`, `/emails`, `/n8n`, `/consulting`, `/ai`, `/client-space`, `/followups`, `/odoo` et les crons refuses sans secret
 - verifier `/admin/readiness` avec un compte plateforme : aucun secret ne doit etre affiche et `Pret a tester` ne vaut pas connexion confirmee
 - verifier que `npm run verify:prod` controle aussi les en-tetes `CSP`, `HSTS`, `nosniff`, `DENY` et `permissions-policy`
 - verifier qu aucune route smoke ne remonte une page d erreur Next.js ou Vercel apres redirection
+- verifier que le connecteur Odoo reste desactive si sa configuration complete n'est pas volontairement fournie
 
 ## Rollback
 

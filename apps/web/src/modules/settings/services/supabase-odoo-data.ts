@@ -1,5 +1,8 @@
+import "server-only";
+
 import { loadServerOrganizationScope } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { buildOdooConnectionReadiness } from "@/modules/settings/services/odoo-connector";
 import {
   findCustomerMappingForOrganization,
   getMappingsByType,
@@ -9,10 +12,29 @@ import type {
   OdooMapping,
   OdooMappingBoardData,
   OdooMappingQuery,
+  OdooSocialBindingType,
 } from "@/modules/settings/types/odoo";
 import type { Tables } from "@/types/supabase";
 
 type OdooMappingRow = Tables<"odoo_mappings">;
+
+const socialBindingTypes: OdooSocialBindingType[] = [
+  "employee",
+  "employment_contract",
+  "attendance",
+  "time_off",
+  "timesheet",
+  "payslip",
+];
+
+function buildSocialMappings(mappings: OdooMapping[]) {
+  return Object.fromEntries(
+    socialBindingTypes.map((bindingType) => [
+      bindingType,
+      getMappingsByType(mappings, bindingType),
+    ]),
+  ) as Record<OdooSocialBindingType, OdooMapping[]>;
+}
 
 export type OdooSupabaseReader = {
   listMappings: (query?: OdooMappingQuery) => Promise<OdooMappingRow[]>;
@@ -58,6 +80,9 @@ function buildOdooMappingBoardData(
     invoiceMappings: getMappingsByType(scopedMappings, "invoice"),
     subscriptionMappings: getMappingsByType(scopedMappings, "subscription"),
     consultingMappings: getMappingsByType(scopedMappings, "consulting_service"),
+    socialMappings: buildSocialMappings(scopedMappings),
+    connectionReadiness: buildOdooConnectionReadiness(),
+    canWrite: true,
     dataOrigin: "supabase",
   };
 }
@@ -65,6 +90,7 @@ function buildOdooMappingBoardData(
 function buildEmptyOdooMappingBoardData(
   organizationId: string,
   fallbackReason?: string,
+  canWrite = false,
 ): OdooMappingBoardData {
   return {
     organizationId,
@@ -72,6 +98,9 @@ function buildEmptyOdooMappingBoardData(
     invoiceMappings: [],
     subscriptionMappings: [],
     consultingMappings: [],
+    socialMappings: buildSocialMappings([]),
+    connectionReadiness: buildOdooConnectionReadiness(),
+    canWrite,
     dataOrigin: "supabase",
     fallbackReason,
   };
@@ -140,13 +169,29 @@ export async function getOdooMappingBoardData(
     const boardData = buildOdooMappingBoardData(mappings, query?.organizationId);
 
     if (!boardData) {
+      if (
+        query?.organizationId &&
+        !resolvedReader.accessibleOrganizationIds.includes(query.organizationId)
+      ) {
+        return buildEmptyOdooMappingBoardData(
+          "organization_indisponible",
+          "L'organisation demandee ne fait pas partie du perimetre autorise.",
+        );
+      }
+
+      const preferredOrganizationId = resolvedReader.preferredOrganizationId;
       const targetOrganizationId =
-        query?.organizationId ?? resolvedReader.preferredOrganizationId ?? resolvedReader.accessibleOrganizationIds[0];
+        query?.organizationId ??
+        (preferredOrganizationId &&
+        resolvedReader.accessibleOrganizationIds.includes(preferredOrganizationId)
+          ? preferredOrganizationId
+          : resolvedReader.accessibleOrganizationIds[0]);
 
       if (targetOrganizationId) {
         return buildEmptyOdooMappingBoardData(
           targetOrganizationId,
           "Aucun mapping Odoo n'a encore ete trouve en base pour ce perimetre.",
+          true,
         );
       }
 

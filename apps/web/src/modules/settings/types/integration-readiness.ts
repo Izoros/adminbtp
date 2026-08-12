@@ -7,7 +7,7 @@ export type IntegrationReadinessCheck = {
 };
 
 export type IntegrationReadinessGroup = {
-  id: "supabase" | "whatsapp" | "archive" | "alerts";
+  id: "supabase" | "whatsapp" | "archive" | "alerts" | "odoo";
   title: string;
   description: string;
   status: IntegrationReadinessStatus;

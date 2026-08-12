@@ -15,6 +15,7 @@
     "test:watch": "npm run test:watch --workspace web",
     "verify": "bash ./scripts/validate.sh",
     "verify:prod": "bash ./scripts/verify-production.sh",
+    "verify:links": "node ./scripts/verify-app-links.mjs",
     "audit:prod": "npm audit --omit=dev",
     "supabase:create-platform-admin": "node ./scripts/create-platform-admin.mjs",
     "supabase:set-user-password": "node ./scripts/set-user-password.mjs",
@@ -26,7 +27,7 @@
     "supabase:reset": "npx supabase db reset",
     "supabase:lint": "npx supabase db lint",
     "supabase:verify-migrations": "bash ./scripts/verify-supabase-migrations.sh",
-    "supabase:types": "npx supabase gen types typescript --local --schema public > apps/web/src/types/supabase.ts"
+    "supabase:types": "node ./scripts/generate-supabase-types.mjs > apps/web/src/types/supabase.ts"
   },
   "devDependencies": {
     "supabase": "^2.101.0"

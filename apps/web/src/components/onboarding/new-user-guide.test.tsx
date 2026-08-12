@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { NewUserGuide } from "@/components/onboarding/new-user-guide";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/projects",
+}));
+
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: ComponentProps<"a">) => (
     <a href={href} {...props}>
@@ -58,5 +62,13 @@ describe("NewUserGuide", () => {
     });
 
     expect(window.localStorage.getItem(storageKey)).toBeTruthy();
+  });
+
+  it("propose le didacticiel permanent", async () => {
+    render(<NewUserGuide userId="user_123" userLabel="izoro" />);
+
+    expect(
+      await screen.findByRole("link", { name: /Voir le didacticiel complet/i }),
+    ).toHaveAttribute("href", "/guide");
   });
 });

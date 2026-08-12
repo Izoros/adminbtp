@@ -176,160 +176,6 @@ export type Database = {
         }
         Relationships: []
       }
-      operations_alerts: {
-        Row: {
-          alert_kind: string
-          attempts: number
-          created_at: string
-          delivered_at: string | null
-          fingerprint: string
-          id: string
-          last_attempt_at: string | null
-          last_error: string | null
-          occurred_at: string
-          retention_until: string
-          severity: string
-          source_entity_id: string | null
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          alert_kind: string
-          attempts?: number
-          created_at?: string
-          delivered_at?: string | null
-          fingerprint: string
-          id?: string
-          last_attempt_at?: string | null
-          last_error?: string | null
-          occurred_at: string
-          retention_until?: string
-          severity: string
-          source_entity_id?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          alert_kind?: string
-          attempts?: number
-          created_at?: string
-          delivered_at?: string | null
-          fingerprint?: string
-          id?: string
-          last_attempt_at?: string | null
-          last_error?: string | null
-          occurred_at?: string
-          retention_until?: string
-          severity?: string
-          source_entity_id?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      whatsapp_command_requests: {
-        Row: {
-          business_phone_number_id: string
-          command_kind: string
-          command_text: string
-          completed_at: string | null
-          created_at: string
-          id: string
-          provider_message_id: string
-          provider_sent_at: string | null
-          received_at: string
-          response_summary: string | null
-          retention_until: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          sender_fingerprint: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          business_phone_number_id: string
-          command_kind?: string
-          command_text: string
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          provider_message_id: string
-          provider_sent_at?: string | null
-          received_at?: string
-          response_summary?: string | null
-          retention_until?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          sender_fingerprint: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          business_phone_number_id?: string
-          command_kind?: string
-          command_text?: string
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          provider_message_id?: string
-          provider_sent_at?: string | null
-          received_at?: string
-          response_summary?: string | null
-          retention_until?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          sender_fingerprint?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_command_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      whatsapp_command_events: {
-        Row: {
-          actor_user_id: string
-          command_request_id: string
-          created_at: string
-          details: Json
-          event_type: string
-          id: string
-        }
-        Insert: {
-          actor_user_id: string
-          command_request_id: string
-          created_at?: string
-          details?: Json
-          event_type: string
-          id?: string
-        }
-        Update: {
-          actor_user_id?: string
-          command_request_id?: string
-          created_at?: string
-          details?: Json
-          event_type?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_command_events_command_request_id_fkey"
-            columns: ["command_request_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_command_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       audit_logs: {
         Row: {
           action_type: Database["public"]["Enums"]["audit_action_type"]
@@ -1084,6 +930,60 @@ export type Database = {
           },
         ]
       }
+      operations_alerts: {
+        Row: {
+          alert_kind: string
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          fingerprint: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          occurred_at: string
+          retention_until: string
+          severity: string
+          source_entity_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_kind: string
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          fingerprint: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          occurred_at: string
+          retention_until?: string
+          severity: string
+          source_entity_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_kind?: string
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          fingerprint?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          occurred_at?: string
+          retention_until?: string
+          severity?: string
+          source_entity_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -1808,6 +1708,98 @@ export type Database = {
           },
         ]
       }
+      whatsapp_command_events: {
+        Row: {
+          actor_user_id: string
+          command_request_id: string
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_user_id: string
+          command_request_id: string
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_user_id?: string
+          command_request_id?: string
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_command_events_command_request_id_fkey"
+            columns: ["command_request_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_command_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_command_requests: {
+        Row: {
+          business_phone_number_id: string
+          command_kind: string
+          command_text: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          provider_message_id: string
+          provider_sent_at: string | null
+          received_at: string
+          response_summary: string | null
+          retention_until: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_fingerprint: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_phone_number_id: string
+          command_kind?: string
+          command_text: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          provider_message_id: string
+          provider_sent_at?: string | null
+          received_at?: string
+          response_summary?: string | null
+          retention_until?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_fingerprint: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_phone_number_id?: string
+          command_kind?: string
+          command_text?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          provider_message_id?: string
+          provider_sent_at?: string | null
+          received_at?: string
+          response_summary?: string | null
+          retention_until?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_fingerprint?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       consulting_mission_capacity: {
@@ -1852,9 +1844,42 @@ export type Database = {
         Args: { target_project_id: string }
         Returns: boolean
       }
+      claim_operations_alert: {
+        Args: {
+          target_alert_kind: string
+          target_fingerprint: string
+          target_occurred_at: string
+          target_severity: string
+          target_source_entity_id: string
+          target_title: string
+        }
+        Returns: {
+          alert_kind: string
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          fingerprint: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          occurred_at: string
+          retention_until: string
+          severity: string
+          source_entity_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "operations_alerts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       create_organization_with_owner: {
         Args: {
-          target_legal_name?: string | null
+          target_legal_name?: string
           target_name: string
           target_slug: string
         }
@@ -1863,40 +1888,49 @@ export type Database = {
       create_project_with_owner_role: {
         Args: {
           target_code: string
-          target_description?: string | null
-          target_ends_on?: string | null
+          target_description?: string
+          target_ends_on?: string
           target_name: string
           target_owner_organization_id: string
           target_role?: Database["public"]["Enums"]["project_role"]
           target_slug: string
-          target_starts_on?: string | null
+          target_starts_on?: string
           target_status?: Database["public"]["Enums"]["project_status"]
         }
         Returns: string
       }
       is_org_manager: { Args: { target_org_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
-      claim_operations_alert: {
-        Args: {
-          target_alert_kind: string
-          target_fingerprint: string
-          target_occurred_at: string
-          target_severity: string
-          target_source_entity_id: string | null
-          target_title: string
-        }
-        Returns: Database["public"]["Tables"]["operations_alerts"]["Row"][]
-      }
-      review_whatsapp_command: {
-        Args: {
-          target_command_id: string
-          target_decision: string
-        }
-        Returns: Database["public"]["Tables"]["whatsapp_command_requests"]["Row"][]
-      }
       purge_expired_operations_data: {
         Args: { target_now?: string }
         Returns: Json
+      }
+      review_whatsapp_command: {
+        Args: { target_command_id: string; target_decision: string }
+        Returns: {
+          business_phone_number_id: string
+          command_kind: string
+          command_text: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          provider_message_id: string
+          provider_sent_at: string | null
+          received_at: string
+          response_summary: string | null
+          retention_until: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_fingerprint: string
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "whatsapp_command_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
@@ -1978,6 +2012,12 @@ export type Database = {
         | "invoice"
         | "subscription"
         | "consulting_service"
+        | "employee"
+        | "employment_contract"
+        | "attendance"
+        | "time_off"
+        | "timesheet"
+        | "payslip"
       organization_role: "org_owner" | "org_admin" | "org_member" | "org_viewer"
       phase_profile: "moe" | "moa" | "tce" | "trade_contractor"
       phase_status:
@@ -2244,6 +2284,12 @@ export const Constants = {
         "invoice",
         "subscription",
         "consulting_service",
+        "employee",
+        "employment_contract",
+        "attendance",
+        "time_off",
+        "timesheet",
+        "payslip",
       ],
       organization_role: ["org_owner", "org_admin", "org_member", "org_viewer"],
       phase_profile: ["moe", "moa", "tce", "trade_contractor"],

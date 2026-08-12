@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
+import { buildOdooConnectionReadiness } from "@/modules/settings/services/odoo-connector";
 import type {
   IntegrationReadinessAccessResult,
   IntegrationReadinessCheck,
@@ -95,6 +96,7 @@ export function buildIntegrationReadinessData(
       return false;
     }
   })();
+  const odooReadiness = buildOdooConnectionReadiness(environment);
 
   const groups: IntegrationReadinessGroup[] = [
     buildGroup({
@@ -174,6 +176,15 @@ export function buildIntegrationReadinessData(
         ),
       ],
     }),
+    {
+      id: "odoo",
+      title: "Odoo et gestion sociale",
+      description:
+        "Connecteur JSON-2 pour clients, factures, collaborateurs, contrats, temps, absences et paie.",
+      status: odooReadiness.status,
+      statusLabel: odooReadiness.statusLabel,
+      checks: odooReadiness.checks,
+    },
   ];
 
   return {

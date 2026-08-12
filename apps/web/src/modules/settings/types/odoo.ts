@@ -2,7 +2,29 @@ export type OdooBindingType =
   | "customer"
   | "invoice"
   | "subscription"
-  | "consulting_service";
+  | "consulting_service"
+  | "employee"
+  | "employment_contract"
+  | "attendance"
+  | "time_off"
+  | "timesheet"
+  | "payslip";
+
+export type OdooSocialBindingType = Extract<
+  OdooBindingType,
+  | "employee"
+  | "employment_contract"
+  | "attendance"
+  | "time_off"
+  | "timesheet"
+  | "payslip"
+>;
+
+export type OdooConnectionReadiness = {
+  status: "inactive" | "attention" | "ready";
+  statusLabel: string;
+  checks: Array<{ label: string; ready: boolean; detail: string }>;
+};
 
 export type OdooMapping = {
   id: string;
@@ -22,6 +44,9 @@ export type OdooMappingBoardData = {
   invoiceMappings: OdooMapping[];
   subscriptionMappings: OdooMapping[];
   consultingMappings: OdooMapping[];
+  socialMappings: Record<OdooSocialBindingType, OdooMapping[]>;
+  connectionReadiness: OdooConnectionReadiness;
+  canWrite: boolean;
   dataOrigin: OdooDataOrigin;
   fallbackReason?: string;
 };

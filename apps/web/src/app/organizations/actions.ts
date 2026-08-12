@@ -51,7 +51,7 @@ export async function createOrganizationAction(formData: FormData) {
   const { error } = await supabase.rpc("create_organization_with_owner", {
     target_name: payload.name,
     target_slug: payload.slug,
-    target_legal_name: payload.legalName ?? null,
+    target_legal_name: payload.legalName ?? undefined,
   });
 
   if (error) {
