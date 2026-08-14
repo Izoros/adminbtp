@@ -70,14 +70,15 @@ describe("POST /auth/password-login", () => {
     const response = await POST(buildLoginRequest());
 
     expect(response).toBe(outgoingResponse);
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe(
-      "https://adminbtp.test/admin",
-    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("set-cookie")).toContain(
       "sb-test-auth-token=token",
     );
     expect(response.headers.get("set-cookie")).toContain("Secure");
+    await expect(response.text()).resolves.toContain(
+      "url=https://adminbtp.test/admin",
+    );
   });
 });

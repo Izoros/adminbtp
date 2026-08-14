@@ -53,3 +53,38 @@ export function createAuthRedirect(destination: string | URL) {
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;
 }
+
+export function createAuthTransitionResponse(destination: URL) {
+  const safeDestination = escapeHtmlAttribute(destination.toString());
+  const response = new NextResponse(
+    `<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="refresh" content="0;url=${safeDestination}">
+    <title>Connexion AdminBTP</title>
+  </head>
+  <body>
+    <p>Connexion validee. <a href="${safeDestination}">Ouvrir AdminBTP</a></p>
+  </body>
+</html>`,
+    {
+      status: 200,
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0",
+        "Content-Type": "text/html; charset=utf-8",
+      },
+    },
+  );
+
+  return response;
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}

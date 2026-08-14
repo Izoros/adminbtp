@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 
 import {
   createAuthRedirect,
+  createAuthTransitionResponse,
   createRouteHandlerClient,
 } from "@/lib/supabase/route-handler";
 import {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     return createAuthRedirect(new URL("/login", request.url));
   }
 
-  const successResponse = createAuthRedirect(
+  const successResponse = createAuthTransitionResponse(
     new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
   );
   const { supabase, response } = createRouteHandlerClient(

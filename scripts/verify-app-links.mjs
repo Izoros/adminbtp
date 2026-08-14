@@ -200,18 +200,21 @@ async function authenticateAuditSession() {
   });
   storeResponseCookies(response);
 
-  if (response.status !== 303) {
+  if (response.status !== 200) {
     throw new Error(
-      `Audit authentifie: la connexion doit repondre 303, statut ${response.status}.`,
+      `Audit authentifie: la connexion doit confirmer la session en HTML, statut ${response.status}.`,
     );
+  }
+
+  if (!response.headers.get("content-type")?.includes("text/html")) {
+    throw new Error("Audit authentifie: page de transition HTML absente.");
   }
 
   if (![...sessionCookies.keys()].some((name) => name.startsWith("sb-"))) {
     throw new Error("Audit authentifie: aucun cookie Supabase recu.");
   }
 
-  const location = response.headers.get("location");
-  const firstDashboard = await fetchFollowingRedirects(location ?? "/admin", {
+  const firstDashboard = await fetchFollowingRedirects("/admin", {
     headers: { "user-agent": "AdminBTP-Link-Audit/1.0" },
   });
   const firstDashboardPath = new URL(firstDashboard.response.url).pathname;
