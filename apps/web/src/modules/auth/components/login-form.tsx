@@ -34,12 +34,17 @@ export function LoginForm({
     }
 
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submittedEmail = String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const submittedPassword = String(formData.get("password") ?? "");
     setActiveAction("password");
     setMessage(null);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
+      email: submittedEmail,
+      password: submittedPassword,
     });
 
     if (error) {
