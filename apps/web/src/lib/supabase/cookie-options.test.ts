@@ -4,13 +4,18 @@ describe("Supabase cookie options", () => {
   it("securise le cookie de session en production", () => {
     expect(getSupabaseCookieOptions("production")).toMatchObject({
       httpOnly: false,
+      partitioned: true,
       path: "/",
-      sameSite: "lax",
+      sameSite: "none",
       secure: true,
     });
   });
 
   it("autorise le developpement local en HTTP", () => {
-    expect(getSupabaseCookieOptions("development").secure).toBe(false);
+    expect(getSupabaseCookieOptions("development")).toMatchObject({
+      partitioned: false,
+      sameSite: "lax",
+      secure: false,
+    });
   });
 });
