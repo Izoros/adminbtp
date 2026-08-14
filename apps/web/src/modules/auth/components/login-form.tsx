@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2, CircleAlert } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ type LoginFormProps = {
   loginPath?: "/" | "/login";
 };
 
+type MessageTone = "error" | "success";
+
 export function LoginForm({
   nextPath,
   initialMessage = null,
@@ -22,17 +25,22 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(initialMessage);
+  const [messageTone, setMessageTone] = useState<MessageTone | null>(
+    initialMessage ? "error" : null,
+  );
   const [activeAction, setActiveAction] = useState<"password" | "magic-link" | null>(null);
   const supabaseProjectRef = getSupabaseProjectRef();
 
   async function sendMagicLink() {
     setActiveAction("magic-link");
     setMessage(null);
+    setMessageTone(null);
 
     const supabase = createClient();
 
     if (!supabase) {
       setMessage("Configuration Supabase indisponible pour cette instance.");
+      setMessageTone("error");
       setActiveAction(null);
       return;
     }
@@ -49,11 +57,13 @@ export function LoginForm({
 
     if (error) {
       setMessage("Le lien de connexion n'a pas pu etre envoye. Reessayez plus tard.");
+      setMessageTone("error");
       setActiveAction(null);
       return;
     }
 
     setMessage("Lien de connexion envoye. Ouvrez votre email pour continuer.");
+    setMessageTone("success");
     setActiveAction(null);
   }
 
@@ -65,10 +75,33 @@ export function LoginForm({
       onSubmit={() => {
         setActiveAction("password");
         setMessage(null);
+        setMessageTone(null);
       }}
     >
       <input type="hidden" name="next" value={nextPath ?? getDefaultAuthRedirect()} />
       <input type="hidden" name="login_path" value={loginPath} />
+
+      {message && messageTone ? (
+        <div
+          role={messageTone === "error" ? "alert" : "status"}
+          aria-live="polite"
+          className={
+            messageTone === "error"
+              ? "flex items-start gap-3 rounded-2xl border border-red-400 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm"
+              : "flex items-start gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
+          }
+        >
+          {messageTone === "error" ? (
+            <CircleAlert className="mt-0.5 size-5 shrink-0 text-red-700" aria-hidden="true" />
+          ) : (
+            <CheckCircle2
+              className="mt-0.5 size-5 shrink-0 text-emerald-700"
+              aria-hidden="true"
+            />
+          )}
+          <span>{message}</span>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-stone-800">
@@ -132,11 +165,6 @@ export function LoginForm({
         Le mot de passe ouvre directement la session. Le lien email reste disponible en secours.
       </p>
 
-      {message ? (
-        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {message}
-        </p>
-      ) : null}
     </form>
   );
 }

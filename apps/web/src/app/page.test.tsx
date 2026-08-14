@@ -28,4 +28,19 @@ describe("page d'accueil AdminBTP", () => {
     fireEvent.click(screen.getByRole("button", { name: "Image suivante" }));
     expect(screen.getByText("Du plan au dossier technique")).toBeInTheDocument();
   });
+
+  it("affiche une erreur de connexion visible avant les champs", async () => {
+    render(
+      await Home({
+        searchParams: Promise.resolve({ errorCode: "invalid_credentials" }),
+      }),
+    );
+
+    const alert = screen.getByRole("alert");
+    const emailInput = screen.getByLabelText("Email professionnel");
+
+    expect(alert).toHaveTextContent("Identifiants invalides ou compte indisponible.");
+    expect(alert).toHaveClass("border-red-400", "bg-red-100", "text-red-950");
+    expect(alert.compareDocumentPosition(emailInput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
