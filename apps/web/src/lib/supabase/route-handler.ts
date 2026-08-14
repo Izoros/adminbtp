@@ -62,7 +62,7 @@ export function createAuthTransitionResponse(destination: URL) {
   <head>
     <meta charset="utf-8">
     <meta name="referrer" content="no-referrer">
-    <meta http-equiv="refresh" content="0;url=${safeDestination}">
+    <meta http-equiv="refresh" content="1;url=${safeDestination}">
     <title>Connexion AdminBTP</title>
   </head>
   <body>
