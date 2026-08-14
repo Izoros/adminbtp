@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,32 @@ export function LoginForm({
   const [message, setMessage] = useState<string | null>(initialMessage);
   const [activeAction, setActiveAction] = useState<"password" | "magic-link" | null>(null);
   const supabaseProjectRef = getSupabaseProjectRef();
+
+  async function signInWithPassword(event: FormEvent<HTMLFormElement>) {
+    const supabase = createClient();
+
+    if (!supabase) {
+      // Le POST serveur reste le repli progressif si le client Supabase est indisponible.
+      return;
+    }
+
+    event.preventDefault();
+    setActiveAction("password");
+    setMessage(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (error) {
+      setMessage("Email ou mot de passe incorrect.");
+      setActiveAction(null);
+      return;
+    }
+
+    window.location.replace(nextPath ?? getDefaultAuthRedirect());
+  }
 
   async function sendMagicLink() {
     setActiveAction("magic-link");
@@ -62,10 +88,7 @@ export function LoginForm({
       action="/auth/password-login"
       method="post"
       className="space-y-4"
-      onSubmit={() => {
-        setActiveAction("password");
-        setMessage(null);
-      }}
+      onSubmit={signInWithPassword}
     >
       <input type="hidden" name="next" value={nextPath ?? getDefaultAuthRedirect()} />
       <input type="hidden" name="login_path" value={loginPath} />
@@ -98,6 +121,7 @@ export function LoginForm({
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          required
         />
       </div>
 
