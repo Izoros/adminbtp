@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { hasSupabaseConfig, publicEnv } from "@/lib/env";
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   buildLoginRedirectPath,
   getDefaultAuthRedirect,
@@ -30,6 +31,7 @@ export async function updateSession(
     publicEnv.supabaseUrl!,
     publicEnv.supabasePublishableKey!,
     {
+      cookieOptions: getSupabaseCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();

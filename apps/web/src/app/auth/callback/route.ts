@@ -1,7 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 
 import {
-  copyAuthCookies,
+  createAuthRedirect,
   createRouteHandlerClient,
 } from "@/lib/supabase/route-handler";
 import {
@@ -15,13 +15,19 @@ export async function GET(request: NextRequest) {
   const nextPath = sanitizeRedirectPath(requestUrl.searchParams.get("next"));
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return createAuthRedirect(new URL("/login", request.url));
   }
 
-  const { supabase, response } = createRouteHandlerClient(request);
+  const successResponse = createAuthRedirect(
+    new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
+  );
+  const { supabase, response } = createRouteHandlerClient(
+    request,
+    successResponse,
+  );
 
   if (!supabase) {
-    return NextResponse.redirect(
+    return createAuthRedirect(
       new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
     );
   }
@@ -29,13 +35,8 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return createAuthRedirect(new URL("/login", request.url));
   }
 
-  return copyAuthCookies(
-    response,
-    NextResponse.redirect(
-      new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
-    ),
-  );
+  return response;
 }

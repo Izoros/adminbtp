@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 
 import { hasSupabaseConfig } from "@/lib/env";
 import {
-  copyAuthCookies,
+  createAuthRedirect,
   createRouteHandlerClient,
 } from "@/lib/supabase/route-handler";
 import {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   const loginPath = formData.get("login_path") === "/" ? "/" : "/login";
 
   if (!hasSupabaseConfig()) {
-    return NextResponse.redirect(
+    return createAuthRedirect(
       buildLoginErrorRedirect(
         request,
         nextPath,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!email || !password.trim()) {
-    return NextResponse.redirect(
+    return createAuthRedirect(
       buildLoginErrorRedirect(
         request,
         nextPath,
@@ -56,10 +56,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { supabase, response } = createRouteHandlerClient(request);
+  const successResponse = createAuthRedirect(
+    new URL(nextPath ?? getDefaultAuthRedirect(), request.url),
+  );
+  const { supabase, response } = createRouteHandlerClient(
+    request,
+    successResponse,
+  );
 
   if (!supabase) {
-    return NextResponse.redirect(
+    return createAuthRedirect(
       buildLoginErrorRedirect(
         request,
         nextPath,
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.redirect(
+    return createAuthRedirect(
       buildLoginErrorRedirect(
         request,
         nextPath,
@@ -85,8 +91,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return copyAuthCookies(
-    response,
-    NextResponse.redirect(new URL(nextPath ?? getDefaultAuthRedirect(), request.url)),
-  );
+  return response;
 }

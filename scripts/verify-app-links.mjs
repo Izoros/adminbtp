@@ -9,6 +9,8 @@ const repositoryRoot = path.resolve(
 const appDirectory = path.join(repositoryRoot, "apps/web/src/app");
 const sourceDirectory = path.join(repositoryRoot, "apps/web/src");
 const baseUrl = new URL(process.argv[2] ?? "http://127.0.0.1:3000");
+const authenticatedAudit = process.argv.includes("--authenticated");
+const sessionCookies = new Map();
 const errorMarkers = [
   "<title>Application error",
   "<title>500: Internal Server Error",
@@ -78,12 +80,167 @@ function extractRenderedTargets(html) {
   return targets;
 }
 
-async function fetchPage(target) {
-  const response = await fetch(new URL(target, baseUrl), {
-    redirect: "follow",
-    headers: { "user-agent": "AdminBTP-Link-Audit/1.0" },
+function readSetCookieHeaders(response) {
+  if (typeof response.headers.getSetCookie === "function") {
+    return response.headers.getSetCookie();
+  }
+
+  const header = response.headers.get("set-cookie");
+  return header ? [header] : [];
+}
+
+function storeResponseCookies(response) {
+  for (const header of readSetCookieHeaders(response)) {
+    const [nameValue, ...attributes] = header.split(";");
+    const separator = nameValue.indexOf("=");
+
+    if (separator <= 0) continue;
+
+    const name = nameValue.slice(0, separator).trim();
+    const value = nameValue.slice(separator + 1).trim();
+    const deleted =
+      value.length === 0 ||
+      attributes.some((attribute) => /^\s*max-age=0\s*$/i.test(attribute));
+
+    if (deleted) {
+      sessionCookies.delete(name);
+    } else {
+      sessionCookies.set(name, value);
+    }
+  }
+}
+
+function buildCookieHeader() {
+  return [...sessionCookies]
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+}
+
+async function fetchFollowingRedirects(target, options = {}) {
+  let currentUrl = new URL(target, baseUrl);
+  let method = options.method ?? "GET";
+  let body = options.body;
+  const headers = new Headers(options.headers);
+
+  for (let redirectCount = 0; redirectCount <= 10; redirectCount += 1) {
+    const cookieHeader = buildCookieHeader();
+
+    if (cookieHeader) {
+      headers.set("cookie", cookieHeader);
+    } else {
+      headers.delete("cookie");
+    }
+
+    const response = await fetch(currentUrl, {
+      body,
+      headers,
+      method,
+      redirect: "manual",
+      signal: AbortSignal.timeout(20_000),
+    });
+    storeResponseCookies(response);
+
+    if (![301, 302, 303, 307, 308].includes(response.status)) {
+      return {
+        redirected: redirectCount > 0,
+        response,
+      };
+    }
+
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new Error(`${currentUrl.pathname}: redirection sans destination`);
+    }
+
+    currentUrl = new URL(location, currentUrl);
+
+    if (currentUrl.origin !== baseUrl.origin) {
+      throw new Error(
+        `${currentUrl.pathname}: redirection externe inattendue vers ${currentUrl.origin}`,
+      );
+    }
+
+    if (
+      response.status === 303 ||
+      ((response.status === 301 || response.status === 302) && method === "POST")
+    ) {
+      method = "GET";
+      body = undefined;
+      headers.delete("content-type");
+    }
+  }
+
+  throw new Error(`${currentUrl.pathname}: trop de redirections`);
+}
+
+async function authenticateAuditSession() {
+  const email = process.env.ADMINBTP_AUDIT_EMAIL;
+  const password = process.env.ADMINBTP_AUDIT_PASSWORD;
+
+  if (!email || !password) {
+    throw new Error(
+      "Audit authentifie: ADMINBTP_AUDIT_EMAIL et ADMINBTP_AUDIT_PASSWORD sont requis.",
+    );
+  }
+
+  const response = await fetch(new URL("/auth/password-login", baseUrl), {
+    method: "POST",
+    body: new URLSearchParams({
+      email,
+      login_path: "/",
+      next: "/admin",
+      password,
+    }),
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      "user-agent": "AdminBTP-Link-Audit/1.0",
+    },
+    redirect: "manual",
     signal: AbortSignal.timeout(20_000),
   });
+  storeResponseCookies(response);
+
+  if (response.status !== 303) {
+    throw new Error(
+      `Audit authentifie: la connexion doit repondre 303, statut ${response.status}.`,
+    );
+  }
+
+  if (![...sessionCookies.keys()].some((name) => name.startsWith("sb-"))) {
+    throw new Error("Audit authentifie: aucun cookie Supabase recu.");
+  }
+
+  const location = response.headers.get("location");
+  const firstDashboard = await fetchFollowingRedirects(location ?? "/admin", {
+    headers: { "user-agent": "AdminBTP-Link-Audit/1.0" },
+  });
+  const firstDashboardPath = new URL(firstDashboard.response.url).pathname;
+
+  if (!firstDashboard.response.ok || firstDashboardPath !== "/admin") {
+    throw new Error(
+      `Audit authentifie: ouverture du cockpit impossible (${firstDashboardPath}, HTTP ${firstDashboard.response.status}).`,
+    );
+  }
+
+  const reloadedDashboard = await fetchFollowingRedirects("/admin", {
+    headers: { "user-agent": "AdminBTP-Link-Audit/1.0" },
+  });
+  const reloadedDashboardPath = new URL(reloadedDashboard.response.url).pathname;
+
+  if (!reloadedDashboard.response.ok || reloadedDashboardPath !== "/admin") {
+    throw new Error(
+      `Audit authentifie: session perdue au rechargement (${reloadedDashboardPath}, HTTP ${reloadedDashboard.response.status}).`,
+    );
+  }
+
+  console.log("==> Connexion et rechargement authentifies OK");
+}
+
+async function fetchPage(target) {
+  const result = await fetchFollowingRedirects(target, {
+    headers: { "user-agent": "AdminBTP-Link-Audit/1.0" },
+  });
+  const { response } = result;
   const body = await response.text();
 
   if (!response.ok) {
@@ -106,7 +263,7 @@ async function fetchPage(target) {
   return {
     body,
     finalPath: new URL(response.url).pathname,
-    redirected: response.redirected,
+    redirected: result.redirected,
   };
 }
 
@@ -142,12 +299,30 @@ if (unresolvedTargets.length > 0) {
   throw new Error(`Liens internes sans route: ${unresolvedTargets.join(", ")}`);
 }
 
-const targetsToFetch = new Set([...pageRoutes, ...sourceTargets]);
+if (authenticatedAudit) {
+  await authenticateAuditSession();
+}
+
+const targetsToFetch = new Set(
+  authenticatedAudit ? pageRoutes : [...pageRoutes, ...sourceTargets],
+);
 const renderedTargets = new Set();
 let redirects = 0;
 
 for (const target of [...targetsToFetch].sort()) {
   const result = await fetchPage(target);
+  const requestedPath = new URL(target, baseUrl).pathname;
+
+  if (
+    authenticatedAudit &&
+    !["/", "/login"].includes(requestedPath) &&
+    result.finalPath !== requestedPath
+  ) {
+    throw new Error(
+      `${target}: la page privee redirige vers ${result.finalPath} malgre la session active`,
+    );
+  }
+
   redirects += result.redirected ? 1 : 0;
   for (const renderedTarget of extractRenderedTargets(result.body)) {
     renderedTargets.add(renderedTarget);
@@ -168,5 +343,5 @@ if (unknownRenderedTargets.length > 0) {
 }
 
 console.log(
-  `==> Audit liens termine: ${pageRoutes.size} page(s), ${targetsToFetch.size} cible(s), ${redirects} redirection(s) logique(s).`,
+  `==> Audit liens${authenticatedAudit ? " authentifie" : ""} termine: ${pageRoutes.size} page(s), ${targetsToFetch.size} cible(s), ${redirects} redirection(s) logique(s).`,
 );

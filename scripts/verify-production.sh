@@ -19,6 +19,15 @@ echo "==> Verification production: ${PROD_URL}"
 bash "$(dirname "$0")/verify-smoke.sh" "${PROD_URL}"
 node "$(dirname "$0")/verify-app-links.mjs" "${PROD_URL}"
 
+if [[ -n "${ADMINBTP_AUDIT_EMAIL:-}" || -n "${ADMINBTP_AUDIT_PASSWORD:-}" ]]; then
+  if [[ -z "${ADMINBTP_AUDIT_EMAIL:-}" || -z "${ADMINBTP_AUDIT_PASSWORD:-}" ]]; then
+    echo "Echec audit authentifie: email et mot de passe doivent etre fournis ensemble" >&2
+    exit 1
+  fi
+
+  node "$(dirname "$0")/verify-app-links.mjs" "${PROD_URL}" --authenticated
+fi
+
 root_status="$(curl -s -D "${headers_file}" -o /dev/null -w '%{http_code}' "${PROD_URL}")"
 if [[ "${root_status}" != "200" ]]; then
   echo "Echec verification racine: statut ${root_status}" >&2

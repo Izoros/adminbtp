@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { hasSupabaseConfig, publicEnv } from "@/lib/env";
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import type { SupabaseDatabase } from "@/types/supabase";
 
 export async function createClient() {
@@ -17,6 +18,7 @@ export async function createClient() {
     publicEnv.supabaseUrl!,
     publicEnv.supabasePublishableKey!,
     {
+      cookieOptions: getSupabaseCookieOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll();

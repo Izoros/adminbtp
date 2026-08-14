@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { hasSupabaseConfig, publicEnv } from "@/lib/env";
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import type { SupabaseDatabase } from "@/types/supabase";
 
 export function createRouteHandlerClient(
@@ -19,6 +20,7 @@ export function createRouteHandlerClient(
     publicEnv.supabaseUrl!,
     publicEnv.supabasePublishableKey!,
     {
+      cookieOptions: getSupabaseCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -46,10 +48,8 @@ export function createRouteHandlerClient(
   };
 }
 
-export function copyAuthCookies(sourceResponse: NextResponse, targetResponse: NextResponse) {
-  sourceResponse.cookies.getAll().forEach((cookie) => {
-    targetResponse.cookies.set(cookie);
-  });
-
-  return targetResponse;
+export function createAuthRedirect(destination: string | URL) {
+  const response = NextResponse.redirect(destination, { status: 303 });
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  return response;
 }
