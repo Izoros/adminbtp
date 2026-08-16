@@ -17,6 +17,18 @@ const errorMarkers = [
   "<title>404: This page could not be found",
 ];
 
+function isSameAuditOrigin(candidate, expected) {
+  if (candidate.origin === expected.origin) return true;
+
+  const loopbackHosts = new Set(["127.0.0.1", "::1", "localhost"]);
+  return (
+    candidate.protocol === expected.protocol &&
+    candidate.port === expected.port &&
+    loopbackHosts.has(candidate.hostname) &&
+    loopbackHosts.has(expected.hostname)
+  );
+}
+
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = await Promise.all(
@@ -154,7 +166,7 @@ async function fetchFollowingRedirects(target, options = {}) {
 
     currentUrl = new URL(location, currentUrl);
 
-    if (currentUrl.origin !== baseUrl.origin) {
+    if (!isSameAuditOrigin(currentUrl, baseUrl)) {
       throw new Error(
         `${currentUrl.pathname}: redirection externe inattendue vers ${currentUrl.origin}`,
       );

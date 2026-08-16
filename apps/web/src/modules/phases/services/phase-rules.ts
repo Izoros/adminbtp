@@ -11,7 +11,7 @@ const roleToProfile: Record<ProjectRole, PhaseProfile | null> = {
   moe: "moe",
   tce: "tce",
   bet: null,
-  opc: null,
+  opc: "opc",
   amo: null,
   trade_contractor: "trade_contractor",
   subcontractor: "trade_contractor",

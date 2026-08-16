@@ -1,15 +1,24 @@
 import Link from "next/link";
 
 import type { AppUserProfile } from "@/modules/auth/types/auth";
-import type { Organization, OrganizationMembership } from "@/modules/organizations/types/organization";
+import type {
+  Organization,
+  OrganizationMembership,
+} from "@/modules/organizations/types/organization";
 import {
   getPrimaryProjectRoleView,
   getProjectsForUser,
 } from "@/modules/projects/services/project-access";
 import { ProjectSubmitButton } from "@/modules/projects/components/project-submit-button";
 import { getProjectOwnerOptions } from "@/modules/projects/services/project-write";
-import type { Project, ProjectOrganization } from "@/modules/projects/types/project";
-import type { ProjectFormFeedback, ProjectRole } from "@/modules/projects/types/project";
+import type {
+  Project,
+  ProjectOrganization,
+} from "@/modules/projects/types/project";
+import type {
+  ProjectFormFeedback,
+  ProjectRole,
+} from "@/modules/projects/types/project";
 
 type ProjectDashboardProps = {
   user: AppUserProfile;
@@ -53,9 +62,10 @@ export function ProjectDashboard({
   const manageableOrganizations = getProjectOwnerOptions(
     organizations,
     memberships
-      .filter((membership) =>
-        membership.userId === user.id &&
-        (membership.role === "org_owner" || membership.role === "org_admin"),
+      .filter(
+        (membership) =>
+          membership.userId === user.id &&
+          (membership.role === "org_owner" || membership.role === "org_admin"),
       )
       .map((membership) => membership.organizationId),
     user.internalRole,
@@ -90,12 +100,15 @@ export function ProjectDashboard({
               Initialiser un chantier reel
             </h2>
             <p className="mt-3 text-sm leading-7 text-stone-700">
-              Quand une organisation gerable est disponible, le formulaire cree le chantier
-              dans Supabase puis rattache immediatement le premier role projet de l&apos;organisation proprietaire.
+              Quand une organisation gerable est disponible, le formulaire cree
+              le chantier dans Supabase puis rattache immediatement le premier
+              role projet de l&apos;organisation proprietaire.
             </p>
           </div>
           <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">
-            {isSupabaseWritable ? "Ecriture Supabase active" : "Ecriture indisponible"}
+            {isSupabaseWritable
+              ? "Ecriture Supabase active"
+              : "Ecriture indisponible"}
           </span>
         </div>
 
@@ -113,12 +126,19 @@ export function ProjectDashboard({
           </div>
         ) : null}
 
-        <form action={createProjectAction} className="mt-6 grid gap-4 lg:grid-cols-2">
+        <form
+          action={createProjectAction}
+          className="mt-6 grid gap-4 lg:grid-cols-2"
+        >
           <label className="space-y-2 text-sm text-stone-700">
-            <span className="font-medium text-stone-900">Organisation proprietaire</span>
+            <span className="font-medium text-stone-900">
+              Organisation proprietaire
+            </span>
             <select
               name="ownerOrganizationId"
-              disabled={!isSupabaseWritable || manageableOrganizations.length === 0}
+              disabled={
+                !isSupabaseWritable || manageableOrganizations.length === 0
+              }
               className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100"
               defaultValue={manageableOrganizations[0]?.id ?? ""}
             >
@@ -208,7 +228,9 @@ export function ProjectDashboard({
           </label>
 
           <label className="space-y-2 text-sm text-stone-700">
-            <span className="font-medium text-stone-900">Debut previsionnel</span>
+            <span className="font-medium text-stone-900">
+              Debut previsionnel
+            </span>
             <input
               name="startsOn"
               type="date"
@@ -218,7 +240,9 @@ export function ProjectDashboard({
           </label>
 
           <label className="space-y-2 text-sm text-stone-700">
-            <span className="font-medium text-stone-900">Fin previsionnelle</span>
+            <span className="font-medium text-stone-900">
+              Fin previsionnelle
+            </span>
             <input
               name="endsOn"
               type="date"
@@ -243,7 +267,9 @@ export function ProjectDashboard({
                 </Link>
               ) : null}
               <ProjectSubmitButton
-                disabled={!isSupabaseWritable || manageableOrganizations.length === 0}
+                disabled={
+                  !isSupabaseWritable || manageableOrganizations.length === 0
+                }
               />
             </div>
           </div>
@@ -330,13 +356,24 @@ export function ProjectDashboard({
                           key={indicator}
                           className="rounded-2xl border border-stone-200 bg-white px-4 py-4"
                         >
-                          <p className="text-sm font-medium text-stone-900">{indicator}</p>
-                          <p className="mt-2 text-xs text-stone-500">
-                            Placeholder de phase 2 en attente des donnees chantier reelles.
+                          <p className="text-sm font-medium text-stone-900">
+                            {indicator}
+                          </p>
+                          <p className="mt-2 text-xs font-medium text-amber-800">
+                            Données insuffisantes — aucune valeur n&apos;est
+                            affichee sans calcul metier.
                           </p>
                         </div>
                       ))}
                     </div>
+                    {roleView.role === "opc" ? (
+                      <Link
+                        href={`/opc?projectId=${project.id}`}
+                        className="mt-4 inline-flex rounded-full bg-stone-950 px-4 py-2 text-sm font-medium text-white"
+                      >
+                        Ouvrir l&apos;espace OPC calcule
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

@@ -3,6 +3,7 @@ import {
   Bot,
   BookOpenCheck,
   Building2,
+  CalendarRange,
   FileText,
   FolderKanban,
   HandHelping,
@@ -58,6 +59,13 @@ const coreItems: NavigationDefinition[] = [
 ];
 
 const businessItems: NavigationDefinition[] = [
+  {
+    label: "Espace OPC",
+    description: "Planning, chemin critique, coordination et reception.",
+    href: "/opc",
+    phase: "OPC",
+    icon: CalendarRange,
+  },
   {
     label: "Phases",
     description: "Parcours chantier, checklists et alertes.",

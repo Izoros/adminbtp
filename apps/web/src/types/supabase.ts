@@ -1805,8 +1805,7 @@ export type Database = {
       consulting_mission_capacity: {
         Row: {
           billing_mode:
-            | Database["public"]["Enums"]["mission_billing_mode"]
-            | null
+            Database["public"]["Enums"]["mission_billing_mode"] | null
           consumed_hours: number | null
           id: string | null
           logged_billable_hours: number | null
@@ -1816,8 +1815,7 @@ export type Database = {
           remaining_billable_hours: number | null
           sold_hours: number | null
           status:
-            | Database["public"]["Enums"]["consulting_mission_status"]
-            | null
+            Database["public"]["Enums"]["consulting_mission_status"] | null
           title: string | null
         }
         Relationships: [
@@ -1836,11 +1834,23 @@ export type Database = {
         Args: { target_project_id: string }
         Returns: boolean
       }
+      can_access_opc_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
       can_complete_phase: {
         Args: { target_phase_id: string }
         Returns: boolean
       }
       can_manage_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
+      can_contribute_opc_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
+      can_edit_opc_project: {
         Args: { target_project_id: string }
         Returns: boolean
       }
@@ -1883,6 +1893,99 @@ export type Database = {
           target_name: string
           target_slug: string
         }
+        Returns: string
+      }
+      create_opc_baseline: {
+        Args: {
+          target_description?: string | null
+          target_name: string
+          target_project_id: string
+        }
+        Returns: string
+      }
+      create_opc_action: {
+        Args: {
+          target_assignee_organization_id?: string | null
+          target_due_on: string
+          target_priority?: Database["public"]["Enums"]["opc_task_priority"]
+          target_project_id: string
+          target_task_id?: string | null
+          target_title: string
+        }
+        Returns: string
+      }
+      create_opc_dependency: {
+        Args: {
+          target_dependency_type?: Database["public"]["Enums"]["opc_dependency_type"]
+          target_lag_days?: number
+          target_predecessor_id: string
+          target_project_id: string
+          target_successor_id: string
+        }
+        Returns: string
+      }
+      create_opc_meeting: {
+        Args: {
+          target_location?: string | null
+          target_meeting_type?: string
+          target_project_id: string
+          target_scheduled_at: string
+          target_title: string
+        }
+        Returns: string
+      }
+      create_opc_reception: {
+        Args: {
+          target_planned_on?: string | null
+          target_project_id: string
+          target_reception_type: string
+          target_title: string
+        }
+        Returns: string
+      }
+      create_opc_reservation: {
+        Args: {
+          target_due_on?: string | null
+          target_project_id: string
+          target_reception_id?: string | null
+          target_reference: string
+          target_severity?: string
+          target_task_id?: string | null
+          target_title: string
+        }
+        Returns: string
+      }
+      declare_opc_delay: {
+        Args: {
+          target_cause: string
+          target_cause_category: string
+          target_delay_days: number
+          target_occurred_on: string
+          target_project_id: string
+          target_task_id: string
+        }
+        Returns: string
+      }
+      get_opc_workspace: {
+        Args: { target_project_id: string }
+        Returns: Json
+      }
+      opc_member_company: {
+        Args: { target_project_id: string }
+        Returns: string | null
+      }
+      record_opc_progress: {
+        Args: {
+          target_comment?: string | null
+          target_completed_quantity?: number | null
+          target_measured_on?: string
+          target_progress_percent: number
+          target_task_id: string
+        }
+        Returns: string
+      }
+      save_opc_task: {
+        Args: { target_payload: Json; target_project_id: string }
         Returns: string
       }
       create_project_with_owner_role: {
@@ -2019,7 +2122,9 @@ export type Database = {
         | "timesheet"
         | "payslip"
       organization_role: "org_owner" | "org_admin" | "org_member" | "org_viewer"
-      phase_profile: "moe" | "moa" | "tce" | "trade_contractor"
+      opc_dependency_type: "FS" | "SS" | "FF" | "SF"
+      opc_task_priority: "low" | "normal" | "high" | "urgent"
+      phase_profile: "moe" | "moa" | "tce" | "trade_contractor" | "opc"
       phase_status:
         | "not_started"
         | "in_progress"
@@ -2062,11 +2167,7 @@ export type Database = {
         | "rejected"
         | "cancelled"
       situation_status:
-        | "draft"
-        | "sent"
-        | "partially_paid"
-        | "paid"
-        | "disputed"
+        "draft" | "sent" | "partially_paid" | "paid" | "disputed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2086,12 +2187,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2113,13 +2214,12 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2138,13 +2238,12 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2163,13 +2262,12 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2182,11 +2280,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2292,7 +2390,9 @@ export const Constants = {
         "payslip",
       ],
       organization_role: ["org_owner", "org_admin", "org_member", "org_viewer"],
-      phase_profile: ["moe", "moa", "tce", "trade_contractor"],
+      opc_dependency_type: ["FS", "SS", "FF", "SF"],
+      opc_task_priority: ["low", "normal", "high", "urgent"],
+      phase_profile: ["moe", "moa", "tce", "trade_contractor", "opc"],
       phase_status: [
         "not_started",
         "in_progress",

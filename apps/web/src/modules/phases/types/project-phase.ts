@@ -1,11 +1,7 @@
-export type PhaseProfile = "moe" | "moa" | "tce" | "trade_contractor";
+export type PhaseProfile = "moe" | "moa" | "tce" | "trade_contractor" | "opc";
 
 export type PhaseStatus =
-  | "not_started"
-  | "in_progress"
-  | "blocked"
-  | "ready_for_review"
-  | "completed";
+  "not_started" | "in_progress" | "blocked" | "ready_for_review" | "completed";
 
 export type AlertSeverity = "low" | "medium" | "high";
 

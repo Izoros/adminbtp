@@ -1,13 +1,13 @@
 import {
   BookOpenCheck,
   Building2,
+  CalendarRange,
   FileText,
   FolderKanban,
   LayoutDashboard,
   LogIn,
   LogOut,
   Menu,
-  ReceiptText,
   Settings2,
   X,
 } from "lucide-react";
@@ -28,8 +28,8 @@ type AppShellProps = {
 const mobileNavigation = [
   { href: "/admin", label: "Aujourd'hui", icon: LayoutDashboard },
   { href: "/projects", label: "Chantiers", icon: FolderKanban },
+  { href: "/opc", label: "OPC", icon: CalendarRange },
   { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/followups", label: "Tresorerie", icon: ReceiptText },
   { href: "/guide", label: "Aide", icon: BookOpenCheck },
 ] as const;
 
@@ -56,8 +56,12 @@ export async function AppShell({
               <Building2 className="size-6" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-lg font-semibold tracking-[-0.03em]">AdminBTP</p>
-              <p className="text-sm text-stone-400">Pilotage administratif et technique</p>
+              <p className="text-lg font-semibold tracking-[-0.03em]">
+                AdminBTP
+              </p>
+              <p className="text-sm text-stone-400">
+                Pilotage administratif et technique
+              </p>
             </div>
           </div>
 
@@ -75,10 +79,17 @@ export async function AppShell({
                         className="flex items-center justify-between rounded-2xl px-3 py-3 transition hover:bg-white/6"
                       >
                         <div className="flex items-center gap-3">
-                          <item.icon className="size-4 text-stone-300" aria-hidden="true" />
+                          <item.icon
+                            className="size-4 text-stone-300"
+                            aria-hidden="true"
+                          />
                           <div>
-                            <p className="text-sm font-medium text-white">{item.label}</p>
-                            <p className="text-xs text-stone-400">{item.description}</p>
+                            <p className="text-sm font-medium text-white">
+                              {item.label}
+                            </p>
+                            <p className="text-xs text-stone-400">
+                              {item.description}
+                            </p>
                           </div>
                         </div>
                       </Link>
@@ -99,11 +110,20 @@ export async function AppShell({
                     className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl bg-sidebar text-sidebar-foreground [&::-webkit-details-marker]:hidden"
                     aria-label="Ouvrir la navigation"
                   >
-                    <Menu className="size-5 group-open:hidden" aria-hidden="true" />
-                    <X className="hidden size-5 group-open:block" aria-hidden="true" />
+                    <Menu
+                      className="size-5 group-open:hidden"
+                      aria-hidden="true"
+                    />
+                    <X
+                      className="hidden size-5 group-open:block"
+                      aria-hidden="true"
+                    />
                   </summary>
                   <div className="fixed inset-x-4 top-24 z-50 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-sidebar-border bg-sidebar p-4 text-sidebar-foreground shadow-2xl">
-                    <nav className="space-y-5" aria-label="Navigation mobile complete">
+                    <nav
+                      className="space-y-5"
+                      aria-label="Navigation mobile complete"
+                    >
                       {appNavigation.map((section) => (
                         <div key={section.title} className="space-y-2">
                           <p className="px-3 text-xs font-medium tracking-[0.2em] text-stone-400 uppercase">
@@ -116,7 +136,10 @@ export async function AppShell({
                                   href={item.href}
                                   className="flex min-h-12 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 focus-visible:bg-white/10"
                                 >
-                                  <item.icon className="size-4 text-stone-300" aria-hidden="true" />
+                                  <item.icon
+                                    className="size-4 text-stone-300"
+                                    aria-hidden="true"
+                                  />
                                   <span>{item.label}</span>
                                 </Link>
                               </li>
@@ -145,13 +168,18 @@ export async function AppShell({
                   Didacticiel
                 </Link>
                 <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-                  <Settings2 className="size-4 text-stone-500" aria-hidden="true" />
+                  <Settings2
+                    className="size-4 text-stone-500"
+                    aria-hidden="true"
+                  />
                   {user ? "Session Supabase active" : "Session requise"}
                 </div>
 
                 {supabaseProjectRef ? (
                   <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700">
-                    <span className="font-medium text-stone-900">Projet Supabase</span>
+                    <span className="font-medium text-stone-900">
+                      Projet Supabase
+                    </span>
                     <span className="rounded-full bg-stone-100 px-3 py-1 font-mono text-xs text-stone-700">
                       {supabaseProjectRef}
                     </span>
