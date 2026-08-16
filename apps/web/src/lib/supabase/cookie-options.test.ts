@@ -2,20 +2,24 @@ import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 
 describe("Supabase cookie options", () => {
   it("securise le cookie de session en production", () => {
-    expect(getSupabaseCookieOptions("production")).toMatchObject({
+    const options = getSupabaseCookieOptions("production");
+
+    expect(options).toMatchObject({
       httpOnly: false,
-      partitioned: true,
       path: "/",
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
     });
+    expect(options.partitioned).toBeUndefined();
   });
 
   it("autorise le developpement local en HTTP", () => {
-    expect(getSupabaseCookieOptions("development")).toMatchObject({
-      partitioned: false,
+    const options = getSupabaseCookieOptions("development");
+
+    expect(options).toMatchObject({
       sameSite: "lax",
       secure: false,
     });
+    expect(options.partitioned).toBeUndefined();
   });
 });
