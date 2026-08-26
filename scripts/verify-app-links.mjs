@@ -11,6 +11,7 @@ const sourceDirectory = path.join(repositoryRoot, "apps/web/src");
 const baseUrl = new URL(process.argv[2] ?? "http://127.0.0.1:3000");
 const authenticatedAudit = process.argv.includes("--authenticated");
 const sessionCookies = new Map();
+const publicPageRoutes = new Set(["/", "/guide"]);
 const errorMarkers = [
   "<title>Application error",
   "<title>500: Internal Server Error",
@@ -277,9 +278,50 @@ async function fetchPage(target) {
 
   return {
     body,
+    finalUrl: new URL(response.url),
     finalPath: new URL(response.url).pathname,
     redirected: result.redirected,
   };
+}
+
+function assertUnauthenticatedNavigation(target, result) {
+  const requestedUrl = new URL(target, baseUrl);
+  const requestedTarget = `${requestedUrl.pathname}${requestedUrl.search}`;
+
+  if (requestedUrl.pathname === "/login") {
+    if (result.finalPath !== "/") {
+      throw new Error(
+        `${target}: la page de connexion publique doit revenir a l'accueil`,
+      );
+    }
+
+    return;
+  }
+
+  if (publicPageRoutes.has(requestedUrl.pathname)) {
+    if (result.finalPath !== requestedUrl.pathname) {
+      throw new Error(
+        `${target}: la page publique redirige vers ${result.finalPath}`,
+      );
+    }
+
+    return;
+  }
+
+  if (result.finalPath !== "/") {
+    throw new Error(
+      `${target}: la page privee reste sur ${result.finalPath} sans session`,
+    );
+  }
+
+  const expectedNext = requestedTarget === "/admin" ? null : requestedTarget;
+  const actualNext = result.finalUrl.searchParams.get("next");
+
+  if (actualNext !== expectedNext) {
+    throw new Error(
+      `${target}: destination de connexion perdue (next=${actualNext ?? "absent"}, attendu=${expectedNext ?? "redirection admin par defaut"})`,
+    );
+  }
 }
 
 const allAppFiles = await walk(appDirectory);
@@ -327,6 +369,10 @@ let redirects = 0;
 for (const target of [...targetsToFetch].sort()) {
   const result = await fetchPage(target);
   const requestedPath = new URL(target, baseUrl).pathname;
+
+  if (!authenticatedAudit && pageRoutes.has(requestedPath)) {
+    assertUnauthenticatedNavigation(target, result);
+  }
 
   if (
     authenticatedAudit &&

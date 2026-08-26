@@ -6,6 +6,7 @@ import {
   isProtectedPath,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
+import { appNavigation } from "@/config/navigation";
 
 describe("navigation auth", () => {
   it("identifie les routes protegees de l'application", () => {
@@ -13,9 +14,22 @@ describe("navigation auth", () => {
     expect(isProtectedPath("/admin/archives")).toBe(true);
     expect(isProtectedPath("/organizations")).toBe(true);
     expect(isProtectedPath("/projects/alpha")).toBe(true);
+    expect(isProtectedPath("/opc")).toBe(true);
+    expect(isProtectedPath("/opc/export")).toBe(true);
     expect(isProtectedPath("/phases")).toBe(true);
     expect(isProtectedPath("/login")).toBe(false);
     expect(isProtectedPath("/api/health")).toBe(false);
+  });
+
+  it("protege toutes les destinations metier du menu", () => {
+    const publicNavigationPaths = new Set(["/guide"]);
+    const privateNavigationPaths = appNavigation
+      .flatMap((section) => section.items)
+      .map((item) => item.href)
+      .filter((href) => !publicNavigationPaths.has(href));
+
+    expect(privateNavigationPaths).not.toHaveLength(0);
+    expect(privateNavigationPaths.every(isProtectedPath)).toBe(true);
   });
 
   it("identifie correctement la page de login", () => {

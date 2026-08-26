@@ -4,6 +4,7 @@ const PROTECTED_PATH_PREFIXES = [
   "/admin",
   "/organizations",
   "/projects",
+  "/opc",
   "/phases",
   "/client-space",
   "/consulting",
