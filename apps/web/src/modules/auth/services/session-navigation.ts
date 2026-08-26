@@ -23,11 +23,34 @@ const REDIRECT_VALIDATION_ORIGIN = "https://adminbtp.local";
 export const loginErrorMessages = {
   configuration_unavailable:
     "Configuration Supabase indisponible pour cette instance.",
+  authentication_unavailable:
+    "Le service de connexion est temporairement indisponible. Votre mot de passe n'est pas en cause.",
   missing_credentials: "Email et mot de passe obligatoires.",
   invalid_credentials: "Identifiants invalides ou compte indisponible.",
 } as const;
 
 export type LoginErrorCode = keyof typeof loginErrorMessages;
+
+export function isAuthenticationUnavailable(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as {
+    message?: unknown;
+    name?: unknown;
+    status?: unknown;
+  };
+  const name = typeof candidate.name === "string" ? candidate.name : "";
+  const message =
+    typeof candidate.message === "string" ? candidate.message : "";
+
+  return (
+    name === "AuthRetryableFetchError" ||
+    candidate.status === 0 ||
+    /fetch failed|failed to fetch|network error/i.test(message)
+  );
+}
 
 function normalizePathname(pathname: string) {
   if (!pathname.startsWith("/")) {

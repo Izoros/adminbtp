@@ -6,6 +6,7 @@ import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   buildLoginRedirectPath,
   getDefaultAuthRedirect,
+  isAuthenticationUnavailable,
   isLoginPath,
   isProtectedPath,
   sanitizeRedirectPath,
@@ -60,9 +61,20 @@ export async function updateSession(
   // On revalide l'identite cote serveur avant toute decision de redirection.
   const {
     data: { user },
+    error: authenticationError,
   } = await supabase.auth.getUser();
 
   if (!user && isProtectedPath(requestUrl.pathname)) {
+    if (isAuthenticationUnavailable(authenticationError)) {
+      const publicLoginUrl = buildPublicLoginUrl(
+        request,
+        `${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`,
+        "authentication_unavailable",
+      );
+
+      return createRedirectResponse(response, publicLoginUrl);
+    }
+
     return createRedirectResponse(
       response,
       new URL(
@@ -75,19 +87,11 @@ export async function updateSession(
   }
 
   if (!user && isLoginPath(requestUrl.pathname)) {
-    const publicLoginUrl = new URL("/", request.url);
-    const nextPath = sanitizeRedirectPath(requestUrl.searchParams.get("next"));
-    const errorCode = requestUrl.searchParams.get("errorCode");
-
-    if (nextPath !== getDefaultAuthRedirect()) {
-      publicLoginUrl.searchParams.set("next", nextPath);
-    }
-
-    if (errorCode) {
-      publicLoginUrl.searchParams.set("errorCode", errorCode);
-    }
-
-    publicLoginUrl.hash = "connexion";
+    const publicLoginUrl = buildPublicLoginUrl(
+      request,
+      requestUrl.searchParams.get("next"),
+      requestUrl.searchParams.get("errorCode"),
+    );
 
     return createRedirectResponse(response, publicLoginUrl);
   }
@@ -109,6 +113,26 @@ export async function updateSession(
 
 function shouldHandleAuthGuard(pathname: string) {
   return isProtectedPath(pathname) || isLoginPath(pathname);
+}
+
+function buildPublicLoginUrl(
+  request: NextRequest,
+  nextCandidate: string | null,
+  errorCode: string | null,
+) {
+  const publicLoginUrl = new URL("/", request.url);
+  const nextPath = sanitizeRedirectPath(nextCandidate);
+
+  if (nextPath !== getDefaultAuthRedirect()) {
+    publicLoginUrl.searchParams.set("next", nextPath);
+  }
+
+  if (errorCode) {
+    publicLoginUrl.searchParams.set("errorCode", errorCode);
+  }
+
+  publicLoginUrl.hash = "connexion";
+  return publicLoginUrl;
 }
 
 function createRedirectResponse(

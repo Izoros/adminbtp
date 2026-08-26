@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/route-handler";
 import {
   getDefaultAuthRedirect,
+  isAuthenticationUnavailable,
   type LoginErrorCode,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
@@ -86,7 +87,9 @@ export async function POST(request: NextRequest) {
       buildLoginErrorRedirect(
         request,
         nextPath,
-        "invalid_credentials",
+        isAuthenticationUnavailable(error)
+          ? "authentication_unavailable"
+          : "invalid_credentials",
         loginPath,
       ),
     );

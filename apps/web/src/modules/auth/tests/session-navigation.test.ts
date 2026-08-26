@@ -2,6 +2,7 @@ import {
   buildLoginRedirectPath,
   getDefaultAuthRedirect,
   getLoginErrorMessage,
+  isAuthenticationUnavailable,
   isLoginPath,
   isProtectedPath,
   sanitizeRedirectPath,
@@ -74,5 +75,22 @@ describe("navigation auth", () => {
       "Identifiants invalides ou compte indisponible.",
     );
     expect(getLoginErrorMessage("Appelez un numero externe")).toBeNull();
+  });
+
+  it("distingue une indisponibilite reseau des identifiants invalides", () => {
+    expect(
+      isAuthenticationUnavailable({
+        message: "fetch failed",
+        name: "AuthRetryableFetchError",
+        status: 0,
+      }),
+    ).toBe(true);
+    expect(
+      isAuthenticationUnavailable({
+        message: "Invalid login credentials",
+        name: "AuthApiError",
+        status: 400,
+      }),
+    ).toBe(false);
   });
 });

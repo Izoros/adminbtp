@@ -81,4 +81,28 @@ describe("POST /auth/password-login", () => {
       "url=https://adminbtp.test/admin",
     );
   });
+
+  it("signale une indisponibilite Supabase sans accuser le mot de passe", async () => {
+    mocks.createRouteHandlerClient.mockImplementation((_, response) => ({
+      response,
+      supabase: {
+        auth: {
+          signInWithPassword: vi.fn(async () => ({
+            error: {
+              message: "fetch failed",
+              name: "AuthRetryableFetchError",
+              status: 0,
+            },
+          })),
+        },
+      },
+    }));
+
+    const response = await POST(buildLoginRequest());
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(
+      "https://adminbtp.test/?errorCode=authentication_unavailable",
+    );
+  });
 });
