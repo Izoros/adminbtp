@@ -93,6 +93,20 @@ Application web :
 
 - `http://localhost:3000`
 
+### Dev avec Supabase local (recommande)
+
+Prerequis : Docker Desktop lance.
+
+```bash
+npm run dev:local
+```
+
+`apps/web/.env.development.local` (non versionne) pointe `next dev` vers le
+Supabase local (`http://127.0.0.1:54321`). Pour repartir d'une base propre :
+`npx supabase db reset --local`, puis recreer un admin avec
+`npm run supabase:create-platform-admin -- --email <email>` et
+`npm run supabase:set-user-password -- --email <email> --password <mdp>`.
+
 ## Mise en ligne
 
 Dernier deploiement Vercel verifie le `2026-08-12` :

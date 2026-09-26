@@ -179,7 +179,7 @@ export async function loadOrganizationAccessData(
 
   if (!organizationScope) {
     return buildEmptyOrganizationAccessData(
-      "Lecture des rattachements organisationnels indisponible pour cette session.",
+      "Aucune organisation rattachee a cette session pour le moment. Creez-en une avec le formulaire ci-dessous.",
       user,
     );
   }
