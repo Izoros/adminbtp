@@ -5,27 +5,26 @@ import { hasSupabaseConfig, publicEnv } from "@/lib/env";
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   buildLoginRedirectPath,
-  getDefaultAuthRedirect,
   isAuthenticationUnavailable,
-  isLoginPath,
+  isGuestOnlyPath,
   isProtectedPath,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
 import type { SupabaseDatabase } from "@/types/supabase";
 
+// Rafraichit la session Supabase et applique les deux regles d'acces :
+// page protegee sans session -> /login ; page visiteur avec session -> application.
 export async function updateSession(
   request: NextRequest,
   forwardedHeaders: Headers = request.headers,
 ) {
-  const requestUrl = new URL(request.url);
-  let response = NextResponse.next({
-    request: {
-      headers: forwardedHeaders,
-    },
-  });
+  const { pathname, search } = request.nextUrl;
+  let response = NextResponse.next({ request: { headers: forwardedHeaders } });
 
-  if (!hasSupabaseConfig() || !shouldHandleAuthGuard(requestUrl.pathname)) {
-    return response;
+  if (!hasSupabaseConfig()) {
+    return isProtectedPath(pathname)
+      ? redirectTo(request, response, buildLoginRedirectPath(pathname, "service_unavailable"))
+      : response;
   }
 
   const supabase = createServerClient<SupabaseDatabase>(
@@ -39,111 +38,50 @@ export async function updateSession(
         },
         setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-
-          response = NextResponse.next({
-            request: {
-              headers: forwardedHeaders,
-            },
-          });
-
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-
-          Object.entries(headers).forEach(([key, value]) => {
-            response.headers.set(key, value);
-          });
+          response = NextResponse.next({ request: { headers: forwardedHeaders } });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+          Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value));
         },
       },
     },
   );
 
-  // On revalide l'identite cote serveur avant toute decision de redirection.
+  // getUser revalide le jeton aupres de Supabase : ne pas remplacer par getSession.
   const {
     data: { user },
-    error: authenticationError,
+    error,
   } = await supabase.auth.getUser();
 
-  if (!user && isProtectedPath(requestUrl.pathname)) {
-    if (isAuthenticationUnavailable(authenticationError)) {
-      const publicLoginUrl = buildPublicLoginUrl(
-        request,
-        `${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`,
-        "authentication_unavailable",
-      );
-
-      return createRedirectResponse(response, publicLoginUrl);
-    }
-
-    return createRedirectResponse(
-      response,
-      new URL(
-        buildLoginRedirectPath(
-          `${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`,
-        ),
-        request.url,
-      ),
-    );
-  }
-
-  if (!user && isLoginPath(requestUrl.pathname)) {
-    const publicLoginUrl = buildPublicLoginUrl(
+  if (!user && isProtectedPath(pathname)) {
+    return redirectTo(
       request,
-      requestUrl.searchParams.get("next"),
-      requestUrl.searchParams.get("errorCode"),
+      response,
+      buildLoginRedirectPath(
+        `${pathname}${search}`,
+        isAuthenticationUnavailable(error) ? "service_unavailable" : undefined,
+      ),
     );
-
-    return createRedirectResponse(response, publicLoginUrl);
   }
 
-  if (user && isLoginPath(requestUrl.pathname)) {
-    const nextPath = requestUrl.searchParams.get("next");
-
-    return createRedirectResponse(
+  if (user && isGuestOnlyPath(pathname)) {
+    return redirectTo(
+      request,
       response,
-      new URL(
-        nextPath ? sanitizeRedirectPath(nextPath) : getDefaultAuthRedirect(),
-        request.url,
-      ),
+      sanitizeRedirectPath(request.nextUrl.searchParams.get("next")),
     );
   }
 
   return response;
 }
 
-function shouldHandleAuthGuard(pathname: string) {
-  return isProtectedPath(pathname) || isLoginPath(pathname);
-}
+function redirectTo(request: NextRequest, sourceResponse: NextResponse, path: string) {
+  const redirectResponse = NextResponse.redirect(new URL(path, request.url));
 
-function buildPublicLoginUrl(
-  request: NextRequest,
-  nextCandidate: string | null,
-  errorCode: string | null,
-) {
-  const publicLoginUrl = new URL("/", request.url);
-  const nextPath = sanitizeRedirectPath(nextCandidate);
-
-  if (nextPath !== getDefaultAuthRedirect()) {
-    publicLoginUrl.searchParams.set("next", nextPath);
-  }
-
-  if (errorCode) {
-    publicLoginUrl.searchParams.set("errorCode", errorCode);
-  }
-
-  publicLoginUrl.hash = "connexion";
-  return publicLoginUrl;
-}
-
-function createRedirectResponse(
-  sourceResponse: NextResponse,
-  destination: URL,
-) {
-  const redirectResponse = NextResponse.redirect(destination);
-
-  sourceResponse.cookies.getAll().forEach((cookie) => {
-    redirectResponse.cookies.set(cookie);
-  });
+  // Conserve les cookies de session rafraichis pendant la verification.
+  sourceResponse.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+  redirectResponse.headers.set("Cache-Control", "private, no-store, max-age=0");
 
   return redirectResponse;
 }

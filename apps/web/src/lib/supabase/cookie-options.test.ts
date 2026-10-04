@@ -5,7 +5,7 @@ describe("Supabase cookie options", () => {
     const options = getSupabaseCookieOptions("production");
 
     expect(options).toMatchObject({
-      httpOnly: false,
+      httpOnly: true,
       path: "/",
       sameSite: "lax",
       secure: true,

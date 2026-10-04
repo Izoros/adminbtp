@@ -1,10 +1,12 @@
 import {
   buildLoginRedirectPath,
   getDefaultAuthRedirect,
-  getLoginErrorMessage,
+  getAuthErrorMessage,
+  getAuthStatusMessage,
   isAuthenticationUnavailable,
-  isLoginPath,
+  isGuestOnlyPath,
   isProtectedPath,
+  mapAuthError,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
 import { appNavigation } from "@/config/navigation";
@@ -18,7 +20,9 @@ describe("navigation auth", () => {
     expect(isProtectedPath("/opc")).toBe(true);
     expect(isProtectedPath("/opc/export")).toBe(true);
     expect(isProtectedPath("/phases")).toBe(true);
+    expect(isProtectedPath("/account/password")).toBe(true);
     expect(isProtectedPath("/login")).toBe(false);
+    expect(isProtectedPath("/forgot-password")).toBe(false);
     expect(isProtectedPath("/api/health")).toBe(false);
   });
 
@@ -33,10 +37,11 @@ describe("navigation auth", () => {
     expect(privateNavigationPaths.every(isProtectedPath)).toBe(true);
   });
 
-  it("identifie correctement la page de login", () => {
-    expect(isLoginPath("/login")).toBe(true);
-    expect(isLoginPath("login")).toBe(true);
-    expect(isLoginPath("/login/reset")).toBe(false);
+  it("identifie les pages reservees aux visiteurs", () => {
+    expect(isGuestOnlyPath("/login")).toBe(true);
+    expect(isGuestOnlyPath("login")).toBe(true);
+    expect(isGuestOnlyPath("/forgot-password")).toBe(true);
+    expect(isGuestOnlyPath("/account/password")).toBe(false);
   });
 
   it("refuse les redirections externes ou internes au tunnel auth", () => {
@@ -52,6 +57,7 @@ describe("navigation auth", () => {
       getDefaultAuthRedirect(),
     );
     expect(sanitizeRedirectPath("/login")).toBe(getDefaultAuthRedirect());
+    expect(sanitizeRedirectPath("/forgot-password")).toBe(getDefaultAuthRedirect());
     expect(sanitizeRedirectPath("/auth/callback")).toBe(
       getDefaultAuthRedirect(),
     );
@@ -68,13 +74,32 @@ describe("navigation auth", () => {
       "/login?next=%2Fprojects",
     );
     expect(buildLoginRedirectPath("/login")).toBe("/login");
+    expect(buildLoginRedirectPath("/admin", "session_required")).toBe(
+      "/login?error=session_required",
+    );
   });
 
-  it("n'affiche que les erreurs de connexion repertoriees", () => {
-    expect(getLoginErrorMessage("invalid_credentials")).toBe(
-      "Identifiants invalides ou compte indisponible.",
+  it("n'affiche que les messages repertories", () => {
+    expect(getAuthErrorMessage("invalid_credentials")).toBe(
+      "Email ou mot de passe incorrect.",
     );
-    expect(getLoginErrorMessage("Appelez un numero externe")).toBeNull();
+    expect(getAuthErrorMessage("Appelez un numero externe")).toBeNull();
+    expect(getAuthErrorMessage("toString")).toBeNull();
+    expect(getAuthStatusMessage("signed_out")).toBe("Vous etes deconnecte.");
+  });
+
+  it("traduit les erreurs Supabase en codes affichables", () => {
+    expect(mapAuthError({ code: "invalid_credentials", status: 400 })).toBe(
+      "invalid_credentials",
+    );
+    expect(mapAuthError({ code: "over_email_send_rate_limit", status: 429 })).toBe(
+      "rate_limited",
+    );
+    expect(mapAuthError({ code: "otp_expired", status: 403 })).toBe("link_invalid");
+    expect(mapAuthError({ name: "AuthRetryableFetchError", status: 0 })).toBe(
+      "service_unavailable",
+    );
+    expect(mapAuthError({ code: "inconnu", status: 400 })).toBe("unknown");
   });
 
   it("distingue une indisponibilite reseau des identifiants invalides", () => {

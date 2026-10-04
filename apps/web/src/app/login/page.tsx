@@ -1,39 +1,46 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { AuthShell } from "@/modules/auth/components/auth-shell";
+import { LoginForm } from "@/modules/auth/components/login-form";
 import {
-  getDefaultAuthRedirect,
-  getLoginErrorMessage,
+  getAuthErrorMessage,
+  getAuthStatusMessage,
   sanitizeRedirectPath,
 } from "@/modules/auth/services/session-navigation";
 
-type LoginPageProps = {
-  searchParams?: Promise<{
-    next?: string | string[];
-    errorCode?: string | string[];
-  }>;
-};
+export const metadata: Metadata = { title: "Connexion" };
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const nextValue = Array.isArray(resolvedSearchParams?.next)
-    ? resolvedSearchParams.next[0]
-    : resolvedSearchParams?.next;
-  const errorCode = Array.isArray(resolvedSearchParams?.errorCode)
-    ? resolvedSearchParams.errorCode[0]
-    : resolvedSearchParams?.errorCode;
-  const nextPath = sanitizeRedirectPath(nextValue);
-  const user = await getAuthenticatedUser();
+type SearchParams = Record<string, string | string[] | undefined>;
 
-  if (user) {
-    redirect(nextPath || getDefaultAuthRedirect());
+function firstValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
+  const params = (await searchParams) ?? {};
+  const nextPath = sanitizeRedirectPath(firstValue(params.next));
+
+  if (await getAuthenticatedUser()) {
+    redirect(nextPath);
   }
 
-  const params = new URLSearchParams();
-  if (nextPath !== getDefaultAuthRedirect()) params.set("next", nextPath);
-  if (getLoginErrorMessage(errorCode) && errorCode) {
-    params.set("errorCode", errorCode);
-  }
-
-  redirect(`/${params.size ? `?${params.toString()}` : ""}#connexion`);
+  return (
+    <AuthShell
+      title="Connexion"
+      description="Accedez a votre espace AdminBTP."
+      footer="Pas encore de compte ? Demandez une invitation a votre administrateur."
+    >
+      <LoginForm
+        nextPath={nextPath}
+        initialError={getAuthErrorMessage(firstValue(params.error))}
+        initialStatus={getAuthStatusMessage(firstValue(params.status))}
+      />
+    </AuthShell>
+  );
 }

@@ -20,10 +20,8 @@ function buildLabelMap() {
     ...appNavigation.flatMap((section) =>
       section.items.map((item) => [item.href, item.label] as const),
     ),
-    ["/auth", "Authentification"],
-    ["/auth/callback", "Retour connexion"],
-    ["/auth/logout", "Deconnexion"],
-    ["/auth/password-login", "Connexion mot de passe"],
+    ["/account", "Mon compte"],
+    ["/account/password", "Mot de passe"],
   ]);
 }
 

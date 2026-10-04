@@ -1,170 +1,111 @@
 "use client";
 
-import { CheckCircle2, CircleAlert } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
-import { getSupabaseProjectRef, hasSupabaseConfig } from "@/lib/env";
-import { getDefaultAuthRedirect } from "@/modules/auth/services/session-navigation";
+import {
+  type AuthFormState,
+  sendMagicLink,
+  signInWithPassword,
+} from "@/modules/auth/services/auth-actions";
+import { FormMessage } from "@/modules/auth/components/form-message";
 
 type LoginFormProps = {
-  nextPath?: string;
-  initialMessage?: string | null;
-  loginPath?: "/" | "/login";
+  nextPath: string;
+  initialError?: string | null;
+  initialStatus?: string | null;
 };
 
-type MessageTone = "error" | "success";
+const initialState: AuthFormState = { status: "idle" };
 
-export function LoginForm({
-  nextPath,
-  initialMessage = null,
-  loginPath = "/login",
-}: LoginFormProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(initialMessage);
-  const [messageTone, setMessageTone] = useState<MessageTone | null>(
-    initialMessage ? "error" : null,
-  );
-  const [activeAction, setActiveAction] = useState<"password" | "magic-link" | null>(null);
-  const supabaseProjectRef = getSupabaseProjectRef();
+// Un seul formulaire, deux intentions : mot de passe (par defaut) ou lien par email.
+async function loginAction(previousState: AuthFormState, formData: FormData) {
+  return formData.get("intent") === "magic-link"
+    ? sendMagicLink(previousState, formData)
+    : signInWithPassword(previousState, formData);
+}
 
-  async function sendMagicLink() {
-    setActiveAction("magic-link");
-    setMessage(null);
-    setMessageTone(null);
+export function LoginForm({ nextPath, initialError, initialStatus }: LoginFormProps) {
+  const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
-    const supabase = createClient();
-
-    if (!supabase) {
-      setMessage("Configuration Supabase indisponible pour cette instance.");
-      setMessageTone("error");
-      setActiveAction(null);
-      return;
-    }
-
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", nextPath ?? getDefaultAuthRedirect());
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: callbackUrl.toString(),
-      },
-    });
-
-    if (error) {
-      setMessage("Le lien de connexion n'a pas pu etre envoye. Reessayez plus tard.");
-      setMessageTone("error");
-      setActiveAction(null);
-      return;
-    }
-
-    setMessage("Lien de connexion envoye. Ouvrez votre email pour continuer.");
-    setMessageTone("success");
-    setActiveAction(null);
-  }
+  const message =
+    state.status !== "idle"
+      ? { tone: state.status, text: state.message }
+      : initialError
+        ? { tone: "error" as const, text: initialError }
+        : initialStatus
+          ? { tone: "success" as const, text: initialStatus }
+          : null;
 
   return (
-    <form
-      action="/auth/password-login"
-      method="post"
-      className="space-y-4"
-      onSubmit={() => {
-        setActiveAction("password");
-        setMessage(null);
-        setMessageTone(null);
-      }}
-    >
-      <input type="hidden" name="next" value={nextPath ?? getDefaultAuthRedirect()} />
-      <input type="hidden" name="login_path" value={loginPath} />
+    <form action={formAction} className="space-y-4" noValidate>
+      <input type="hidden" name="next" value={nextPath} />
 
-      {message && messageTone ? (
-        <div
-          role={messageTone === "error" ? "alert" : "status"}
-          aria-live="polite"
-          className={
-            messageTone === "error"
-              ? "flex items-start gap-3 rounded-2xl border border-red-400 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm"
-              : "flex items-start gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
-          }
-        >
-          {messageTone === "error" ? (
-            <CircleAlert className="mt-0.5 size-5 shrink-0 text-red-700" aria-hidden="true" />
-          ) : (
-            <CheckCircle2
-              className="mt-0.5 size-5 shrink-0 text-emerald-700"
-              aria-hidden="true"
-            />
-          )}
-          <span>{message}</span>
-        </div>
-      ) : null}
+      {message?.text ? <FormMessage tone={message.tone}>{message.text}</FormMessage> : null}
 
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-stone-800">
-          Email professionnel
+          Email
         </label>
         <Input
           id="email"
           name="email"
           type="email"
-          placeholder="vous@entreprise.fr"
           autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          placeholder="vous@entreprise.fr"
+          defaultValue={state.email}
           required
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-stone-800">
-          Mot de passe
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="password" className="text-sm font-medium text-stone-800">
+            Mot de passe
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Mot de passe oublie ?
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"
           type="password"
-          placeholder="Votre mot de passe"
           autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
         />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Button
-          type="submit"
-          variant="outline"
-          className="h-11 rounded-full"
-          disabled={activeAction !== null}
-        >
-          {activeAction === "password" ? "Connexion..." : "Se connecter"}
-        </Button>
+      <Button
+        type="submit"
+        name="intent"
+        value="password"
+        className="w-full"
+        disabled={isPending}
+      >
+        {isPending ? "Connexion..." : "Se connecter"}
+      </Button>
 
-        <Button
-          type="button"
-          className="h-11 rounded-full"
-          disabled={activeAction !== null}
-          onClick={sendMagicLink}
-        >
-          {activeAction === "magic-link" ? "Envoi en cours..." : "Recevoir un lien de connexion"}
-        </Button>
+      <div className="flex items-center gap-3 text-xs text-stone-500" aria-hidden="true">
+        <span className="h-px flex-1 bg-border" />
+        ou
+        <span className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
-        {hasSupabaseConfig()
-          ? `Connexion reelle activee via Supabase.${supabaseProjectRef ? ` Projet actif: ${supabaseProjectRef}.` : ""}`
-          : "Configuration Supabase indisponible pour cette instance."}
-      </div>
-
-      <p className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-600">
-        Le mot de passe ouvre directement la session. Le lien email reste disponible en secours.
-      </p>
-
+      <Button
+        type="submit"
+        name="intent"
+        value="magic-link"
+        variant="outline"
+        className="w-full"
+        disabled={isPending}
+      >
+        Recevoir un lien de connexion par email
+      </Button>
     </form>
   );
 }

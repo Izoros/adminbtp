@@ -11,18 +11,6 @@ import Link from "next/link";
 
 import { ProjectCarousel } from "@/components/marketing/project-carousel";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
-import { LoginForm } from "@/modules/auth/components/login-form";
-import {
-  getLoginErrorMessage,
-  sanitizeRedirectPath,
-} from "@/modules/auth/services/session-navigation";
-
-type HomePageProps = {
-  searchParams?: Promise<{
-    errorCode?: string | string[];
-    next?: string | string[];
-  }>;
-};
 
 const presentationItems = [
   {
@@ -60,19 +48,8 @@ const vlogEntries = [
   },
 ] as const;
 
-export default async function Home({ searchParams }: HomePageProps) {
-  const [user, resolvedSearchParams] = await Promise.all([
-    getAuthenticatedUser(),
-    searchParams ? searchParams : Promise.resolve(undefined),
-  ]);
-  const errorCode = Array.isArray(resolvedSearchParams?.errorCode)
-    ? resolvedSearchParams.errorCode[0]
-    : resolvedSearchParams?.errorCode;
-  const errorMessage = getLoginErrorMessage(errorCode);
-  const nextValue = Array.isArray(resolvedSearchParams?.next)
-    ? resolvedSearchParams.next[0]
-    : resolvedSearchParams?.next;
-  const nextPath = sanitizeRedirectPath(nextValue);
+export default async function Home() {
+  const user = await getAuthenticatedUser();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -95,7 +72,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           </nav>
 
           <Link
-            href={user ? "/admin" : "#connexion"}
+            href={user ? "/admin" : "/login"}
             className="inline-flex h-10 items-center justify-center rounded-full bg-stone-950 px-5 text-sm font-medium text-white transition hover:bg-stone-800"
           >
             {user ? "Ouvrir AdminBTP" : "Se connecter"}
@@ -157,24 +134,26 @@ export default async function Home({ searchParams }: HomePageProps) {
                   </Link>
                 </div>
               ) : (
-                <>
-                  <p className="text-xs font-semibold tracking-[0.22em] text-stone-500 uppercase">
-                    Espace securise
-                  </p>
-                  <h2 id="connexion-title" className="mt-3 text-3xl font-semibold tracking-[-0.045em]">
-                    Connexion a votre espace
-                  </h2>
-                  <p className="mt-3 text-sm leading-7 text-stone-600">
-                    Utilisez votre compte professionnel ou recevez un lien de connexion par email.
-                  </p>
-                  <div className="mt-7">
-                    <LoginForm
-                      loginPath="/"
-                      nextPath={nextPath}
-                      initialMessage={errorMessage}
-                    />
+                <div className="flex h-full min-h-96 flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-semibold tracking-[0.22em] text-stone-500 uppercase">
+                      Espace securise
+                    </p>
+                    <h2 id="connexion-title" className="mt-3 text-3xl font-semibold tracking-[-0.045em]">
+                      Connexion a votre espace
+                    </h2>
+                    <p className="mt-4 leading-7 text-stone-600">
+                      Connectez-vous avec votre mot de passe ou recevez un lien de connexion par email.
+                    </p>
                   </div>
-                </>
+                  <Link
+                    href="/login"
+                    className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 font-medium text-primary-foreground transition hover:brightness-95"
+                  >
+                    Se connecter
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </div>
               )}
             </section>
           </div>

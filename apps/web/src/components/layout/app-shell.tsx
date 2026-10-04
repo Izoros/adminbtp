@@ -1,14 +1,13 @@
 import {
   BookOpenCheck,
-  Building2,
   CalendarRange,
   FileText,
   FolderKanban,
+  KeyRound,
   LayoutDashboard,
   LogIn,
   LogOut,
   Menu,
-  Settings2,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,8 +15,8 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { NewUserGuide } from "@/components/onboarding/new-user-guide";
 import { appNavigation } from "@/config/navigation";
-import { getSupabaseProjectRef } from "@/lib/env";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { signOut } from "@/modules/auth/services/auth-actions";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -39,7 +38,6 @@ export async function AppShell({
   title = "Tableau de lancement",
 }: AppShellProps) {
   const user = await getAuthenticatedUser();
-  const supabaseProjectRef = getSupabaseProjectRef();
 
   return (
     <div className="min-h-screen bg-background pb-20 text-foreground lg:pb-0">
@@ -49,66 +47,15 @@ export async function AppShell({
           userLabel={user.email?.split("@")[0] ?? "dans AdminBTP"}
         />
       ) : null}
-      <div className="mx-auto flex min-h-screen max-w-[1680px] gap-6 px-4 py-4 md:px-6 xl:px-8">
-        <aside className="hidden w-80 shrink-0 rounded-2xl border border-sidebar-border bg-sidebar p-6 text-sidebar-foreground shadow-xl lg:flex lg:flex-col">
-          <div className="flex items-center gap-4 border-b border-white/10 pb-5">
-            <div className="rounded-xl bg-sidebar-primary p-3 text-sidebar-primary-foreground">
-              <Building2 className="size-6" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-lg font-semibold tracking-[-0.03em]">
-                AdminBTP
-              </p>
-              <p className="text-sm text-stone-400">
-                Pilotage administratif et technique
-              </p>
-            </div>
-          </div>
-
-          <nav className="mt-6 space-y-6" aria-label="Navigation principale">
-            {appNavigation.map((section) => (
-              <div key={section.title} className="space-y-2">
-                <p className="px-3 text-xs font-medium tracking-[0.24em] text-stone-500 uppercase">
-                  {section.title}
-                </p>
-                <ul className="space-y-1.5">
-                  {section.items.map((item) => (
-                    <li key={item.label}>
-                      <Link
-                        href={item.href}
-                        className="flex items-center justify-between rounded-2xl px-3 py-3 transition hover:bg-white/6"
-                      >
-                        <div className="flex items-center gap-3">
-                          <item.icon
-                            className="size-4 text-stone-300"
-                            aria-hidden="true"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-white">
-                              {item.label}
-                            </p>
-                            <p className="text-xs text-stone-400">
-                              {item.description}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
-        </aside>
-
+      <div className="mx-auto flex min-h-screen max-w-[1440px] gap-6 px-4 py-4 md:px-6 xl:px-8">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <header className="relative z-40 rounded-2xl border border-border bg-card/95 px-5 py-4 shadow-lg backdrop-blur">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
-                <details className="group relative lg:hidden">
+                <details className="group relative">
                   <summary
-                    className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl bg-sidebar text-sidebar-foreground [&::-webkit-details-marker]:hidden"
-                    aria-label="Ouvrir la navigation"
+                    className="flex h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl bg-sidebar px-3 text-sm font-medium text-sidebar-foreground [&::-webkit-details-marker]:hidden"
+                    aria-label="Ouvrir ou fermer le menu"
                   >
                     <Menu
                       className="size-5 group-open:hidden"
@@ -118,11 +65,12 @@ export async function AppShell({
                       className="hidden size-5 group-open:block"
                       aria-hidden="true"
                     />
+                    <span className="hidden sm:inline">Menu</span>
                   </summary>
-                  <div className="fixed inset-x-4 top-24 z-50 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-sidebar-border bg-sidebar p-4 text-sidebar-foreground shadow-2xl">
+                  <div className="fixed inset-x-4 top-24 z-50 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl lg:right-auto lg:w-96 border border-sidebar-border bg-sidebar p-4 text-sidebar-foreground shadow-2xl">
                     <nav
                       className="space-y-5"
-                      aria-label="Navigation mobile complete"
+                      aria-label="Navigation principale"
                     >
                       {appNavigation.map((section) => (
                         <div key={section.title} className="space-y-2">
@@ -159,7 +107,7 @@ export async function AppShell({
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/guide"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-50"
@@ -167,35 +115,25 @@ export async function AppShell({
                   <BookOpenCheck className="size-4" aria-hidden="true" />
                   Didacticiel
                 </Link>
-                <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-                  <Settings2
-                    className="size-4 text-stone-500"
-                    aria-hidden="true"
-                  />
-                  {user ? "Session Supabase active" : "Session requise"}
-                </div>
-
-                {supabaseProjectRef ? (
-                  <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700">
-                    <span className="font-medium text-stone-900">
-                      Projet Supabase
-                    </span>
-                    <span className="rounded-full bg-stone-100 px-3 py-1 font-mono text-xs text-stone-700">
-                      {supabaseProjectRef}
-                    </span>
-                  </div>
-                ) : null}
-
                 {user ? (
                   <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700">
-                    <span className="max-w-48 truncate">{user.email}</span>
+                    <span className="hidden max-w-48 truncate xl:inline">{user.email}</span>
                     <Link
-                      href="/auth/logout"
-                      className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-stone-800"
+                      href="/account/password"
+                      className="inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-950"
                     >
-                      <LogOut className="size-3.5" aria-hidden="true" />
-                      Quitter
+                      <KeyRound className="size-3.5" aria-hidden="true" />
+                      Mot de passe
                     </Link>
+                    <form action={signOut}>
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-stone-800"
+                      >
+                        <LogOut className="size-3.5" aria-hidden="true" />
+                        Quitter
+                      </button>
+                    </form>
                   </div>
                 ) : (
                   <Link
