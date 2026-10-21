@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserPermissionRole } from "./roles";
+import { RoleScope, UserPermissionRole } from "./roles";
 
 export const User = z.object({
   id: z.string().uuid(),
@@ -7,6 +7,9 @@ export const User = z.object({
   email: z.string().email(),
   fullName: z.string().min(1),
   permissionRole: UserPermissionRole,
+  // Distinction explicite plateforme/entreprise, indépendante de organizationId — voir
+  // docs/CDC/MULTI_TENANT_SAAS.md. Doit rester cohérent avec PERMISSION_ROLE_SCOPE[permissionRole].
+  roleScope: RoleScope,
   avatarUrl: z.string().url().optional(),
   mfaEnabled: z.boolean().default(false),
   isActive: z.boolean().default(true),

@@ -3,6 +3,36 @@
 Format : date, décision, contexte/alternative écartée. Ajouter une entrée à chaque décision
 d'architecture significative ou écart volontaire par rapport au cahier des charges initial.
 
+## 2026-10-21 — Exigence architecturale prioritaire : AdminBTP SaaS multi-tenant, jamais un outil MAWU
+
+**Décision** : l'utilisateur a formalisé une exigence architecturale prioritaire — AdminBTP est
+une plateforme SaaS commerciale multi-tenant destinée à plusieurs entreprises indépendantes du
+BTP, jamais un logiciel interne exclusif à une entreprise. MAWU (client et utilisateur initial) ne
+doit jamais avoir de privilège implicite sur la plateforme ou sur les données d'autres
+organisations. Document complet : `docs/CDC/MULTI_TENANT_SAAS.md`.
+
+**Traduction schéma** (`database/migrations/0005` à `0007`) : `users.role_scope` (distinction
+explicite plateforme/entreprise), `organization_domains` (multi-domaine), `plan_features`
+(fonctionnalités par abonnement), `organization_integrations` (Odoo/n8n isolés par organisation,
+avec bascule `managed_by: CLIENT` pour une gestion future par l'entreprise elle-même),
+`signature_profiles` (signature par organisation), révocation tracée sur `portfolio_grants`
+(`revoked_at`/`revoked_by`), et une fonction RLS `can_access_site()` qui ouvre l'accès en lecture
+à un chantier aux organisations participantes (`site_participants`), pas seulement à
+l'organisation propriétaire — corrige un trou réel : avant cette migration, une entreprise
+participante à un chantier (ex: sous-traitant, BET) n'avait aucune visibilité dessus.
+
+**Vérification** : recherche de "MAWU" dans tout le dépôt à la date de cette décision — aucune
+occurrence trouvée. Les organisations de démonstration restent fictives (SARL Madaterrassement,
+Bâti Mayotte Construction, Cabinet AMO Lagon).
+
+**Point ouvert** : le `CHECK` constraint sur `users.role_scope` n'est volontairement
+**pas symétrique** — un rôle `PLATEFORME` doit avoir `organization_id IS NULL` (contrainte
+stricte), mais un rôle `ENTREPRISE` peut temporairement n'avoir aucune organisation (nouvel
+inscrit en attente de rattachement). Rendre la contrainte symétrique casserait le trigger
+d'inscription (`handle_new_user`), qui crée un profil `ENTREPRISE`/`OBSERVATEUR` sans organisation
+par défaut — RLS laisse de toute façon cet utilisateur sans accès à aucune donnée tant qu'il n'est
+pas rattaché, donc pas de risque de sécurité à autoriser cette combinaison.
+
 ## 2026-10-21 — Suppression d'un schéma Supabase hérité avant application du schéma Phase 1
 
 **Décision** : au démarrage de la Phase 2, le projet Supabase fourni par l'utilisateur

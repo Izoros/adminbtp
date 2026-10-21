@@ -69,3 +69,32 @@ export const USER_PERMISSION_LABELS: Record<UserPermissionRole, string> = {
   COLLABORATEUR_CLIENT: "Collaborateur client",
   OBSERVATEUR: "Observateur",
 };
+
+/**
+ * Distinction explicite, au niveau schéma, entre un collaborateur AdminBTP (la plateforme SaaS
+ * elle-même, sans organisation cliente) et un utilisateur d'une entreprise cliente. AdminBTP est
+ * un éditeur SaaS multi-tenant : aucune entreprise cliente (MAWU comprise) n'a de statut
+ * particulier — voir docs/CDC/MULTI_TENANT_SAAS.md. `PLATEFORME` implique organizationId null ;
+ * `ENTREPRISE` implique un organizationId renseigné.
+ */
+export const RoleScope = z.enum(["PLATEFORME", "ENTREPRISE"]);
+export type RoleScope = z.infer<typeof RoleScope>;
+
+export const ROLE_SCOPE_LABELS: Record<RoleScope, string> = {
+  PLATEFORME: "Plateforme AdminBTP",
+  ENTREPRISE: "Entreprise cliente",
+};
+
+/** Quel role_scope chaque UserPermissionRole suppose — utilisé pour valider la cohérence. */
+export const PERMISSION_ROLE_SCOPE: Record<UserPermissionRole, RoleScope> = {
+  ADMIN_PLATEFORME: "PLATEFORME",
+  RESPONSABLE_PORTEFEUILLE: "PLATEFORME",
+  GESTIONNAIRE_ADMINISTRATIF: "PLATEFORME",
+  CHARGE_AFFAIRES: "PLATEFORME",
+  ASSISTANT_ADMINISTRATIF: "PLATEFORME",
+  EXPERT_TECHNIQUE: "PLATEFORME",
+  VALIDATEUR: "ENTREPRISE",
+  DIRIGEANT_CLIENT: "ENTREPRISE",
+  COLLABORATEUR_CLIENT: "ENTREPRISE",
+  OBSERVATEUR: "ENTREPRISE",
+};

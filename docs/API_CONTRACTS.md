@@ -10,8 +10,12 @@ d'adaptateur pour les intégrations externes.
 | Entité | Fichier | Clé étrangère tenant |
 |---|---|---|
 | `Organization` | `organization.ts` | — (racine du tenant) |
-| `PortfolioGrant` | `organization.ts` | `organizationId` (accès cross-tenant explicite) |
-| `User` | `user.ts` | `organizationId` (nullable pour comptes AdminBTP) |
+| `OrganizationDomain` | `organization.ts` | `organizationId` (plusieurs domaines par organisation) |
+| `PlanFeature` | `organization.ts` | référentiel partagé par `subscriptionPlan`, pas de tenant |
+| `OrganizationIntegration` | `organization.ts` | `organizationId` (Odoo/n8n isolés, `managedBy: ADMINBTP \| CLIENT`) |
+| `SignatureProfile` | `organization.ts` | `organizationId` |
+| `PortfolioGrant` | `organization.ts` | `organizationId` (accès cross-tenant explicite, révocable — `revokedAt`/`revokedBy`) |
+| `User` | `user.ts` | `organizationId` (nullable pour comptes AdminBTP) ; `roleScope: PLATEFORME \| ENTREPRISE` distinct du rôle chantier |
 | `SiteAccess` | `user.ts` | via `siteId` → `Site.organizationId` |
 | `Site` | `chantier.ts` | `organizationId` |
 | `SiteParticipant` | `chantier.ts` | via `siteId` |
@@ -30,6 +34,14 @@ d'adaptateur pour les intégrations externes.
 Chaque schéma Zod exporte aussi son type TypeScript inféré (`z.infer<...>`) et, quand pertinent,
 un dictionnaire de libellés français (`*_LABELS`) — voir le code source pour le détail champ par
 champ, il ne doit jamais être dupliqué ici ni ailleurs.
+
+**Isolation tenant** : `organizationId` reste la clé d'isolation RLS pour toute entité propre à
+une organisation. Pour les ressources de chantier partagées entre plusieurs organisations
+(`Site` et tout ce qui en dépend : `PhaseInstance`, `Document`, `MailThread`, `Task`, `Situation`,
+`ReminderRule`, `SiteParticipant`, `Lot`, `SiteAccess`), l'accès en lecture passe par
+`can_access_site()` côté RLS : l'organisation propriétaire du chantier **et** toute organisation
+listée comme participante (`SiteParticipant`) y ont accès — jamais les autres chantiers de ces
+organisations. Voir `docs/CDC/MULTI_TENANT_SAAS.md`.
 
 ## Interfaces d'intégration (packages/integrations)
 

@@ -11,6 +11,13 @@
 --   - ADMIN_PLATEFORME voit tout. Un collaborateur AdminBTP (ex: gestionnaire, chargé d'affaires)
 --     voit les organisations pour lesquelles il détient un portfolio_grants ; les comptes "client"
 --     (DIRIGEANT_CLIENT, COLLABORATEUR_CLIENT, ...) ne voient que leur propre organization_id.
+--
+-- AMENDÉ par database/migrations/0006_multitenant_saas_rls.sql (collaboration inter-entreprises
+-- sur chantier partagé — fonction can_access_site()) et 0007_multitenant_saas_performance_cleanup.sql
+-- (policies FOR ALL ci-dessous remplacées par des policies INSERT/UPDATE/DELETE séparées pour
+-- sites, phase_instances, documents, mail_threads, tasks). Ce fichier reste le point de départ
+-- historique ; l'état réellement appliqué est la somme de 0001 + 0006 + 0007. Voir
+-- docs/CDC/MULTI_TENANT_SAAS.md.
 
 create or replace function current_app_user_id()
 returns uuid

@@ -1,49 +1,77 @@
 ---
 name: adminbtp-multitenant-security
-description: Modèle d'isolation multi-tenant AdminBTP (organization_id, RLS Supabase, portfolio_grants pour les collaborateurs multi-organisations) et règles de sécurité à respecter dans tout code touchant aux données. Utiliser avant d'écrire une requête, une policy RLS ou un endpoint qui lit/écrit des données métier.
+description: Modèle d'isolation multi-tenant AdminBTP (organization_id, role_scope, RLS Supabase, portfolio_grants révocables, collaboration inter-entreprises sur chantier partagé) et règles de sécurité à respecter dans tout code touchant aux données. Utiliser avant d'écrire une requête, une policy RLS ou un endpoint qui lit/écrit des données métier.
 ---
 
 # Sécurité et isolation multi-tenant
 
-## Principe d'isolation
+## Principe d'isolation — AdminBTP est un SaaS multi-tenant, jamais un outil interne
 
 Chaque organisation cliente (`Organization`, tenant) ne doit jamais voir les données d'une autre
-organisation. Toute table métier porte `organization_id` (directement, ou via une table parente
-comme `sites`/`documents` pour les tables qui en dépendent — voir
-`database/migrations/0001_init_core_schema.sql` pour le détail table par table).
+organisation, sauf collaboration explicite sur un chantier partagé (voir plus bas). Toute table
+métier porte `organization_id` (directement, ou via une table parente comme `sites`/`documents`
+pour les tables qui en dépendent — voir `database/migrations/0001_init_core_schema.sql` pour le
+détail table par table).
+
+**Exigence architecturale prioritaire (2026-10-21)** : AdminBTP est une plateforme SaaS
+commerciale destinée à plusieurs entreprises indépendantes, jamais un logiciel interne exclusif à
+une entreprise. **MAWU est un client et utilisateur initial, sans privilège implicite** — elle ne
+doit jamais apparaître dans le code comme propriétaire implicite de la plateforme, seulement comme
+une organisation de démonstration parmi d'autres. Aucune règle métier, interface ou donnée ne doit
+être codée en dur pour une entreprise en particulier. Voir `docs/CDC/MULTI_TENANT_SAAS.md`.
 
 **Exception explicite et volontaire** : les collaborateurs AdminBTP (gestionnaires, chargés
 d'affaires) supervisent plusieurs organisations clientes à la fois. Cet accès transverse est
 modélisé par `PortfolioGrant`/`portfolio_grants`, **jamais** par un rôle global qui court-circuite
 l'isolation — chaque accès cross-organisation doit être une ligne explicite et traçable
-(`grantedBy`, `grantedAt`), pas un flag booléen "voit tout".
+(`grantedBy`, `grantedAt`), pas un flag booléen "voit tout". Cette délégation est **révocable** :
+`revokedAt`/`revokedBy` marquent la fin d'un accès sans jamais supprimer la ligne (traçabilité).
+`has_portfolio_access()` exclut déjà les grants révoqués — ne jamais contourner cette fonction par
+une requête directe sur `portfolio_grants`.
 
 ## RLS (Row Level Security)
 
 `database/policies/0001_rls_policies.sql` définit la fonction `can_access_organization(org_id)`
-utilisée par toutes les policies :
+utilisée par la plupart des policies :
 ```
 ADMIN_PLATEFORME → accès total
 membre de l'organisation (users.organization_id = org_id) → accès
-détenteur d'un portfolio_grants sur org_id → accès
+détenteur d'un portfolio_grants non révoqué sur org_id → accès
 sinon → aucun accès
 ```
+`database/migrations/0006_multitenant_saas_rls.sql` ajoute `can_access_site(site_id)` pour les
+ressources de chantier (`sites` et tout ce qui en dépend : `phase_instances`, `documents`,
+`mail_threads`, `tasks`, `situations`, `reminder_rules`, `site_participants`, `lots`,
+`site_access`) : accorde l'accès en **lecture** à l'organisation propriétaire du chantier **et** à
+toute organisation participante (`site_participants`) — c'est le mécanisme de collaboration
+inter-entreprises sur chantier partagé. Contrôle **par ressource** : participer à un chantier ne
+donne jamais accès aux autres chantiers de l'organisation propriétaire. L'écriture
+(`INSERT`/`UPDATE`/`DELETE`) reste réservée à l'organisation propriétaire sur ces tables — une
+organisation participante peut voir, pas modifier, sauf policy explicite contraire.
+
 Toute nouvelle table métier ajoutée au schéma doit activer RLS et recevoir une policy basée sur
-cette fonction (ou une jointure vers une table qui la porte, comme `sites`/`documents` pour leurs
-tables filles). Ne jamais laisser une table métier sans RLS actif, même "temporairement".
+`can_access_organization()` ou `can_access_site()` selon qu'elle est propre à une organisation ou
+rattachée à un chantier. Ne jamais laisser une table métier sans RLS actif, même "temporairement".
 
-**Ces policies ne sont pas encore appliquées à une base réelle en Phase 1** (aucun Supabase
-connecté) — elles doivent être revues et testées avant toute connexion à un environnement avec de
-vraies données client.
+**Ces policies sont appliquées au projet Supabase réel depuis la Phase 2** (2026-10-21) — voir
+`database/README.md` pour le détail des migrations.
 
-## Rôle métier vs permission informatique — ne jamais confondre
+## Rôle plateforme vs rôle entreprise vs rôle métier chantier — trois niveaux distincts
 
-`MissionRole` (MOA, MOE, sous-traitant...) décrit **le rôle de l'organisation sur un chantier**,
-pas ce qu'un utilisateur a le droit de faire dans l'application. `UserPermissionRole`
-(`ADMIN_PLATEFORME`, `GESTIONNAIRE_ADMINISTRATIF`, `DIRIGEANT_CLIENT`...) décrit **le niveau
-d'accès applicatif** d'un utilisateur. Un `DIRIGEANT_CLIENT` d'une société "sous-traitant" sur un
-chantier et "entreprise générale" sur un autre a le même `UserPermissionRole` partout, mais son
-organisation a des `MissionRole` différents selon le chantier.
+Trois notions à ne jamais confondre (voir `docs/CDC/MULTI_TENANT_SAAS.md`) :
+
+1. **`role_scope`** (`PLATEFORME` \| `ENTREPRISE`, colonne explicite sur `users`) : distingue un
+   collaborateur AdminBTP (la plateforme elle-même, `organization_id` toujours `NULL`) d'un
+   utilisateur d'une entreprise cliente. Un rôle `PLATEFORME` ne doit **jamais** être rattaché à
+   une organisation — contrainte `users_role_scope_platforme_no_org` posée en base.
+2. **`UserPermissionRole`** (`ADMIN_PLATEFORME`, `GESTIONNAIRE_ADMINISTRATIF`,
+   `DIRIGEANT_CLIENT`...) décrit le niveau d'accès applicatif précis dans son `role_scope`
+   (`PERMISSION_ROLE_SCOPE` dans `packages/types/src/roles.ts` fait la correspondance).
+3. **`MissionRole`** (MOA, MOE, sous-traitant...) décrit **le rôle de l'organisation sur un
+   chantier**, totalement indépendant des deux premiers. Une même organisation peut avoir des
+   `MissionRole` différents selon le chantier ; un `DIRIGEANT_CLIENT` d'une société
+   "sous-traitant" sur un chantier et "entreprise générale" sur un autre garde le même
+   `UserPermissionRole`/`role_scope` partout.
 
 ## Données sensibles
 
