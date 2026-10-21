@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh)",
+      "Bash(bash)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(mkdir -p /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/dashboard /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/organisations /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/portefeuille /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/chantiers/[id] /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/documents /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/mails /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/taches /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/validations /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/relances /Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\\\\\(app\\\\\\)/parametres)",
+      "Bash(ls -la \"/Users/ama26/Desktop/AdminBTP/apps/web/src/app/\\(app\\)\")",
+      "Bash(pnpm typecheck:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Bash(node -e \"const p=require\\(''./$f''\\); console.log\\(p.name, JSON.stringify\\(p.scripts||{}\\)\\)\")",
+      "Bash(done)",
+      "Bash(awk '{print $2}')",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
