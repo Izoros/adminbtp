@@ -3,6 +3,37 @@
 Format : date, décision, contexte/alternative écartée. Ajouter une entrée à chaque décision
 d'architecture significative ou écart volontaire par rapport au cahier des charges initial.
 
+## 2026-10-21 — `RETURNING` + policy SELECT auto-référentielle = faux négatif RLS sur Postgres 17
+
+**Problème** : le formulaire de création de chantier échouait systématiquement avec
+`42501 new row violates row-level security policy for table "sites"`, alors que
+`can_access_organization()` évaluait correctement `true` pour l'utilisateur (vérifié en SQL
+direct, simulant sa session). L'action utilisait `.insert({...}).select("id").single()`.
+
+**Cause** : depuis Postgres 15+ (confirmé ici sur Postgres 17, moteur du projet Supabase), une
+clause `RETURNING` sur `INSERT`/`UPDATE`/`DELETE` applique aussi la policy `SELECT` de la table à
+la ligne retournée — pas seulement la policy d'écriture. `sites_select_shared` appelle
+`can_access_site(id)`, une fonction `STABLE` qui relit `sites`/`site_participants` : les fonctions
+`STABLE` figent leur résultat sur l'instantané de **début de requête**, donc une telle fonction ne
+voit pas la ligne que cette même instruction est en train d'insérer — `can_access_site()` renvoie
+`false` pour la ligne qui vient d'être créée, et PostgREST (qui demande toujours `RETURNING` pour
+restituer la ressource créée) rapporte l'échec comme une violation RLS. Isolé par test direct :
+`insert ... ; -- (sans RETURNING)` réussit ; `insert ... returning id ;` échoue sur la même ligne.
+
+**Correction** (`apps/web/src/lib/actions/sites.ts`) : générer l'`id` côté serveur
+(`randomUUID()`), l'inclure explicitement dans l'`INSERT`, et ne jamais appeler `.select()` après
+— l'id est déjà connu, pas besoin de `RETURNING`. Applicable à toute table dont la policy SELECT
+est **auto-référentielle** (elle relit la table qu'elle protège, ou une table sœur elle aussi
+protégée par la même fonction) : au minimum `sites`, `phase_instances`, `documents`,
+`mail_threads`, `tasks`, `situations`, `reminder_rules`, `site_participants`, `lots`,
+`site_access` (toutes via `can_access_site()`). `organizations`/`validation_records` n'ont pas ce
+problème : leurs policies ne lisent pas la table qu'elles protègent.
+
+**Leçon** : pour toute nouvelle Server Action qui insère dans une table protégée par
+`can_access_site()`, soit éviter `.select()` après `.insert()`, soit générer l'id côté serveur
+comme ici — ne pas supposer que `RETURNING` est sans risque juste parce que la policy d'écriture
+est correcte.
+
 ## 2026-10-21 — Bug de récursion RLS sur `can_access_site()`, corrigé par `SECURITY DEFINER`
 
 **Problème** : après conversion des 13 écrans vers de vraies requêtes Supabase, toute requête

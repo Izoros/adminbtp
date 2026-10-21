@@ -65,6 +65,19 @@ volontairement exécutables en RPC direct (contrairement à `handle_new_user`/`r
 révoquées) car Postgres les appelle lui-même pendant l'évaluation de policies sur des requêtes
 ordinaires — leur révoquer casserait RLS pour tout le monde.
 
+**Deuxième piège vécu (2026-10-21, voir docs/DECISIONS.md)** : pour une table dont la policy
+`SELECT` est **auto-référentielle** (elle relit la table qu'elle protège — c'est le cas de toute
+table couverte par `can_access_site()` : `sites`, `phase_instances`, `documents`, `mail_threads`,
+`tasks`, `situations`, `reminder_rules`, `site_participants`, `lots`, `site_access`), **n'appelle
+jamais `.select()` après un `.insert()`**. Sur Postgres 15+ (le projet tourne en 17), `RETURNING`
+applique aussi la policy SELECT à la ligne retournée ; or `can_access_site()` est `STABLE` et lit
+son instantané de début de requête, donc elle ne voit pas la ligne que cette même instruction est
+en train d'insérer — PostgREST (et donc le client Supabase) rapporte ça comme une violation RLS
+alors que la policy d'écriture, elle, est correcte. Solution : générer l'`id` côté serveur
+(`randomUUID()`), l'inclure dans l'`INSERT`, ne pas appeler `.select()`. Voir
+`apps/web/src/lib/actions/sites.ts` pour l'exemple de référence. `organizations` et
+`validation_records` n'ont pas ce problème (leurs policies ne sont pas auto-référentielles).
+
 **Ces policies sont appliquées au projet Supabase réel depuis la Phase 2** (2026-10-21) — voir
 `database/README.md` pour le détail des migrations.
 

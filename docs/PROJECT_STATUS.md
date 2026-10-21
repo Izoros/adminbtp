@@ -1,7 +1,8 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Phase 2 — persistance réelle + sélecteur d'organisation terminés (2026-10-21).**
-Phase 1 validée. Voir `docs/ROADMAP.md` pour le détail des cases cochées/restantes.
+**Phase actuelle : Phase 2 — persistance réelle, sélecteur d'organisation et formulaires de
+création (chantiers/documents) terminés (2026-10-21).** Phase 1 validée. Voir `docs/ROADMAP.md`
+pour le détail des cases cochées/restantes.
 
 ## Ce qui fonctionne aujourd'hui
 
@@ -40,23 +41,35 @@ par `/parametres`, qui montrait auparavant la première organisation triée par 
 écrans restent des vues consolidées multi-organisations (comportement attendu pour un
 collaborateur qui supervise plusieurs sociétés).
 
+**Formulaires de création** : `/chantiers/nouveau` et `/documents/nouveau` créent réellement des
+lignes en base (`apps/web/src/lib/actions/sites.ts` et `documents.ts`). La catégorie PPSPS force
+le statut `PREEDITION` côté serveur, jamais laissé au choix de l'utilisateur. Un bug réel a été
+trouvé et corrigé en route (voir section suivante).
+
 Se connecter avec le compte de démonstration documenté dans `apps/web/.env.local` (non committé).
 
 Vérifié à cette étape : `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test` tous verts ;
 parcours complet en navigateur de tous les écrans avec données réelles, et test effectif des deux
 actions d'écriture (persistance confirmée en base, valeurs de test nettoyées après vérification).
 
-## Bug trouvé et corrigé en cours de route
+## Bugs trouvés et corrigés en cours de route
 
-Une fonction RLS (`can_access_site()`, posée pour la collaboration inter-entreprises) provoquait
-une récursion via les policies des tables qu'elle interrogeait, bloquant toute requête liée à un
-chantier pendant ~47s avant timeout. Corrigé en passant les fonctions utilitaires RLS en
-`SECURITY DEFINER` — voir `docs/DECISIONS.md` pour l'analyse complète.
+- Une fonction RLS (`can_access_site()`, posée pour la collaboration inter-entreprises) provoquait
+  une récursion via les policies des tables qu'elle interrogeait, bloquant toute requête liée à un
+  chantier pendant ~47s avant timeout. Corrigé en passant les fonctions utilitaires RLS en
+  `SECURITY DEFINER`.
+- `.insert().select()` sur `sites` échouait systématiquement (`42501 new row violates row-level
+  security policy`) alors que la policy d'écriture était correcte : sur Postgres 17, `RETURNING`
+  applique aussi la policy SELECT, et celle de `sites` est auto-référentielle
+  (`can_access_site()`, `STABLE`, ne voit pas la ligne que la même instruction insère). Corrigé en
+  générant l'id côté serveur et en évitant `.select()` après `.insert()`.
+
+Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 
 ## Ce qui n'est pas branché
 
-- Les autres actions (hors Validations/Paramètres) restent en lecture seule côté UI — pas de
-  formulaire de création de chantier/organisation/document, par exemple.
+- Les autres entités restent en lecture seule côté UI — pas de formulaire de création
+  d'organisation, par exemple (seuls chantiers et documents ont un formulaire de création).
 - Odoo, email, WhatsApp, IA, n8n : toujours en implémentation `Demo*`, aucun I/O réseau réel.
 - MFA, onboarding self-service, feature-gating par `plan_features` : non implémentés (schéma
   prêt, voir `docs/ROADMAP.md` Phase 8).
@@ -66,17 +79,19 @@ chantier pendant ~47s avant timeout. Corrigé en passant les fonctions utilitair
 
 Voir `docs/ARCHITECTURE.md`. Ajouts notables de cette phase : `apps/web/src/lib/data/` (requêtes
 Supabase typées, mappées vers les schémas Zod existants, dont `organization-context.ts` pour le
-sélecteur), `apps/web/src/lib/actions/` (Server Actions),
-`apps/web/src/components/layout/org-switcher.tsx`, `database/migrations/0005` à `0009`,
+sélecteur), `apps/web/src/lib/actions/` (Server Actions, dont `sites.ts`/`documents.ts` pour la
+création), `apps/web/src/components/layout/org-switcher.tsx`,
+`apps/web/src/app/(app)/{chantiers,documents}/nouveau/`, `database/migrations/0005` à `0009`,
 `database/seeds/0002_demo_dataset.sql`, `docs/CDC/MULTI_TENANT_SAAS.md`.
 
 ## Décisions notables de cette phase
 
 Voir `docs/DECISIONS.md` — notamment : suppression d'un schéma Supabase hérité, exigences SaaS
-multi-tenant actées (jamais un outil MAWU), bug de récursion RLS et sa correction.
+multi-tenant actées (jamais un outil MAWU), bug de récursion RLS et sa correction, bug
+`RETURNING`/policy auto-référentielle et sa correction.
 
 ## Prochaine étape
 
 Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase 3
 (génération de documents réelle), ou des formulaires de création pour les entités encore en
-lecture seule (chantier, organisation, document).
+lecture seule (organisation, modèle de document...).

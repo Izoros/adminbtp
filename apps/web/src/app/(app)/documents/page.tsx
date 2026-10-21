@@ -3,7 +3,7 @@ import { FileText, Plus } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDocuments } from "@/lib/data/documents";
 import { getSites } from "@/lib/data/sites";
@@ -28,10 +28,10 @@ export default async function DocumentsPage() {
         title="Documents"
         description={`${documents.length} documents — modèles, courriers, PPSPS, DOE, situations…`}
         action={
-          <Button variant="accent" size="sm">
+          <Link href="/documents/nouveau" className={buttonVariants({ variant: "accent", size: "sm" })}>
             <Plus className="h-4 w-4" />
             Générer un document
-          </Button>
+          </Link>
         }
       />
 

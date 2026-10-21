@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { getSites } from "@/lib/data/sites";
 import { getOrganizations } from "@/lib/data/organizations";
 import { SITE_STATUS_LABELS, type SiteStatus } from "@adminbtp/types";
@@ -33,10 +33,10 @@ export default async function ChantiersPage() {
         title="Chantiers"
         description={`${sites.length} chantiers suivis`}
         action={
-          <Button variant="accent" size="sm">
+          <Link href="/chantiers/nouveau" className={buttonVariants({ variant: "accent", size: "sm" })}>
             <Plus className="h-4 w-4" />
             Nouveau chantier
-          </Button>
+          </Link>
         }
       />
 

@@ -24,7 +24,8 @@
       "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__execute_sql",
       "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__apply_migration",
       "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__get_advisors",
-      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__generate_typescript_types"
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__generate_typescript_types",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__query_logs"
     ]
   }
 }

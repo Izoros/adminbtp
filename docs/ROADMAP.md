@@ -52,6 +52,14 @@ Arrêt explicite ici — Phase 2 non démarrée sans confirmation utilisateur.
       chantiers, documents...) restent volontairement des vues consolidées multi-organisations,
       non filtrées par le sélecteur — c'est le comportement attendu pour un collaborateur
       AdminBTP qui supervise plusieurs sociétés (voir `docs/CDC/MULTI_TENANT_SAAS.md`).
+- [x] Formulaires de création — chantiers et documents (2026-10-21) : `/chantiers/nouveau` et
+      `/documents/nouveau`, via `apps/web/src/lib/actions/{sites,documents}.ts` (Server Actions).
+      La création de document force le statut serveur-side (`category === 'PPSPS' ? 'PREEDITION'
+      : 'BROUILLON'`) — jamais laissé au choix de l'utilisateur, pour que la règle PPSPS ne
+      dépende pas de la discipline de l'UI. Bug trouvé et corrigé en route : voir
+      `docs/DECISIONS.md` (`RETURNING` + policy SELECT auto-référentielle = faux négatif RLS sur
+      Postgres 17). Organisations et autres entités restent en lecture seule (pas de formulaire
+      de création).
 - [ ] MFA (mentionné dans le formulaire de connexion Phase 1, pas encore implémenté).
 - [x] Exigences SaaS multi-tenant actées le 2026-10-21 (voir `docs/CDC/MULTI_TENANT_SAAS.md`),
       traduites au schéma (`database/migrations/0005` à `0007`) : `role_scope` explicite sur
