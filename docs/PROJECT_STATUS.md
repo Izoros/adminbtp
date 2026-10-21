@@ -1,7 +1,7 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Phase 2 — persistance réelle terminée (2026-10-21).** Phase 1 validée. Voir
-`docs/ROADMAP.md` pour le détail des cases cochées/restantes.
+**Phase actuelle : Phase 2 — persistance réelle + sélecteur d'organisation terminés (2026-10-21).**
+Phase 1 validée. Voir `docs/ROADMAP.md` pour le détail des cases cochées/restantes.
 
 ## Ce qui fonctionne aujourd'hui
 
@@ -34,6 +34,12 @@ Les deux actions explicitement visées par la Phase 2 écrivent réellement en b
 - **Paramètres** (`/parametres`) — Enregistrer le profil d'organisation met à jour `organizations`
   via `apps/web/src/lib/actions/organizations.ts` (Server Action).
 
+**Sélecteur d'organisation** : un `OrgSwitcher` dans la barre supérieure (icône seule sur mobile)
+liste les organisations accessibles à l'utilisateur et persiste le choix dans un cookie. Utilisé
+par `/parametres`, qui montrait auparavant la première organisation triée par nom. Les autres
+écrans restent des vues consolidées multi-organisations (comportement attendu pour un
+collaborateur qui supervise plusieurs sociétés).
+
 Se connecter avec le compte de démonstration documenté dans `apps/web/.env.local` (non committé).
 
 Vérifié à cette étape : `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test` tous verts ;
@@ -51,8 +57,6 @@ chantier pendant ~47s avant timeout. Corrigé en passant les fonctions utilitair
 
 - Les autres actions (hors Validations/Paramètres) restent en lecture seule côté UI — pas de
   formulaire de création de chantier/organisation/document, par exemple.
-- Pas de sélecteur d'organisation dans l'UI — `/parametres` montre la première organisation
-  accessible (triée par nom).
 - Odoo, email, WhatsApp, IA, n8n : toujours en implémentation `Demo*`, aucun I/O réseau réel.
 - MFA, onboarding self-service, feature-gating par `plan_features` : non implémentés (schéma
   prêt, voir `docs/ROADMAP.md` Phase 8).
@@ -61,9 +65,10 @@ chantier pendant ~47s avant timeout. Corrigé en passant les fonctions utilitair
 ## Structure du dépôt
 
 Voir `docs/ARCHITECTURE.md`. Ajouts notables de cette phase : `apps/web/src/lib/data/` (requêtes
-Supabase typées, mappées vers les schémas Zod existants), `apps/web/src/lib/actions/` (Server
-Actions), `database/migrations/0005` à `0009`, `database/seeds/0002_demo_dataset.sql`,
-`docs/CDC/MULTI_TENANT_SAAS.md`.
+Supabase typées, mappées vers les schémas Zod existants, dont `organization-context.ts` pour le
+sélecteur), `apps/web/src/lib/actions/` (Server Actions),
+`apps/web/src/components/layout/org-switcher.tsx`, `database/migrations/0005` à `0009`,
+`database/seeds/0002_demo_dataset.sql`, `docs/CDC/MULTI_TENANT_SAAS.md`.
 
 ## Décisions notables de cette phase
 
@@ -73,5 +78,5 @@ multi-tenant actées (jamais un outil MAWU), bug de récursion RLS et sa correct
 ## Prochaine étape
 
 Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase 3
-(génération de documents réelle), ou compléter la Phase 2 avec un sélecteur d'organisation et des
-formulaires de création pour les entités encore en lecture seule.
+(génération de documents réelle), ou des formulaires de création pour les entités encore en
+lecture seule (chantier, organisation, document).

@@ -43,9 +43,16 @@ Arrêt explicite ici — Phase 2 non démarrée sans confirmation utilisateur.
       `apps/web/src/lib/actions/organizations.ts` (Enregistrer le profil d'organisation), via des
       Server Actions + de nouvelles policies RLS d'écriture
       (`database/migrations/0008_persistence_write_policies.sql`).
+- [x] Sélecteur d'organisation dans l'UI (2026-10-21) : `OrgSwitcher` dans la barre supérieure
+      (icône seule sur mobile, nom affiché à partir de `sm:`), liste les organisations
+      accessibles (`getOrganizations()`, déjà filtrées par RLS), persiste le choix dans un cookie
+      (`apps/web/src/lib/data/organization-context.ts` +
+      `apps/web/src/lib/actions/organization-context.ts`). `/parametres` l'utilise désormais au
+      lieu de la première organisation triée par nom. Les autres écrans (tableau de bord,
+      chantiers, documents...) restent volontairement des vues consolidées multi-organisations,
+      non filtrées par le sélecteur — c'est le comportement attendu pour un collaborateur
+      AdminBTP qui supervise plusieurs sociétés (voir `docs/CDC/MULTI_TENANT_SAAS.md`).
 - [ ] MFA (mentionné dans le formulaire de connexion Phase 1, pas encore implémenté).
-- [ ] Sélecteur d'organisation dans l'UI — `/parametres` affiche aujourd'hui la première
-      organisation accessible (triée par nom), faute de sélecteur ; à construire.
 - [x] Exigences SaaS multi-tenant actées le 2026-10-21 (voir `docs/CDC/MULTI_TENANT_SAAS.md`),
       traduites au schéma (`database/migrations/0005` à `0007`) : `role_scope` explicite sur
       `users` (plateforme/entreprise, distinct du rôle chantier `MissionRole`),

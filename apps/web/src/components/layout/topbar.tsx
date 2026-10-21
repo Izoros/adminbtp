@@ -6,7 +6,8 @@ import { Search, Bell, Menu, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
-import { USER_PERMISSION_LABELS, type UserPermissionRole } from "@adminbtp/types";
+import { USER_PERMISSION_LABELS, type Organization, type UserPermissionRole } from "@adminbtp/types";
+import { OrgSwitcher } from "./org-switcher";
 
 export interface TopbarUser {
   email: string;
@@ -25,9 +26,13 @@ function initialsFor(name: string) {
 export function Topbar({
   onMenuClick,
   user,
+  organizations,
+  activeOrganizationId,
 }: {
   onMenuClick?: () => void;
   user: TopbarUser;
+  organizations: Organization[];
+  activeOrganizationId: string | null;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,6 +54,11 @@ export function Topbar({
       >
         <Menu className="h-5 w-5" />
       </button>
+
+      <OrgSwitcher
+        organizations={organizations}
+        activeOrganizationId={activeOrganizationId ?? organizations[0]?.id ?? ""}
+      />
 
       <div className="relative max-w-sm flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite-500" />

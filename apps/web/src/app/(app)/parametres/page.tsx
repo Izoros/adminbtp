@@ -8,6 +8,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Building2 } from "lucide-react";
 import { getOrganizations } from "@/lib/data/organizations";
 import { getDocumentTemplates } from "@/lib/data/documents";
+import {
+  getActiveOrganizationIdCookie,
+  resolveActiveOrganization,
+} from "@/lib/data/organization-context";
 import { DOCUMENT_CATEGORY_LABELS } from "@adminbtp/types";
 import { updateOrganizationProfile } from "@/lib/actions/organizations";
 
@@ -29,10 +33,11 @@ const INTEGRATIONS = [
 ];
 
 export default async function ParametresPage() {
-  // Pas encore de sélecteur d'organisation dans l'UI (voir docs/ROADMAP.md, Phase 8) — on montre
-  // la première organisation accessible, comme le faisait la fixture Phase 1.
-  const organizations = await getOrganizations();
-  const activeOrg = organizations[0];
+  const [organizations, activeOrgCookie] = await Promise.all([
+    getOrganizations(),
+    getActiveOrganizationIdCookie(),
+  ]);
+  const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
   const documentTemplates = activeOrg ? await getDocumentTemplates(activeOrg.id) : [];
 
   return (

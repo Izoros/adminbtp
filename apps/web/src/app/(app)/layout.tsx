@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getOrganizations } from "@/lib/data/organizations";
+import { getActiveOrganizationIdCookie } from "@/lib/data/organization-context";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -12,11 +14,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/");
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("full_name, permission_role, organization_id")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, organizations, activeOrganizationId] = await Promise.all([
+    supabase.from("users").select("full_name, permission_role, organization_id").eq("id", user.id).single(),
+    getOrganizations(),
+    getActiveOrganizationIdCookie(),
+  ]);
 
   return (
     <AppShell
@@ -26,6 +28,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         permissionRole: profile?.permission_role ?? null,
         organizationId: profile?.organization_id ?? null,
       }}
+      organizations={organizations}
+      activeOrganizationId={activeOrganizationId}
     >
       {children}
     </AppShell>
