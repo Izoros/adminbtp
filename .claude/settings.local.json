@@ -15,7 +15,16 @@
       "Bash(done)",
       "Bash(awk '{print $2}')",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__get_project",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__list_tables",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__list_migrations",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__get_project_url",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__get_publishable_keys",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__execute_sql",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__apply_migration",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__get_advisors",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__generate_typescript_types"
     ]
   }
 }

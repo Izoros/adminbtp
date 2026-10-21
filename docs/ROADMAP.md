@@ -17,13 +17,22 @@ complétés. **Voir `docs/PROJECT_STATUS.md` pour le détail exact de ce qui est
 
 Arrêt explicite ici — Phase 2 non démarrée sans confirmation utilisateur.
 
-## Phase 2 — Authentification et persistance réelles (non démarrée)
+## Phase 2 — Authentification et persistance réelles (en cours, démarrée 2026-10-21)
 
-- Connexion Supabase réelle (projet créé, migrations + RLS appliquées).
-- Authentification Supabase Auth (remplace le formulaire démo), MFA.
-- Persistance réelle des actions actuellement visuelles sans effet (approuver une validation,
-  enregistrer un paramètre d'organisation).
-- Liaison `public.users.id` ↔ `auth.users.id`.
+- [x] Connexion Supabase réelle (projet "AdminBTP", ref `azphgxzapyuazxtqzvta`) — migrations,
+      RLS, durcissement sécurité/performance appliqués. Voir `database/README.md`.
+- [x] Authentification Supabase Auth réelle (inscription, connexion, déconnexion, session via
+      middleware, routes protégées) — remplace le formulaire démo. MFA non fait (reste à activer
+      dans Phase 2, pas encore branché côté UI).
+- [x] Liaison `public.users.id` ↔ `auth.users.id` (FK directe + trigger de provisioning
+      automatique à l'inscription).
+- [ ] Persistance réelle des actions actuellement visuelles sans effet (approuver une validation,
+      enregistrer un paramètre d'organisation) — pas encore fait : les 13 écrans lisent encore
+      `apps/web/src/lib/mock-data`, pas la base réelle. Nécessite d'abord un jeu de données de
+      démonstration réel (seed) équivalent aux fixtures actuelles, puis la conversion écran par
+      écran des lectures (Server Components + requêtes Supabase) et des deux actions d'écriture
+      explicitement visées.
+- [ ] MFA (mentionné dans le formulaire de connexion Phase 1, pas encore implémenté).
 
 ## Phase 3 — Génération de documents réelle
 

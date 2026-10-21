@@ -1,6 +1,8 @@
--- AdminBTP — Migration initiale (Phase 1)
--- NON APPLIQUÉE : aucune base Supabase n'est connectée à ce stade. Ce fichier est écrit
--- pour revue et application manuelle/CI ultérieure (`supabase db push` ou équivalent).
+-- AdminBTP — Migration initiale (Phase 1 → appliquée en Phase 2)
+-- APPLIQUÉE au projet Supabase "AdminBTP" (ref: azphgxzapyuazxtqzvta) le 2026-10-21, après
+-- suppression d'un schéma hérité d'un projet précédent (tables vides, confirmé par l'utilisateur
+-- — voir docs/DECISIONS.md). users.id référence directement auth.users.id (voir migration
+-- 0002_auth_user_sync.sql pour le trigger de provisioning automatique).
 -- Reflète fidèlement les schémas Zod de packages/types (source de vérité applicative).
 
 create extension if not exists "pgcrypto";
@@ -96,9 +98,10 @@ create table organizations (
   updated_at timestamptz not null default now()
 );
 
--- Lié à auth.users (Supabase Auth) — non branché en Phase 1, FK posée pour Phase 2.
+-- id = auth.users.id (Supabase Auth) : un profil AdminBTP existe pour chaque utilisateur
+-- authentifié, créé par le trigger handle_new_user (voir 0002_auth_user_sync.sql).
 create table users (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key references auth.users(id) on delete cascade,
   organization_id uuid references organizations(id) on delete cascade, -- null = compte AdminBTP transverse
   email text not null unique,
   full_name text not null,

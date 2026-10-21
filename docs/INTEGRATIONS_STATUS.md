@@ -6,7 +6,8 @@ Dernière mise à jour : Phase 1 (2026-10-21).
 
 | Service | Statut | Détail |
 |---|---|---|
-| Supabase (base de données + Auth) | **Non connecté** | Aucun projet Supabase créé. Les migrations (`database/migrations/`) et policies RLS (`database/policies/`) sont écrites et prêtes à être appliquées, mais non exécutées contre une base réelle. |
+| Supabase (base de données) | **Connecté** (Phase 2, 2026-10-21) | Projet "AdminBTP" (ref `azphgxzapyuazxtqzvta`, eu-west-1, Postgres 17), via le connecteur MCP Supabase. Schéma + RLS + durcissement sécurité/performance appliqués (`database/migrations/0001` à `0004`). Les 13 écrans de `apps/web` lisent encore `mock-data` et pas cette base — conversion en cours, voir `docs/ROADMAP.md`. |
+| Supabase Auth | **Connecté** (Phase 2, 2026-10-21) | Inscription/connexion/déconnexion réelles, session via middleware, routes `(app)` protégées. Point de vigilance restant : "Leaked password protection" désactivé — à activer manuellement dans le dashboard (Authentication → Policies → Password Security), pas accessible via SQL/MCP. MFA non branché côté UI. SMTP intégré Supabase limité à quelques emails de confirmation/heure en développement — prévoir un fournisseur SMTP custom avant d'ouvrir des inscriptions en volume. |
 | Odoo | **Non connecté** | `DemoOdooAdapter` (`packages/integrations/src/odoo`) utilisé — aucun I/O réseau réel. Préférence documentée pour la JSON-2 API sur Odoo 19+ (voir skill `adminbtp-odoo`). |
 | Fournisseur email | **Mode démo** | `DemoEmailProvider` — aucun envoi réel. |
 | WhatsApp Business | **Mode démo** | `DemoWhatsAppProvider` — aucun envoi réel. Rappel : une preuve WhatsApp n'équivaut jamais à une signature électronique. |

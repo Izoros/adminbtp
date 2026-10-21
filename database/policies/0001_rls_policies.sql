@@ -1,11 +1,13 @@
--- AdminBTP — Politiques RLS (Phase 1)
--- NON APPLIQUÉES : aucune base Supabase n'est connectée à ce stade. Écrites pour revue et
--- application manuelle/CI ultérieure, après database/migrations/0001_init_core_schema.sql.
+-- AdminBTP — Politiques RLS (Phase 1 → appliquées en Phase 2)
+-- APPLIQUÉES au projet Supabase "AdminBTP" (ref: azphgxzapyuazxtqzvta) le 2026-10-21, juste après
+-- database/migrations/0001_init_core_schema.sql. Durcies ensuite par les migrations
+-- 0003_security_hardening.sql et 0004_performance_hardening.sql (search_path, policies SELECT
+-- redondantes supprimées — voir ces fichiers pour le détail).
 --
 -- Modèle d'isolation multi-tenant :
 --   - Chaque ligne métier porte organization_id (directement ou via un chantier/document parent).
---   - public.users.id doit être égal à auth.uid() (Supabase Auth) une fois l'authentification
---     réelle branchée en Phase 2 — non garanti en Phase 1 (users n'est pas encore relié à auth.users).
+--   - public.users.id = auth.uid() (Supabase Auth), garanti par la FK posée dans
+--     0001_init_core_schema.sql (users.id references auth.users.id).
 --   - ADMIN_PLATEFORME voit tout. Un collaborateur AdminBTP (ex: gestionnaire, chargé d'affaires)
 --     voit les organisations pour lesquelles il détient un portfolio_grants ; les comptes "client"
 --     (DIRIGEANT_CLIENT, COLLABORATEUR_CLIENT, ...) ne voient que leur propre organization_id.
@@ -103,9 +105,9 @@ create policy portfolio_grants_select on portfolio_grants
 -- Chantiers et dépendances directes (organization_id porté par sites)
 -- ---------------------------------------------------------------------------
 
-create policy sites_select on sites
-  for select using (can_access_organization(organization_id));
-
+-- Pas de policy SELECT séparée : FOR ALL (ci-dessous) couvre déjà SELECT avec la même condition
+-- (une policy SELECT dédiée identique serait redondante et évaluée en double à chaque requête —
+-- voir 0004_performance_hardening.sql).
 create policy sites_write on sites
   for all using (can_access_organization(organization_id))
   with check (can_access_organization(organization_id));
@@ -133,11 +135,7 @@ create policy site_participants_select on site_participants
 create policy phase_templates_select on phase_templates for select using (true);
 create policy phase_template_sets_select on phase_template_sets for select using (true);
 
-create policy phase_instances_select on phase_instances
-  for select using (
-    exists (select 1 from sites s where s.id = phase_instances.site_id and can_access_organization(s.organization_id))
-  );
-
+-- Pas de policy SELECT séparée (redondante avec FOR ALL, voir note sur sites_write ci-dessus).
 create policy phase_instances_write on phase_instances
   for all using (
     exists (select 1 from sites s where s.id = phase_instances.site_id and can_access_organization(s.organization_id))
@@ -153,9 +151,7 @@ create policy phase_instances_write on phase_instances
 create policy document_templates_select on document_templates
   for select using (can_access_organization(organization_id));
 
-create policy documents_select on documents
-  for select using (can_access_organization(organization_id));
-
+-- Pas de policy SELECT séparée (redondante avec FOR ALL, voir note sur sites_write ci-dessus).
 create policy documents_write on documents
   for all using (can_access_organization(organization_id))
   with check (can_access_organization(organization_id));
@@ -177,16 +173,12 @@ create policy audit_log_select on audit_log
 create policy mail_addresses_select on mail_addresses
   for select using (can_access_organization(organization_id));
 
-create policy mail_threads_select on mail_threads
-  for select using (can_access_organization(organization_id));
-
+-- Pas de policy SELECT séparée (redondante avec FOR ALL, voir note sur sites_write ci-dessus).
 create policy mail_threads_write on mail_threads
   for all using (can_access_organization(organization_id))
   with check (can_access_organization(organization_id));
 
-create policy tasks_select on tasks
-  for select using (can_access_organization(organization_id));
-
+-- Pas de policy SELECT séparée (redondante avec FOR ALL, voir note sur sites_write ci-dessus).
 create policy tasks_write on tasks
   for all using (can_access_organization(organization_id))
   with check (can_access_organization(organization_id));

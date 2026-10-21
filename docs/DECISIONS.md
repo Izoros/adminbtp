@@ -3,6 +3,35 @@
 Format : date, décision, contexte/alternative écartée. Ajouter une entrée à chaque décision
 d'architecture significative ou écart volontaire par rapport au cahier des charges initial.
 
+## 2026-10-21 — Suppression d'un schéma Supabase hérité avant application du schéma Phase 1
+
+**Décision** : au démarrage de la Phase 2, le projet Supabase fourni par l'utilisateur
+(`azphgxzapyuazxtqzvta`, nommé "AdminBTP") contenait déjà 28 tables avec RLS actif, issues de
+13 migrations datées du 2026-05-21/22 — donc antérieures à ce dépôt. Noms et concepts différents
+de `packages/types` (`projects` au lieu de `sites`, `organization_members`, plus des
+sous-systèmes entiers absents du cahier des charges reçu : `consulting_missions`/`consulting_hours`,
+`ai_suggestions`/`ai_suggestion_audit_logs`, `client_portal_accesses`/`client_feedback_threads`).
+Interrogé, l'utilisateur a confirmé qu'il s'agissait d'un projet précédent abandonné. Toutes les
+tables étaient vides (0 ligne) — supprimées avec leurs enums et fonctions métier (CASCADE), sans
+perte de données, avant d'appliquer `database/migrations/0001_init_core_schema.sql`.
+
+**Point de vigilance découvert en cours de nettoyage** : un trigger `on_auth_user_created` sur
+`auth.users` appelait une fonction `private.handle_new_user()` non détectée lors de l'audit initial
+(elle vivait dans un schéma `private`, hors du schéma `public` audité). Elle insérait dans
+`public.user_profiles`, supprimée entre-temps — le trigger aurait cassé toute inscription tant
+qu'il n'a pas été remplacé par l'équivalent Phase 2 (`public.handle_new_user()`, voir
+`database/migrations/0002_auth_user_sync.sql`). Leçon : auditer aussi les schémas non standards
+(`private`, etc.), pas seulement `public`, avant une suppression de schéma hérité.
+
+## 2026-10-21 — `users.id` lié directement à `auth.users.id` dès la Phase 2
+
+**Décision** : contrairement au plan initial de `database/migrations/0001_init_core_schema.sql`
+(FK vers `auth.users` "posée pour Phase 2"), la liaison a été faite directement dans cette même
+migration au moment de l'appliquer, plutôt que d'appliquer d'abord la version Phase 1 non liée
+suivie d'une migration séparée de liaison. La liaison à `auth.users` est explicitement un objectif
+de la Phase 2 (`docs/ROADMAP.md`) — appliquer d'abord une version intermédiaire non liée, sachant
+qu'elle serait immédiatement remplacée, aurait été un détour sans valeur.
+
 ## 2026-10-21 — `packages/ui` séparé de `apps/web/src/components/ui`
 
 **Décision** : créer un package `@adminbtp/ui` contenant uniquement de la logique de
