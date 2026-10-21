@@ -24,11 +24,21 @@ connecteur MCP Supabase.
 - `migrations/0007_multitenant_saas_performance_cleanup.sql` — index manquants + policies
   d'écriture restructurées (FOR ALL → INSERT/UPDATE/DELETE séparées) pour éviter l'évaluation en
   double avec les nouvelles policies SELECT élargies.
+- `migrations/0008_persistence_write_policies.sql` — policies d'écriture sur `validation_records`
+  (Approuver/Refuser) et `organizations` (Enregistrer le profil), pour la persistance réelle des
+  actions jusque-là visuelles sans effet.
+- `migrations/0009_fix_rls_helper_recursion.sql` — correction d'un bug de récursion RLS sur
+  `can_access_site()` (statement timeout sur toute requête liée à un chantier) en passant les
+  fonctions utilitaires RLS en `SECURITY DEFINER` — voir `docs/DECISIONS.md` pour l'analyse
+  complète et le skill `adminbtp-multitenant-security` pour la règle à retenir.
 - `policies/0001_rls_policies.sql` — politiques RLS d'isolation multi-tenant par
   `organization_id`, avec prise en charge des collaborateurs AdminBTP multi-organisations
-  (`portfolio_grants`). Amendé par 0006 et 0007 (voir note en tête de fichier).
+  (`portfolio_grants`). Amendé par 0006 à 0009 (voir note en tête de fichier).
 - `schemas/` — réservé aux phases suivantes. `seeds/0001_demo_admin_user.sql` — compte de
   démonstration ADMIN_PLATEFORME (voir ce fichier pour le piège GoTrue documenté).
+  `seeds/0002_demo_dataset.sql` — jeu de données complet (organisations, chantiers, documents,
+  mails, tâches, finance, validations), traduction fidèle des anciennes fixtures
+  `apps/web/src/lib/mock-data` (supprimées, remplacées par de vraies requêtes Supabase).
 
 ## Historique : nettoyage d'un schéma hérité
 
@@ -45,12 +55,15 @@ supprimé (tables, enums, fonctions métier, CASCADE) avant d'appliquer le sché
   dashboard Auth (Authentication → Policies → Password Security), pas du schéma SQL, à activer
   manuellement.
 - Policies RLS actuelles : lecture (`SELECT`) complète (y compris collaboration inter-entreprises
-  sur chantier partagé via `can_access_site()`), écriture (`INSERT`/`UPDATE`/`DELETE`) posée
-  uniquement sur les tables où `apps/web` écrit déjà en Phase 2 (`sites`, `documents`,
-  `mail_threads`, `tasks`, `phase_instances`, `plan_features`). Les autres tables sont en lecture
-  seule via RLS tant qu'aucun flux d'écriture applicatif n'existe — à étendre au fur et à mesure.
+  sur chantier partagé via `can_access_site()`), écriture (`INSERT`/`UPDATE`/`DELETE`) posée sur
+  les tables où `apps/web` écrit déjà (`sites`, `documents`, `mail_threads`, `tasks`,
+  `phase_instances`, `plan_features`, `validation_records`, `organizations`). Les autres tables
+  sont en lecture seule via RLS tant qu'aucun flux d'écriture applicatif n'existe — à étendre au
+  fur et à mesure.
 - `plan_features` est créée vide — aucune ligne de référence n'a été semée (quelles
   fonctionnalités par plan DEMO/STARTER/PRO/ENTERPRISE reste une décision produit à prendre avant
   de l'exploiter dans l'UI).
 - Flux d'onboarding self-service (une entreprise crée elle-même son organisation) non implémenté —
   voir `docs/CDC/MULTI_TENANT_SAAS.md`.
+- Pas de sélecteur d'organisation dans l'UI — `/parametres` affiche la première organisation
+  accessible (triée par nom).

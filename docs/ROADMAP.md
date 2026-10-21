@@ -35,13 +35,17 @@ Arrêt explicite ici — Phase 2 non démarrée sans confirmation utilisateur.
       dans Phase 2, pas encore branché côté UI).
 - [x] Liaison `public.users.id` ↔ `auth.users.id` (FK directe + trigger de provisioning
       automatique à l'inscription).
-- [ ] Persistance réelle des actions actuellement visuelles sans effet (approuver une validation,
-      enregistrer un paramètre d'organisation) — pas encore fait : les 13 écrans lisent encore
-      `apps/web/src/lib/mock-data`, pas la base réelle. Nécessite d'abord un jeu de données de
-      démonstration réel (seed) équivalent aux fixtures actuelles, puis la conversion écran par
-      écran des lectures (Server Components + requêtes Supabase) et des deux actions d'écriture
-      explicitement visées.
+- [x] Persistance réelle (2026-10-21) : les 13 écrans lisent désormais Supabase via
+      `apps/web/src/lib/data/*` (plus de `mock-data`, supprimé) ; jeu de données de démonstration
+      réel semé (`database/seeds/0002_demo_dataset.sql`), équivalent aux anciennes fixtures.
+      Les deux actions explicitement visées écrivent réellement :
+      `apps/web/src/lib/actions/validations.ts` (Approuver/Refuser) et
+      `apps/web/src/lib/actions/organizations.ts` (Enregistrer le profil d'organisation), via des
+      Server Actions + de nouvelles policies RLS d'écriture
+      (`database/migrations/0008_persistence_write_policies.sql`).
 - [ ] MFA (mentionné dans le formulaire de connexion Phase 1, pas encore implémenté).
+- [ ] Sélecteur d'organisation dans l'UI — `/parametres` affiche aujourd'hui la première
+      organisation accessible (triée par nom), faute de sélecteur ; à construire.
 - [x] Exigences SaaS multi-tenant actées le 2026-10-21 (voir `docs/CDC/MULTI_TENANT_SAAS.md`),
       traduites au schéma (`database/migrations/0005` à `0007`) : `role_scope` explicite sur
       `users` (plateforme/entreprise, distinct du rôle chantier `MissionRole`),

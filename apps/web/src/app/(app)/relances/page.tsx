@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockSituations, mockSites } from "@/lib/mock-data";
+import { getSituations } from "@/lib/data/finance";
+import { getSites } from "@/lib/data/sites";
 import { PAYMENT_STATUS_LABELS, type PaymentStatus } from "@adminbtp/types";
 
 const STATUS_TONE: Record<PaymentStatus, "neutral" | "info" | "warning" | "success" | "danger"> = {
@@ -20,15 +21,16 @@ function isOverdue(dueDate?: string, paidAt?: string) {
   return new Date(dueDate).getTime() < Date.now();
 }
 
-export default function RelancesPage() {
-  const sorted = [...mockSituations].sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
+export default async function RelancesPage() {
+  const [situations, sites] = await Promise.all([getSituations(), getSites()]);
+  const sorted = [...situations].sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
   const overdueCount = sorted.filter((s) => isOverdue(s.dueDate, s.paidAt)).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Relances"
-        description={`${mockSituations.length} situations suivies — règles de relance configurables par contrat/marché`}
+        description={`${situations.length} situations suivies — règles de relance configurables par contrat/marché`}
       />
 
       {overdueCount > 0 && (
@@ -56,7 +58,7 @@ export default function RelancesPage() {
             </thead>
             <tbody className="divide-y divide-surface-border">
               {sorted.map((sit) => {
-                const site = mockSites.find((s) => s.id === sit.siteId);
+                const site = sites.find((s) => s.id === sit.siteId);
                 const overdue = isOverdue(sit.dueDate, sit.paidAt);
                 return (
                   <tr key={sit.id} className="hover:bg-surface-subtle">

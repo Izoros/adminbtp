@@ -2,9 +2,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { USER_PERMISSION_LABELS } from "@adminbtp/types";
-import { mockOrganizations, mockSites, USERS } from "@/lib/mock-data";
+import { getOrganizations } from "@/lib/data/organizations";
+import { getSites } from "@/lib/data/sites";
+import { getPortfolio } from "@/lib/data/users";
 
-export default function PortefeuillePage() {
+export default async function PortefeuillePage() {
+  const [organizations, sites, portfolio] = await Promise.all([
+    getOrganizations(),
+    getSites(),
+    getPortfolio(),
+  ]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -13,10 +21,9 @@ export default function PortefeuillePage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        {USERS.map((user) => {
-          const sites = mockSites.filter((s) => s.managerUserId === user.id);
-          const orgIds = Array.from(new Set(sites.map((s) => s.organizationId)));
-          const orgs = mockOrganizations.filter((o) => orgIds.includes(o.id));
+        {portfolio.map((user) => {
+          const userSites = sites.filter((s) => s.managerUserId === user.id);
+          const orgs = organizations.filter((o) => user.organizationIds.includes(o.id));
 
           return (
             <Card key={user.id}>
@@ -42,7 +49,7 @@ export default function PortefeuillePage() {
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-graphite-500">{sites.length} chantier(s) référent(s)</p>
+                <p className="text-xs text-graphite-500">{userSites.length} chantier(s) référent(s)</p>
               </CardContent>
             </Card>
           );

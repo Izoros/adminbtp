@@ -53,6 +53,18 @@ Toute nouvelle table métier ajoutée au schéma doit activer RLS et recevoir un
 `can_access_organization()` ou `can_access_site()` selon qu'elle est propre à une organisation ou
 rattachée à un chantier. Ne jamais laisser une table métier sans RLS actif, même "temporairement".
 
+**Piège vécu (2026-10-21, voir docs/DECISIONS.md)** : toute fonction utilitaire RLS qui lit une
+table elle-même protégée par RLS doit être `SECURITY DEFINER` **dès sa création** — sinon ses
+lectures internes redéclenchent l'évaluation de la policy qui l'appelle, qui la rappelle, etc.
+`can_access_site()` lisait `sites`/`site_participants` en `SECURITY INVOKER` ; comme ces deux
+tables portent des policies qui appellent `can_access_site()`, toute requête liée à un chantier
+bloquait ~47s avant d'échouer en `57014 statement timeout`. Les 5 fonctions RLS
+(`can_access_organization`, `can_access_site`, `current_user_permission_role`,
+`current_user_organization_id`, `has_portfolio_access`) sont `SECURITY DEFINER` et restent
+volontairement exécutables en RPC direct (contrairement à `handle_new_user`/`rls_auto_enable`,
+révoquées) car Postgres les appelle lui-même pendant l'évaluation de policies sur des requêtes
+ordinaires — leur révoquer casserait RLS pour tout le monde.
+
 **Ces policies sont appliquées au projet Supabase réel depuis la Phase 2** (2026-10-21) — voir
 `database/README.md` pour le détail des migrations.
 

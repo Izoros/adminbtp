@@ -3,6 +3,42 @@
 Format : date, décision, contexte/alternative écartée. Ajouter une entrée à chaque décision
 d'architecture significative ou écart volontaire par rapport au cahier des charges initial.
 
+## 2026-10-21 — Bug de récursion RLS sur `can_access_site()`, corrigé par `SECURITY DEFINER`
+
+**Problème** : après conversion des 13 écrans vers de vraies requêtes Supabase, toute requête
+touchant une table liée à un chantier (`sites`, `documents`, `mail_threads`, `tasks`,
+`situations`, etc.) se bloquait ~47s avant d'échouer avec `57014 canceling statement due to
+statement timeout`.
+
+**Cause** : `can_access_site(site_id)` (posée dans `0006_multitenant_saas_rls.sql` pour la
+collaboration inter-entreprises) interroge `sites` et `site_participants` — deux tables dont les
+policies RLS (`sites_select_shared`, `site_participants_select`) appellent elles-mêmes
+`can_access_site()`. En `SECURITY INVOKER` (par défaut), ces lectures internes redéclenchent
+l'évaluation de la policy, qui rappelle la fonction, etc. — une boucle que Postgres n'a pas
+détectée comme récursion infinie stricte (pas d'erreur immédiate) mais a fini par tuer via son
+statement_timeout après un temps de calcul explosif.
+
+**Correction** (`0009_fix_rls_helper_recursion.sql`) : passage en `SECURITY DEFINER` de
+`can_access_site`, `can_access_organization`, `current_user_permission_role`,
+`current_user_organization_id`, `has_portfolio_access` — leurs lectures internes s'exécutent
+alors avec les privilèges du propriétaire de la fonction (qui possède les tables, donc n'est pas
+soumis à RLS en l'absence de `FORCE ROW LEVEL SECURITY`), ce qui casse la boucle. C'est le motif
+standard documenté par Supabase pour toute fonction utilitaire appelée depuis une policy RLS et
+qui lit une table elle-même protégée par RLS.
+
+**Conséquence assumée** : ces 5 fonctions restent exécutables directement en RPC par
+`anon`/`authenticated` (signalé par les advisors de sécurité comme
+`anon_security_definer_function_executable`) — contrairement à `handle_new_user`/
+`rls_auto_enable` (révoquées en Phase 2 car sans usage RPC légitime), ces fonctions sont
+appelées par Postgres lui-même lors de l'évaluation de policies sur des requêtes ordinaires :
+leur révoquer casserait RLS pour tout le monde. Elles ne retournent qu'un booléen pour un id
+fourni par l'appelant — aucune donnée sensible exposée au-delà de ce que révèle déjà la requête
+protégée elle-même.
+
+**Leçon** : toute nouvelle fonction utilitaire RLS qui lit une table RLS-protégée doit être
+`SECURITY DEFINER` dès sa création, pas seulement après avoir constaté le symptôme en
+production — voir le skill `adminbtp-multitenant-security`.
+
 ## 2026-10-21 — Exigence architecturale prioritaire : AdminBTP SaaS multi-tenant, jamais un outil MAWU
 
 **Décision** : l'utilisateur a formalisé une exigence architecturale prioritaire — AdminBTP est

@@ -1,0 +1,66 @@
+import { createClient } from "@/lib/supabase/server";
+import type { Document, DocumentTemplate } from "@adminbtp/types";
+import type { Database } from "@adminbtp/types";
+
+type DocumentRow = Database["public"]["Tables"]["documents"]["Row"];
+type DocumentTemplateRow = Database["public"]["Tables"]["document_templates"]["Row"];
+
+function mapDocument(row: DocumentRow): Document {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    siteId: row.site_id ?? undefined,
+    category: row.category,
+    title: row.title,
+    status: row.status,
+    fileUrl: row.file_url,
+    version: row.version,
+    templateId: row.template_id ?? undefined,
+    createdByUserId: row.created_by_user_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapDocumentTemplate(row: DocumentTemplateRow): DocumentTemplate {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    category: row.category,
+    name: row.name,
+    fileUrl: row.file_url,
+    variables: row.variables ?? [],
+    requiresExpertReview: row.requires_expert_review,
+    version: row.version,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getDocuments(): Promise<Document[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("documents").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapDocument);
+}
+
+export async function getDocumentsBySite(siteId: string): Promise<Document[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapDocument);
+}
+
+export async function getDocumentTemplates(organizationId: string): Promise<DocumentTemplate[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("document_templates")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []).map(mapDocumentTemplate);
+}

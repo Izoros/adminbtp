@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockDocuments, mockSites } from "@/lib/mock-data";
+import { getDocuments } from "@/lib/data/documents";
+import { getSites } from "@/lib/data/sites";
 import { DOCUMENT_CATEGORY_LABELS, DOCUMENT_STATUS_LABELS, type DocumentStatus } from "@adminbtp/types";
 
 const STATUS_TONE: Record<DocumentStatus, "neutral" | "info" | "warning" | "success" | "danger"> = {
@@ -18,12 +19,14 @@ const STATUS_TONE: Record<DocumentStatus, "neutral" | "info" | "warning" | "succ
   ARCHIVE: "neutral",
 };
 
-export default function DocumentsPage() {
+export default async function DocumentsPage() {
+  const [documents, sites] = await Promise.all([getDocuments(), getSites()]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Documents"
-        description={`${mockDocuments.length} documents — modèles, courriers, PPSPS, DOE, situations…`}
+        description={`${documents.length} documents — modèles, courriers, PPSPS, DOE, situations…`}
         action={
           <Button variant="accent" size="sm">
             <Plus className="h-4 w-4" />
@@ -32,7 +35,7 @@ export default function DocumentsPage() {
         }
       />
 
-      {mockDocuments.length === 0 ? (
+      {documents.length === 0 ? (
         <EmptyState icon={FileText} title="Aucun document" />
       ) : (
         <Card className="overflow-hidden">
@@ -47,8 +50,8 @@ export default function DocumentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {mockDocuments.map((doc) => {
-                const site = mockSites.find((s) => s.id === doc.siteId);
+              {documents.map((doc) => {
+                const site = sites.find((s) => s.id === doc.siteId);
                 return (
                   <tr key={doc.id} className="hover:bg-surface-subtle">
                     <td className="px-4 py-3 font-medium text-graphite-900">{doc.title}</td>

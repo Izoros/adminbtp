@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockTasks, mockSites, USERS } from "@/lib/mock-data";
+import { getTasks } from "@/lib/data/tasks";
+import { getSites } from "@/lib/data/sites";
+import { getPlatformUsers } from "@/lib/data/users";
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, type TaskStatus, type TaskPriority } from "@adminbtp/types";
 
 const COLUMNS: TaskStatus[] = ["A_FAIRE", "EN_COURS", "EN_ATTENTE", "FAIT"];
@@ -15,17 +17,19 @@ const PRIORITY_TONE: Record<TaskPriority, "neutral" | "info" | "warning" | "dang
   CRITIQUE: "danger",
 };
 
-export default function TachesPage() {
+export default async function TachesPage() {
+  const [allTasks, sites, users] = await Promise.all([getTasks(), getSites(), getPlatformUsers()]);
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Tâches" description={`${mockTasks.length} tâches — issues des mails, phases, validations et actions manuelles`} />
+      <PageHeader title="Tâches" description={`${allTasks.length} tâches — issues des mails, phases, validations et actions manuelles`} />
 
-      {mockTasks.length === 0 ? (
+      {allTasks.length === 0 ? (
         <EmptyState icon={CheckSquare} title="Aucune tâche" />
       ) : (
         <div className="grid gap-4 md:grid-cols-4">
           {COLUMNS.map((status) => {
-            const tasks = mockTasks.filter((t) => t.status === status);
+            const tasks = allTasks.filter((t) => t.status === status);
             return (
               <Card key={status}>
                 <CardHeader>
@@ -36,8 +40,8 @@ export default function TachesPage() {
                     <p className="text-xs text-graphite-500">Aucune tâche.</p>
                   ) : (
                     tasks.map((task) => {
-                      const site = mockSites.find((s) => s.id === task.siteId);
-                      const assignee = USERS.find((u) => u.id === task.assignedUserId);
+                      const site = sites.find((s) => s.id === task.siteId);
+                      const assignee = users.find((u) => u.id === task.assignedUserId);
                       return (
                         <div key={task.id} className="rounded-md border border-surface-border p-2.5 text-sm">
                           <p className="font-medium text-graphite-900">{task.title}</p>

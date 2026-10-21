@@ -5,16 +5,19 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockOrganizations, mockSites } from "@/lib/mock-data";
+import { getOrganizations } from "@/lib/data/organizations";
+import { getSites } from "@/lib/data/sites";
 
 const PLAN_TONE = { DEMO: "neutral", STARTER: "info", PRO: "success", ENTERPRISE: "accent" } as const;
 
-export default function OrganisationsPage() {
+export default async function OrganisationsPage() {
+  const [organizations, sites] = await Promise.all([getOrganizations(), getSites()]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Organisations clientes"
-        description={`${mockOrganizations.length} sociétés gérées sur la plateforme`}
+        description={`${organizations.length} sociétés gérées sur la plateforme`}
         action={
           <Button variant="accent" size="sm">
             <Plus className="h-4 w-4" />
@@ -23,7 +26,7 @@ export default function OrganisationsPage() {
         }
       />
 
-      {mockOrganizations.length === 0 ? (
+      {organizations.length === 0 ? (
         <EmptyState icon={Building2} title="Aucune organisation" description="Créez votre première société cliente." />
       ) : (
         <Card className="overflow-hidden">
@@ -38,8 +41,8 @@ export default function OrganisationsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {mockOrganizations.map((org) => {
-                const siteCount = mockSites.filter((s) => s.organizationId === org.id).length;
+              {organizations.map((org) => {
+                const siteCount = sites.filter((s) => s.organizationId === org.id).length;
                 return (
                   <tr key={org.id} className="hover:bg-surface-subtle">
                     <td className="px-4 py-3">

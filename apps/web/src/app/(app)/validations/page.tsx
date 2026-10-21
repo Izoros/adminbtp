@@ -4,7 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockValidations, mockDocuments } from "@/lib/mock-data";
+import { getValidationRecords } from "@/lib/data/validations";
+import { getDocuments } from "@/lib/data/documents";
+import { approveValidation, refuseValidation } from "@/lib/actions/validations";
 
 const STEP_LABELS: Record<string, string> = {
   PREPARATION: "Préparation",
@@ -15,9 +17,10 @@ const STEP_LABELS: Record<string, string> = {
   ARCHIVAGE: "Archivage",
 };
 
-export default function ValidationsPage() {
-  const pending = mockValidations.filter((v) => !v.decision);
-  const decided = mockValidations.filter((v) => v.decision);
+export default async function ValidationsPage() {
+  const [validations, documents] = await Promise.all([getValidationRecords(), getDocuments()]);
+  const pending = validations.filter((v) => !v.decision);
+  const decided = validations.filter((v) => v.decision);
 
   return (
     <div className="space-y-6">
@@ -30,7 +33,7 @@ export default function ValidationsPage() {
         ) : (
           <div className="space-y-2">
             {pending.map((v) => {
-              const doc = mockDocuments.find((d) => d.id === v.documentId);
+              const doc = documents.find((d) => d.id === v.documentId);
               return (
                 <Card key={v.id} className="flex items-center justify-between gap-4 p-4">
                   <div>
@@ -38,8 +41,12 @@ export default function ValidationsPage() {
                     <p className="text-xs text-graphite-500">Étape : {STEP_LABELS[v.step]}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="secondary">Refuser</Button>
-                    <Button size="sm" variant="primary">Approuver</Button>
+                    <form action={refuseValidation.bind(null, v.id)}>
+                      <Button type="submit" size="sm" variant="secondary">Refuser</Button>
+                    </form>
+                    <form action={approveValidation.bind(null, v.id)}>
+                      <Button type="submit" size="sm" variant="primary">Approuver</Button>
+                    </form>
                   </div>
                 </Card>
               );
@@ -52,7 +59,7 @@ export default function ValidationsPage() {
         <h2 className="mb-2 text-sm font-semibold text-graphite-900">Historique ({decided.length})</h2>
         <div className="space-y-2">
           {decided.map((v) => {
-            const doc = mockDocuments.find((d) => d.id === v.documentId);
+            const doc = documents.find((d) => d.id === v.documentId);
             return (
               <Card key={v.id} className="flex items-center justify-between gap-4 p-4">
                 <div>

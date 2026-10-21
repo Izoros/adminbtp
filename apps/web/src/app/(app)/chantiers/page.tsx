@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { mockSites, mockOrganizations } from "@/lib/mock-data";
+import { getSites } from "@/lib/data/sites";
+import { getOrganizations } from "@/lib/data/organizations";
 import { SITE_STATUS_LABELS, type SiteStatus } from "@adminbtp/types";
 
 const STATUS_TONE: Record<SiteStatus, "neutral" | "info" | "warning" | "success" | "danger"> = {
@@ -23,12 +24,14 @@ function formatEuro(amount?: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount);
 }
 
-export default function ChantiersPage() {
+export default async function ChantiersPage() {
+  const [sites, organizations] = await Promise.all([getSites(), getOrganizations()]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Chantiers"
-        description={`${mockSites.length} chantiers suivis`}
+        description={`${sites.length} chantiers suivis`}
         action={
           <Button variant="accent" size="sm">
             <Plus className="h-4 w-4" />
@@ -38,8 +41,8 @@ export default function ChantiersPage() {
       />
 
       <div className="grid gap-3 md:grid-cols-2">
-        {mockSites.map((site) => {
-          const org = mockOrganizations.find((o) => o.id === site.organizationId);
+        {sites.map((site) => {
+          const org = organizations.find((o) => o.id === site.organizationId);
           return (
             <Link key={site.id} href={`/chantiers/${site.id}`}>
               <Card className="h-full p-4 transition-shadow hover:shadow-md">

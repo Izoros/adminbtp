@@ -12,49 +12,59 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/dashboard/kpi-card";
-import {
-  mockOrganizations,
-  mockSites,
-  mockMailThreads,
-  mockDocuments,
-  mockValidations,
-  mockSituations,
-  USERS,
-  mockTasks,
-} from "@/lib/mock-data";
+import { getOrganizations } from "@/lib/data/organizations";
+import { getSites } from "@/lib/data/sites";
+import { getMailThreads } from "@/lib/data/mails";
+import { getDocuments } from "@/lib/data/documents";
+import { getValidationRecords } from "@/lib/data/validations";
+import { getSituations } from "@/lib/data/finance";
+import { getTasks } from "@/lib/data/tasks";
+import { getPortfolio } from "@/lib/data/users";
 
-export default function DashboardPage() {
-  const activeOrganizations = mockOrganizations.length;
-  const activeSites = mockSites.filter((s) => s.status === "EN_COURS" || s.status === "PREPARATION").length;
-  const mailsToHandle = mockMailThreads.filter((m) => m.status === "NON_TRAITE" || m.status === "AFFECTE").length;
-  const missingDocuments = mockDocuments.filter((d) => d.status === "BROUILLON" || d.status === "PREEDITION").length;
-  const pendingValidations = mockValidations.filter((v) => !v.decision).length;
-  const overdueSituations = mockSituations.filter((s) => s.status === "CONTESTE" || s.status === "EN_VERIFICATION").length;
-  const pendingPayments = mockSituations.filter((s) => s.status !== "PAYE").length;
+export default async function DashboardPage() {
+  const [organizations, sites, mailThreads, documents, validations, situations, tasks, portfolio] =
+    await Promise.all([
+      getOrganizations(),
+      getSites(),
+      getMailThreads(),
+      getDocuments(),
+      getValidationRecords(),
+      getSituations(),
+      getTasks(),
+      getPortfolio(),
+    ]);
+
+  const activeOrganizations = organizations.length;
+  const activeSites = sites.filter((s) => s.status === "EN_COURS" || s.status === "PREPARATION").length;
+  const mailsToHandle = mailThreads.filter((m) => m.status === "NON_TRAITE" || m.status === "AFFECTE").length;
+  const missingDocuments = documents.filter((d) => d.status === "BROUILLON" || d.status === "PREEDITION").length;
+  const pendingValidations = validations.filter((v) => !v.decision).length;
+  const overdueSituations = situations.filter((s) => s.status === "CONTESTE" || s.status === "EN_VERIFICATION").length;
+  const pendingPayments = situations.filter((s) => s.status !== "PAYE").length;
 
   const criticalAlerts = [
-    ...mockMailThreads
+    ...mailThreads
       .filter((m) => m.urgency === "CRITIQUE" && m.status !== "CLOTURE")
       .map((m) => ({ id: m.id, label: `Mail critique : "${m.subject}"`, href: "/mails" })),
-    ...mockTasks
+    ...tasks
       .filter((t) => t.priority === "CRITIQUE" && t.status !== "FAIT")
       .map((t) => ({ id: t.id, label: `Tâche critique : "${t.title}"`, href: "/taches" })),
-    ...mockSituations
+    ...situations
       .filter((s) => s.status === "CONTESTE")
       .map((s) => ({ id: s.id, label: `Situation n°${s.number} contestée`, href: "/relances" })),
   ];
 
-  const loadByManager = USERS.map((u) => ({
+  const loadByManager = portfolio.map((u) => ({
     ...u,
-    siteCount: mockSites.filter((s) => s.managerUserId === u.id).length,
-    taskCount: mockTasks.filter((t) => t.assignedUserId === u.id && t.status !== "FAIT").length,
+    siteCount: sites.filter((s) => s.managerUserId === u.id).length,
+    taskCount: tasks.filter((t) => t.assignedUserId === u.id && t.status !== "FAIT").length,
   }));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-graphite-900">Tableau de bord</h1>
-        <p className="text-sm text-graphite-500">Vue d&apos;ensemble du portefeuille — données de démonstration</p>
+        <p className="text-sm text-graphite-500">Vue d&apos;ensemble du portefeuille</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

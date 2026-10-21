@@ -3,15 +3,17 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockOrganizations, mockSites } from "@/lib/mock-data";
+import { getOrganization } from "@/lib/data/organizations";
+import { getSites } from "@/lib/data/sites";
 import { SITE_STATUS_LABELS } from "@adminbtp/types";
 
 export default async function OrganisationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const org = mockOrganizations.find((o) => o.id === id);
+  const org = await getOrganization(id);
   if (!org) notFound();
 
-  const sites = mockSites.filter((s) => s.organizationId === org.id);
+  const allSites = await getSites();
+  const sites = allSites.filter((s) => s.organizationId === org.id);
 
   return (
     <div className="space-y-6">

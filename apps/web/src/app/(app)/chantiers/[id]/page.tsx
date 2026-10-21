@@ -5,17 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  mockSites,
-  mockOrganizations,
-  mockSiteParticipants,
-  mockLots,
-  mockPhaseInstances,
-  mockPhaseTemplates,
-  mockDocuments,
-  mockMailThreads,
-  mockTasks,
-} from "@/lib/mock-data";
+import { getSite, getSiteParticipants, getLots } from "@/lib/data/sites";
+import { getOrganizations } from "@/lib/data/organizations";
+import { getPhaseInstances, getPhaseTemplates } from "@/lib/data/phases";
+import { getDocumentsBySite } from "@/lib/data/documents";
+import { getMailThreadsBySite } from "@/lib/data/mails";
+import { getTasksBySite } from "@/lib/data/tasks";
 import {
   SITE_STATUS_LABELS,
   MISSION_ROLE_LABELS,
@@ -42,16 +37,21 @@ function formatEuro(amount?: number) {
 
 export default async function ChantierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const site = mockSites.find((s) => s.id === id);
+  const site = await getSite(id);
   if (!site) notFound();
 
-  const org = mockOrganizations.find((o) => o.id === site.organizationId);
-  const participants = mockSiteParticipants.filter((p) => p.siteId === site.id);
-  const lots = mockLots.filter((l) => l.siteId === site.id);
-  const phases = mockPhaseInstances.filter((p) => p.siteId === site.id);
-  const documents = mockDocuments.filter((d) => d.siteId === site.id);
-  const mails = mockMailThreads.filter((m) => m.siteId === site.id);
-  const tasks = mockTasks.filter((t) => t.siteId === site.id);
+  const [organizations, participants, lots, phases, phaseTemplates, documents, mails, tasks] =
+    await Promise.all([
+      getOrganizations(),
+      getSiteParticipants(site.id),
+      getLots(site.id),
+      getPhaseInstances(site.id),
+      getPhaseTemplates(),
+      getDocumentsBySite(site.id),
+      getMailThreadsBySite(site.id),
+      getTasksBySite(site.id),
+    ]);
+  const org = organizations.find((o) => o.id === site.organizationId);
 
   return (
     <div className="space-y-6">
@@ -88,7 +88,7 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                   <CardHeader><CardTitle>Organisations participantes</CardTitle></CardHeader>
                   <CardContent className="space-y-2">
                     {participants.map((p) => {
-                      const pOrg = mockOrganizations.find((o) => o.id === p.organizationId);
+                      const pOrg = organizations.find((o) => o.id === p.organizationId);
                       return (
                         <div key={p.id} className="flex items-center justify-between text-sm">
                           <span className="text-graphite-900">{pOrg?.name}</span>
@@ -125,7 +125,7 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                   <EmptyState icon={CheckSquare} title="Aucune phase configurée" description="Rattachez un modèle de phases à ce chantier." />
                 ) : (
                   phases.map((phase) => {
-                    const template = mockPhaseTemplates.find((t) => t.id === phase.phaseTemplateId);
+                    const template = phaseTemplates.find((t) => t.id === phase.phaseTemplateId);
                     return (
                       <Card key={phase.id}>
                         <CardHeader>
