@@ -341,18 +341,37 @@ task,execution}.ts` et `database/migrations/0021` à `0027`.
       (comptes rendus, visas, réserves, avenant, contrat de test, pièce d'entreprise, tâches et
       statuts associés) pour laisser le jeu de données de démonstration inchangé.
 
-**Explicitement non fait, cases volontairement non cochées :**
+**Comblé le 2026-10-22 (suite de la session, branche `claude/suite-moteur-chantier`) :**
+
+- [x] **Rapprochement avancement déclaré ↔ HT facturé** : calculé et affiché dans l'onglet
+      Exécution — pour chaque lot ayant un avancement déclaré, compare le dernier pourcentage
+      déclaré (rapporté au montant du lot) au HT cumulé des situations `ACCEPTE`/`PAYE` de ce lot,
+      avec un badge d'écart (seuil visuel à ±10%). Reste un signal affiché, pas un rapprochement
+      périodique automatique ni une écriture déclenchée.
+- [x] **Édition a posteriori** d'une entrée de journal (`updateSiteLogEntry`, nouvelle policy RLS
+      `site_log_entries_update` — migration `0028`), d'une réserve (`updateReserveItem`, distincte
+      du changement de statut) et de la date d'un compte-rendu (`updateMeetingNote`) — formulaires
+      repliables (`<details>`) pré-remplis, sans JS dédié. La **suppression** reste volontairement
+      non faite (risque d'orphelinat des tâches engendrées par un compte-rendu, notamment).
+- [x] **Interface de configuration de `sites.internal_reminder_days`** : champ numérique éditable
+      directement dans la carte "Relances internes" de l'onglet Exécution
+      (`updateInternalReminderDays`), au lieu d'une modification en base uniquement.
+- [x] Vérifications exécutées : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web
+      build` verts ; les quatre ajouts testés en navigateur (compte de démonstration) — correction
+      d'une entrée de journal, d'une réserve, de la date d'un compte-rendu, calcul de l'écart
+      avancement/HT facturé avec un cas réel (Lot 02 : déclaré 20 % vs HT facturé, écart -34 %
+      correctement signalé) ; données de test nettoyées après vérification.
+
+**Toujours explicitement non fait, cases volontairement non cochées :**
 
 - [ ] Export PDF du compte-rendu à partir des décisions enregistrées (les décisions existent et
-      deviennent des tâches, mais aucun rendu PDF n'est généré).
+      deviennent des tâches, mais aucun rendu PDF n'est généré — nécessite un moteur de génération
+      de fichiers et un stockage réel, hors périmètre tant que la Phase 3 n'est pas démarrée).
 - [ ] Capture de preuve WhatsApp réelle pour les relances (`WHATSAPP` reste une trace déclarative
-      dans `reminder_logs`, aucun fournisseur réel branché, voir Phase 4).
-- [ ] Rapprochement automatique avancement déclaré ↔ HT facturé (l'écart n'est pas calculé/affiché
-      dans l'UI actuelle, seules les deux séries de données existent côte à côte).
-- [ ] Édition ou suppression a posteriori d'une entrée de journal, d'une réserve ou d'un
-      compte-rendu déjà créés — uniquement création et changement de statut.
-- [ ] Interface de configuration de `sites.internal_reminder_days` (le champ existe avec un défaut
-      en base, modifiable uniquement en base pour l'instant, pas de formulaire dédié).
+      dans `reminder_logs`, aucun fournisseur réel branché — frontière délibérée avec la Phase 4,
+      jamais comblée par un adaptateur `Demo*` qui simulerait un vrai échange).
+- [ ] Suppression a posteriori d'une entrée de journal, d'une réserve ou d'un compte-rendu déjà
+      créés — seule l'édition a été ajoutée (voir ci-dessus).
 
 ## Phase 3 — Génération de documents réelle
 

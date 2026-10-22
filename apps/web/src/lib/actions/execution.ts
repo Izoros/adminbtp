@@ -106,6 +106,34 @@ export async function updateReserveStatus(formData: FormData) {
   revalidatePath(`/chantiers/${siteId}`);
 }
 
+/** Correction a posteriori d'une réserve déjà créée — distincte du changement de statut ci-dessus. */
+export async function updateReserveItem(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const reserveId = String(formData.get("reserveId") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const severity = String(formData.get("severity") ?? "").trim() as ReserveSeverity;
+  const dueDate = String(formData.get("dueDate") ?? "").trim();
+
+  if (!reserveId || !description || !severity) {
+    throw new Error("Réserve, description et gravité sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("reserve_items")
+    .update({
+      location: location || null,
+      description,
+      severity,
+      due_date: dueDate || null,
+    })
+    .eq("id", reserveId);
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
 // --- Journal de chantier -----------------------------------------------------
 
 export async function createSiteLogEntry(formData: FormData) {
@@ -131,6 +159,28 @@ export async function createSiteLogEntry(formData: FormData) {
     description,
     author_user_id: user.id,
   });
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/** Correction a posteriori d'une entrée de journal déjà créée. */
+export async function updateSiteLogEntry(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const entryId = String(formData.get("entryId") ?? "").trim();
+  const entryDate = String(formData.get("entryDate") ?? "").trim();
+  const kind = String(formData.get("kind") ?? "").trim() as SiteLogEntryKind;
+  const description = String(formData.get("description") ?? "").trim();
+
+  if (!entryId || !entryDate || !kind || !description) {
+    throw new Error("Entrée, date, nature et description sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("site_log_entries")
+    .update({ entry_date: entryDate, kind, description })
+    .eq("id", entryId);
   if (error) throw error;
 
   revalidatePath(`/chantiers/${siteId}`);
@@ -197,6 +247,26 @@ export async function createMeetingNote(formData: FormData) {
     });
     if (decisionError) throw decisionError;
   }
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/**
+ * Correction a posteriori de la date d'un compte-rendu déjà créé. Les décisions et les tâches
+ * qu'elles ont engendrées ne sont pas modifiées ici — seule la date de la réunion l'est.
+ */
+export async function updateMeetingNote(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const meetingId = String(formData.get("meetingId") ?? "").trim();
+  const meetingDate = String(formData.get("meetingDate") ?? "").trim();
+  if (!meetingId || !meetingDate) throw new Error("Compte-rendu et date sont obligatoires.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("meeting_notes")
+    .update({ meeting_date: meetingDate })
+    .eq("id", meetingId);
+  if (error) throw error;
 
   revalidatePath(`/chantiers/${siteId}`);
 }
