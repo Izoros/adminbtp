@@ -16,6 +16,8 @@ function mapDocument(row: DocumentRow): Document {
     fileUrl: row.file_url,
     version: row.version,
     templateId: row.template_id ?? undefined,
+    concernsOrganizationId: row.concerns_organization_id ?? undefined,
+    actCode: row.act_code ?? undefined,
     createdByUserId: row.created_by_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -41,6 +43,13 @@ export async function getDocuments(): Promise<Document[]> {
   const { data, error } = await supabase.from("documents").select("*").order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapDocument);
+}
+
+export async function getDocument(id: string): Promise<Document | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("documents").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? mapDocument(data) : null;
 }
 
 export async function getDocumentsBySite(siteId: string): Promise<Document[]> {

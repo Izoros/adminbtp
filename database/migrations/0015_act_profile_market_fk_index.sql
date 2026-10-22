@@ -1,0 +1,1 @@
+create index document_reviews_created_by_user_id_idx on document_reviews(created_by_user_id);

@@ -160,6 +160,78 @@ phases 0-11 ci-dessus (ce module est transverse, pas une étape séquentielle du
   jamais de paiement fictif créé.
 - Validation : droits et commandes restent cohérents même si Odoo est temporairement indisponible.
 
+## Module Moteur de chantier avancé — profils, actes, marché et décompte (en cours, non validé)
+
+Travail commencé le 2026-10-22, **non terminé et non validé par l'utilisateur** — ne pas considérer
+comme une étape close. Un seul moteur (phases, documents, lots, situations, validations) reste
+configuré par mission (`MissionRole`) et par profil durable d'organisation, jamais dupliqué par
+métier. Voir `packages/types/src/{roles,trade,document,market,finance,chantier}.ts` et
+`database/migrations/0012` à `0016`.
+
+- [x] **Profil société et corps d'état** : `organization_profiles` (forme juridique, rôles
+      chantier par défaut, taille), `organization_trades` (métiers pratiqués, référentiel partagé
+      `trade_codes`, 16 codes regroupés en 4 familles de présentation). Ne crée aucun droit — sert
+      uniquement de défaut à l'onboarding et de pré-filtre ; le rôle effectif reste
+      `site_participants.missionRole`. UI : nouvel onglet "Profil métier" dans `/parametres`.
+- [x] **Actes de lancement par rôle** (famille MOE, ACT/DET) : référentiel déclaratif
+      `act_templates` (checklist de dépendances entre actes — AE → Notification du marché → OS de
+      démarrage → {OS prolongation, arrêt → reprise, réception}), pas une machine à états
+      parallèle. Chaque acte reste un `Document` ordinaire (cycle de statuts inchangé). L'émission
+      n'est proposée que si le `mission_role` de l'organisation active sur le chantier correspond
+      à celui attendu. Une dépendance non satisfaite est une checklist affichée, jamais un verrou
+      silencieux : un déblocage reste possible avec un motif tracé (`log_act_override()` →
+      `audit_log`). UI : nouvel onglet "Actes" sur `/chantiers/[id]`. Catégories `DocumentCategory`
+      ajoutées : `AE`, `OS`, `NOTIFICATION_MARCHE`, `CCAP`, `CCTP`, `DPGF`, `BPU`.
+- [x] **Pièces de marché structurées** (préparation OCR) : `market_contracts`, `market_clauses`,
+      `price_lines`. Aucune échéance/taux par défaut implicite — ces champs restent vides tant
+      qu'ils n'ont pas été saisis ou extraits puis validés par un humain (statut `EXTRAIT` →
+      `VALIDE`/`REJETE`). Saisie manuelle uniquement dans cette étape (origine `SAISIE`) ; aucun
+      fournisseur OCR réel branché (`@adminbtp/integrations`, interface `IOcrProvider`,
+      implémentation `DemoOcrProvider` sans I/O réseau, extrait fixe).
+- [x] **Décomptes** : `Situation` reste l'en-tête ; `situation_lines` (lignes détaillées),
+      `situation_allocations` (ventilation optionnelle vers une organisation tierce, paiement
+      direct sous-traitant). Champs d'en-tête ajoutés sur `situations` : coefficient
+      d'actualisation, mois d'indice, retenue, avance récupérée, pénalités, montant net HT — tous
+      nullables, jamais calculés sans une clause `ACTUALISATION` `VALIDE` correspondante. UI :
+      nouvel onglet "Décompte" sur `/chantiers/[id]` (création de situation, ajout de ligne avec
+      cumul automatique, ventilation).
+- [x] **Macrolots et sous-traitants** : `lots.parentLotId` (hiérarchie, protégée contre les cycles
+      par un trigger `prevent_lot_cycle()`), sous-traitant modélisé via `site_participants`
+      (`missionRole = SOUS_TRAITANT`). Règle vérifiée à **deux niveaux** (vérification applicative
+      explicite + trigger serveur `check_subcontractor_allocation()`, pas seulement RLS) : aucune
+      ventilation de décompte vers un sous-traitant sans DC4/agrément de sous-traitance `VALIDE`
+      pour cette organisation précise sur ce chantier (`documents.concernsOrganizationId` +
+      `has_valid_subcontractor_agreement()`). Vérifié par test direct (positif et négatif).
+- [x] **Contrôle IA** : `document_reviews` (trace de contrôle IA ou humain, pas de nouveau statut
+      "validé par IA"). Un contrôle IA fait au plus passer un document en `EN_CONTROLE` — seul un
+      `VALIDATEUR` (ou l'action de validation existante côté chantier) peut le faire passer à
+      `VALIDE`. Adaptateur `IAIProvider.reviewDocument()` étendu, implémentation `DemoAIProvider`
+      sans I/O réseau. UI : bouton "Contrôle IA" sur les documents `BROUILLON`/`PREEDITION`.
+- [x] Vérifications exécutées : `pnpm -r typecheck/lint/test/build` verts ; invariants de
+      sécurité vérifiés par simulation SQL directe (cycle de lots refusé, ventilation sans
+      agrément refusée) ; parcours complet vérifié en navigateur (profil société, actes avec
+      changement d'organisation active pour tester le filtre de rôle, décompte avec recalcul
+      automatique du montant HT, contrôle IA).
+
+**Explicitement non fait, cases volontairement non cochées :**
+
+- [ ] OCR réel (fournisseur branché derrière `IOcrProvider` — aujourd'hui `DemoOcrProvider`
+      uniquement, aucune extraction automatique de CCAP/CCTP/DPGF/BPU).
+- [ ] Indices officiels d'actualisation (BT01, index INSEE ou équivalent Mayotte) — le coefficient
+      d'actualisation reste un champ saisi manuellement, aucune source d'indice réelle connectée.
+- [ ] Signature électronique des actes (AE, OS) — ces documents suivent le cycle de statuts
+      standard (`VALIDE`/`ENVOYE`) mais sans prestataire de signature réel (voir Phase 5).
+- [ ] Paiement réel des situations — `PaymentStatus.PAYE` reste un statut déclaratif, aucune
+      intégration bancaire/Odoo de paiement réel branchée (voir Phase 7).
+- [ ] Interface de gestion du catalogue `act_templates`/`trade_codes` (édition via UI) — référentiels
+      actuellement seedés directement en base (`database/seeds/0004_act_profile_market_seed.sql`).
+- [ ] Tâche planifiée de recalcul automatique des cumuls de décompte au-delà de l'ajout manuel
+      d'une ligne (le recalcul du montant HT total de l'en-tête à chaque ajout de ligne est fait,
+      mais aucun rapprochement périodique avec les quantités réellement exécutées).
+
+**Ne pas démarrer les phases B+ du module Marketplace à partir de ce travail** — ce sont deux
+chantiers indépendants (voir section précédente).
+
 ## Phase 3 — Génération de documents réelle
 
 - Branchement d'un fournisseur IA réel derrière `IAIProvider` pour la génération de documents à

@@ -59,6 +59,7 @@ export const SiteParticipant = z.object({
 });
 export type SiteParticipant = z.infer<typeof SiteParticipant>;
 
+/** Macrolot/sous-lot : `parentLotId` doit référencer un lot du même chantier, jamais un cycle. */
 export const Lot = z.object({
   id: z.string().uuid(),
   siteId: z.string().uuid(),
@@ -66,5 +67,6 @@ export const Lot = z.object({
   name: z.string(), // ex: "Terrassement - VRD"
   assignedOrganizationId: z.string().uuid().optional(),
   amountHt: z.number().nonnegative().optional(),
+  parentLotId: z.string().uuid().optional(),
 });
 export type Lot = z.infer<typeof Lot>;

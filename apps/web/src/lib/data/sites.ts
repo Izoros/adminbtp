@@ -45,6 +45,7 @@ function mapLot(row: LotRow): Lot {
     name: row.name,
     assignedOrganizationId: row.assigned_organization_id ?? undefined,
     amountHt: row.amount_ht ?? undefined,
+    parentLotId: row.parent_lot_id ?? undefined,
   };
 }
 

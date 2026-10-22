@@ -34,8 +34,45 @@ export const Situation = z.object({
   dueDate: z.string().date().optional(), // calculée selon les clauses du marché, pas codée en dur
   paidAt: z.string().date().optional(),
   disputeReason: z.string().optional(),
+  /**
+   * Coefficient d'actualisation — calculé seulement si une clause ACTUALISATION du marché est
+   * `VALIDE` (voir market.ts) ; sinon ce champ reste vide et l'UI le dit, jamais une valeur par
+   * défaut implicite.
+   */
+  actualizationCoefficient: z.number().positive().optional(),
+  indexMonth: z.string().optional(), // "YYYY-MM", mois de l'indice utilisé pour l'actualisation
+  retentionAmount: z.number().nonnegative().optional(),
+  advanceRecovered: z.number().nonnegative().optional(),
+  penaltiesAmount: z.number().nonnegative().optional(),
+  netAmountHt: z.number().optional(), // montant net après retenue/avance/pénalités/actualisation
 });
 export type Situation = z.infer<typeof Situation>;
+
+/** Ligne de décompte, rattachée à une ligne de prix du marché (voir market.ts). */
+export const SituationLine = z.object({
+  id: z.string().uuid(),
+  situationId: z.string().uuid(),
+  priceLineId: z.string().uuid(),
+  quantityPrevious: z.number().nonnegative().default(0),
+  quantityMonth: z.number(), // peut être négatif (régularisation)
+  unitPriceHt: z.number().nonnegative(),
+  amountHt: z.number(), // quantityMonth * unitPriceHt
+});
+export type SituationLine = z.infer<typeof SituationLine>;
+
+/**
+ * Ventilation optionnelle d'un décompte vers une organisation tierce (paiement direct
+ * sous-traitant). Jamais créée si l'organisation bénéficiaire n'a pas de DC4/agrément de
+ * sous-traitance `VALIDE` pour ce chantier — voir `has_valid_subcontractor_agreement()` côté base.
+ */
+export const SituationAllocation = z.object({
+  id: z.string().uuid(),
+  situationId: z.string().uuid(),
+  payeeOrganizationId: z.string().uuid(),
+  amountHt: z.number().nonnegative(),
+  createdAt: z.string().datetime(),
+});
+export type SituationAllocation = z.infer<typeof SituationAllocation>;
 
 /** Règle de relance configurable, rattachée à un contrat/marché plutôt qu'à la loi générale. */
 export const ReminderRule = z.object({

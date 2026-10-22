@@ -1,9 +1,40 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Module Marketplace & Entitlements, Phase A — catalogue de services et moteur
-d'autorisation terminés (2026-10-22).** Phase 2 (persistance réelle) et Phase 1 validées. Voir
-`docs/ROADMAP.md` pour le détail des cases cochées/restantes, et
-`docs/MONETIZATION_AND_ENTITLEMENTS.md` pour les règles produit du nouveau module.
+**Phase actuelle : Module Moteur de chantier avancé (profils, actes, marché, décompte) — en
+cours, non terminé et non validé par l'utilisateur (démarré 2026-10-22).** Module Marketplace &
+Entitlements Phase A, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md`
+pour le détail des cases cochées/restantes.
+
+## Module Moteur de chantier avancé — profils, actes, marché, décompte (en cours, 2026-10-22)
+
+**Non terminé, ne pas considérer cette étape comme close.** Étend le moteur unique existant
+(phases/documents/lots/situations/validations) sans en créer un second par métier — voir le détail
+complet, y compris ce qui reste explicitement non fait (OCR réel, indices officiels, signature,
+paiement réel), dans `docs/ROADMAP.md` (section "Module Moteur de chantier avancé").
+
+- Profil société (`organization_profiles`/`organization_trades`, référentiel `trade_codes`) : ne
+  crée aucun droit, sert de défaut à l'onboarding. UI : onglet "Profil métier" dans `/parametres`.
+- Actes de lancement MOE (`act_templates`, checklist déclarative de dépendances AE → Notification
+  → OS de démarrage → {prolongation, arrêt → reprise, réception}) : gardés par le `mission_role`
+  effectif de l'organisation active sur le chantier ; dépendance non satisfaite = blocage affiché,
+  déblocable avec un motif tracé dans `audit_log`. UI : onglet "Actes" sur `/chantiers/[id]`.
+- Pièces de marché structurées (`market_contracts`/`market_clauses`/`price_lines`), préparation
+  OCR uniquement (`DemoOcrProvider`, aucun fournisseur réel) — saisie manuelle fonctionnelle.
+- Décompte (`situation_lines`/`situation_allocations` + champs d'actualisation/retenue/pénalités
+  sur `situations`) : recalcul automatique du montant HT à l'ajout d'une ligne. UI : onglet
+  "Décompte" sur `/chantiers/[id]`.
+- Macrolots (`lots.parentLotId`, cycle refusé par trigger) et sous-traitants : ventilation de
+  décompte vers un sous-traitant refusée sans DC4/agrément `VALIDE` pour cette organisation
+  précise — vérifié par test direct positif et négatif (voir `docs/DECISIONS.md` si une analyse y
+  est ajoutée, sinon section correspondante de `docs/ROADMAP.md`).
+- Contrôle IA (`document_reviews`) : fait au plus passer un document en `EN_CONTROLE`, jamais
+  `VALIDE` — seul un humain via le circuit de validation existant franchit cette étape.
+- Vérifié : `pnpm -r typecheck/lint/test/build` verts ; invariants (cycle de lots, ventilation sans
+  agrément) vérifiés par simulation SQL ; parcours complet vérifié en navigateur avec changement
+  d'organisation active pour tester le filtre de rôle sur les actes.
+
+**Arrêt ici, comme pour toute étape non explicitement validée — ne pas démarrer les phases B+ du
+module Marketplace à partir de ce travail, ce sont deux chantiers indépendants.**
 
 ## Module Marketplace & Entitlements — Phase A (2026-10-22)
 

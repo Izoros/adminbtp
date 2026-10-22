@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,8 +13,20 @@ import {
   getActiveOrganizationIdCookie,
   resolveActiveOrganization,
 } from "@/lib/data/organization-context";
-import { DOCUMENT_CATEGORY_LABELS } from "@adminbtp/types";
+import { getOrganizationProfile, getOrganizationTrades } from "@/lib/data/organization-profile";
+import { getTradeCodes } from "@/lib/data/trades";
+import {
+  DOCUMENT_CATEGORY_LABELS,
+  LegalKind,
+  LEGAL_KIND_LABELS,
+  OrganizationSizeBand,
+  ORGANIZATION_SIZE_BAND_LABELS,
+  MissionRole,
+  MISSION_ROLE_LABELS,
+  TRADE_FAMILY_LABELS,
+} from "@adminbtp/types";
 import { updateOrganizationProfile } from "@/lib/actions/organizations";
+import { saveOrganizationProfile, saveOrganizationTrades } from "@/lib/actions/organization-profile";
 
 const VALIDATION_CIRCUIT = [
   { step: "Préparation", responsible: "Chargé d'affaires" },
@@ -38,7 +51,16 @@ export default async function ParametresPage() {
     getActiveOrganizationIdCookie(),
   ]);
   const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
-  const documentTemplates = activeOrg ? await getDocumentTemplates(activeOrg.id) : [];
+  const [documentTemplates, organizationProfile, organizationTrades, tradeCodes] = activeOrg
+    ? await Promise.all([
+        getDocumentTemplates(activeOrg.id),
+        getOrganizationProfile(activeOrg.id),
+        getOrganizationTrades(activeOrg.id),
+        getTradeCodes(),
+      ])
+    : [[], null, [], []];
+  const selectedTradeCodeIds = new Set(organizationTrades.map((t) => t.tradeCodeId));
+  const primaryTradeCodeId = organizationTrades.find((t) => t.isPrimary)?.tradeCodeId;
 
   return (
     <div className="space-y-6">
@@ -92,6 +114,136 @@ export default async function ParametresPage() {
                     </form>
                   </CardContent>
                 </Card>
+              ),
+            },
+            {
+              key: "profil-metier",
+              label: "Profil métier",
+              content: (
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Forme et rôle par défaut</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="mb-4 text-xs text-graphite-500">
+                        Ne crée aucun droit — sert de défaut à l&apos;onboarding et au pré-filtre des
+                        modèles et lots proposés. Le rôle effectif sur un chantier reste toujours celui
+                        défini dans l&apos;onglet Intervenants de ce chantier.
+                      </p>
+                      <form action={saveOrganizationProfile} className="space-y-4">
+                        <input type="hidden" name="organizationId" value={activeOrg.id} />
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label htmlFor="legalKind" className="mb-1 block text-xs font-medium text-graphite-500">
+                              Forme juridique / métier
+                            </label>
+                            <Select
+                              id="legalKind"
+                              name="legalKind"
+                              defaultValue={organizationProfile?.legalKind ?? ""}
+                              required
+                            >
+                              <option value="" disabled>
+                                Sélectionner…
+                              </option>
+                              {LegalKind.options.map((kind) => (
+                                <option key={kind} value={kind}>
+                                  {LEGAL_KIND_LABELS[kind]}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div>
+                            <label htmlFor="sizeBand" className="mb-1 block text-xs font-medium text-graphite-500">
+                              Taille
+                            </label>
+                            <Select id="sizeBand" name="sizeBand" defaultValue={organizationProfile?.sizeBand ?? ""}>
+                              <option value="">Non renseignée</option>
+                              {OrganizationSizeBand.options.map((band) => (
+                                <option key={band} value={band}>
+                                  {ORGANIZATION_SIZE_BAND_LABELS[band]}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-xs font-medium text-graphite-500">
+                            Rôles chantier par défaut proposés à l&apos;onboarding
+                          </p>
+                          <div className="grid gap-1.5 md:grid-cols-3">
+                            {MissionRole.options.map((role) => (
+                              <label key={role} className="flex items-center gap-2 text-sm text-graphite-900">
+                                <input
+                                  type="checkbox"
+                                  name="defaultMissionRoles"
+                                  value={role}
+                                  defaultChecked={organizationProfile?.defaultMissionRoles.includes(role)}
+                                  className="h-4 w-4 rounded border-surface-border"
+                                />
+                                {MISSION_ROLE_LABELS[role]}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <Button type="submit" variant="secondary" size="sm">
+                          Enregistrer le profil
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Corps d&apos;état pratiqués</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <form action={saveOrganizationTrades} className="space-y-4">
+                        <input type="hidden" name="organizationId" value={activeOrg.id} />
+                        {Object.entries(TRADE_FAMILY_LABELS).map(([family, familyLabel]) => {
+                          const familyTrades = tradeCodes.filter((t) => t.family === family);
+                          if (familyTrades.length === 0) return null;
+                          return (
+                            <div key={family}>
+                              <p className="mb-1 text-xs font-medium text-graphite-500">{familyLabel}</p>
+                              <div className="grid gap-1.5 md:grid-cols-3">
+                                {familyTrades.map((trade) => (
+                                  <label key={trade.id} className="flex items-center gap-2 text-sm text-graphite-900">
+                                    <input
+                                      type="checkbox"
+                                      name="tradeCodeIds"
+                                      value={trade.id}
+                                      defaultChecked={selectedTradeCodeIds.has(trade.id)}
+                                      className="h-4 w-4 rounded border-surface-border"
+                                    />
+                                    {trade.label}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div>
+                          <label htmlFor="primaryTradeCodeId" className="mb-1 block text-xs font-medium text-graphite-500">
+                            Métier principal
+                          </label>
+                          <Select id="primaryTradeCodeId" name="primaryTradeCodeId" defaultValue={primaryTradeCodeId ?? ""}>
+                            <option value="">Aucun</option>
+                            {tradeCodes.map((trade) => (
+                              <option key={trade.id} value={trade.id}>
+                                {trade.label}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <Button type="submit" variant="secondary" size="sm">
+                          Enregistrer les métiers
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
               ),
             },
             {

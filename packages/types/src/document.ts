@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MissionRole } from "./roles";
 
 export const DocumentCategory = z.enum([
   "COURRIER",
@@ -13,6 +14,14 @@ export const DocumentCategory = z.enum([
   "MARCHE",
   "ADMINISTRATIF",
   "AUTRE",
+  // Actes de lancement (voir ActTemplate ci-dessous) et pièces de marché structurées.
+  "AE",
+  "OS",
+  "NOTIFICATION_MARCHE",
+  "CCAP",
+  "CCTP",
+  "DPGF",
+  "BPU",
 ]);
 export type DocumentCategory = z.infer<typeof DocumentCategory>;
 
@@ -29,6 +38,13 @@ export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
   MARCHE: "Marché",
   ADMINISTRATIF: "Administratif",
   AUTRE: "Autre",
+  AE: "Acte d'engagement",
+  OS: "Ordre de service",
+  NOTIFICATION_MARCHE: "Notification du marché",
+  CCAP: "CCAP",
+  CCTP: "CCTP",
+  DPGF: "DPGF",
+  BPU: "BPU",
 };
 
 /**
@@ -81,8 +97,67 @@ export const Document = z.object({
   fileUrl: z.string(),
   version: z.number().int().positive().default(1),
   templateId: z.string().uuid().optional(),
+  /**
+   * Organisation concernée par ce document quand il ne s'agit pas de son auteur (ex: un DC4 ou un
+   * AGREMENT_SOUS_TRAITANT désigne un sous-traitant précis, distinct de `organizationId` qui reste
+   * l'organisation propriétaire/auteure du document). Vide pour la plupart des documents.
+   */
+  concernsOrganizationId: z.string().uuid().optional(),
+  /** Code d'acte précis (voir ActTemplate) quand ce document en est l'émission — ex: "OS_DEMARRAGE". */
+  actCode: z.string().optional(),
   createdByUserId: z.string().uuid(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type Document = z.infer<typeof Document>;
+
+/**
+ * Référentiel déclaratif des actes de lancement par famille de mission (ex: MOE en ACT/DET) —
+ * une checklist de dépendances entre actes, pas une machine à états parallèle à `Document`.
+ * Chaque acte produit un `Document` de la catégorie indiquée, dont le cycle de statuts standard
+ * (BROUILLON → EN_VALIDATION → VALIDE → ENVOYE) s'applique normalement. `dependsOnActCode`
+ * référence un autre `ActTemplate.code` de la même `missionFamily` qui doit être `ENVOYE` avant
+ * que celui-ci ne soit proposé — un blocage affiché, pas un verrou impossible à outrepasser (voir
+ * docs/MONETIZATION_AND_ENTITLEMENTS.md pour un précédent similaire côté entitlements : toujours
+ * une vérification explicite, jamais un verrou silencieux côté UI seule).
+ */
+export const ActTemplate = z.object({
+  id: z.string().uuid(),
+  missionFamily: z.string().min(1), // ex: "MOE"
+  code: z.string().min(1), // ex: "NOTIFICATION_MARCHE", "OS_DEMARRAGE"
+  label: z.string().min(1),
+  documentCategory: DocumentCategory,
+  requiredMissionRole: MissionRole, // qui peut émettre cet acte (MOE, ou OPC si le template le dit)
+  dependsOnActCode: z.string().optional(),
+  unlocksPhaseTemplateCode: z.string().optional(), // ex: OS_DEMARRAGE débloque "EXE"
+  sortOrder: z.number().int().default(0),
+});
+export type ActTemplate = z.infer<typeof ActTemplate>;
+
+export const DocumentReviewSource = z.enum(["AI", "HUMAIN"]);
+export type DocumentReviewSource = z.infer<typeof DocumentReviewSource>;
+
+export const DocumentReviewVerdict = z.enum(["OK", "ECARTS", "INSUFFISANT"]);
+export type DocumentReviewVerdict = z.infer<typeof DocumentReviewVerdict>;
+
+export const DOCUMENT_REVIEW_VERDICT_LABELS: Record<DocumentReviewVerdict, string> = {
+  OK: "Conforme",
+  ECARTS: "Écarts constatés",
+  INSUFFISANT: "Insuffisant",
+};
+
+/**
+ * Trace de contrôle d'un document — IA ou humain. Un contrôle IA fait au plus passer le document
+ * en `EN_CONTROLE` : seul un utilisateur `VALIDATEUR` (ou l'action de validation existante côté
+ * chantier) peut le faire passer à `VALIDE`. Pas de nouveau statut "validé par IA".
+ */
+export const DocumentReview = z.object({
+  id: z.string().uuid(),
+  documentId: z.string().uuid(),
+  source: DocumentReviewSource,
+  verdict: DocumentReviewVerdict,
+  findings: z.record(z.string(), z.unknown()).default({}),
+  createdByUserId: z.string().uuid().optional(), // vide pour un contrôle IA
+  createdAt: z.string().datetime(),
+});
+export type DocumentReview = z.infer<typeof DocumentReview>;

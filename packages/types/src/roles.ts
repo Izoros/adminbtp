@@ -85,6 +85,61 @@ export const ROLE_SCOPE_LABELS: Record<RoleScope, string> = {
   ENTREPRISE: "Entreprise cliente",
 };
 
+/**
+ * Forme juridique/métier d'une organisation cliente — configure les valeurs par défaut proposées
+ * à l'onboarding (modèles, lots, rôle chantier pré-rempli), ne crée aucun droit. Le rôle effectif
+ * sur un chantier donné reste toujours `site_participants.missionRole`.
+ */
+export const LegalKind = z.enum([
+  "ENTREPRISE",
+  "MOE",
+  "BET",
+  "AMO_OPC",
+  "PROMOTEUR",
+  "BAILLEUR",
+  "COLLECTIVITE",
+  "ARTISAN",
+  "GROUPE",
+]);
+export type LegalKind = z.infer<typeof LegalKind>;
+
+export const LEGAL_KIND_LABELS: Record<LegalKind, string> = {
+  ENTREPRISE: "Entreprise",
+  MOE: "Maîtrise d'œuvre",
+  BET: "Bureau d'études techniques",
+  AMO_OPC: "AMO / OPC",
+  PROMOTEUR: "Promoteur",
+  BAILLEUR: "Bailleur",
+  COLLECTIVITE: "Collectivité",
+  ARTISAN: "Artisan",
+  GROUPE: "Groupe",
+};
+
+export const OrganizationSizeBand = z.enum(["TPE", "PME", "ETI"]);
+export type OrganizationSizeBand = z.infer<typeof OrganizationSizeBand>;
+
+export const ORGANIZATION_SIZE_BAND_LABELS: Record<OrganizationSizeBand, string> = {
+  TPE: "Très petite entreprise",
+  PME: "Petite ou moyenne entreprise",
+  ETI: "Entreprise de taille intermédiaire",
+};
+
+/**
+ * Profil durable d'une organisation — sert de défaut à l'onboarding et au pré-filtre des modèles
+ * et lots proposés. Ne crée jamais de droit d'accès : le `MissionRole` effectif sur un chantier
+ * (`site_participants.missionRole`) prime toujours sur `defaultMissionRoles`.
+ */
+export const OrganizationProfile = z.object({
+  id: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  legalKind: LegalKind,
+  defaultMissionRoles: z.array(MissionRole).default([]),
+  sizeBand: OrganizationSizeBand.optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type OrganizationProfile = z.infer<typeof OrganizationProfile>;
+
 /** Quel role_scope chaque UserPermissionRole suppose — utilisé pour valider la cohérence. */
 export const PERMISSION_ROLE_SCOPE: Record<UserPermissionRole, RoleScope> = {
   ADMIN_PLATEFORME: "PLATEFORME",
