@@ -3,13 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X, HardHat } from "lucide-react";
-import { NAV_ITEMS } from "@/lib/navigation";
+import { ADMIN_NAV_ITEMS, NAV_ITEMS } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import type { UserPermissionRole } from "@adminbtp/types";
 
-export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileNav({
+  open,
+  onClose,
+  permissionRole,
+}: {
+  open: boolean;
+  onClose: () => void;
+  permissionRole?: UserPermissionRole | null;
+}) {
   const pathname = usePathname();
 
   if (!open) return null;
+
+  const items = permissionRole === "ADMIN_PLATEFORME" ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
   return (
     <div className="fixed inset-0 z-50 flex md:hidden">
@@ -27,7 +38,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
           </button>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (

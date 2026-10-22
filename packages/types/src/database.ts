@@ -1,7 +1,3 @@
-// Généré depuis le schéma Supabase réel (projet "AdminBTP", ref azphgxzapyuazxtqzvta) via
-// mcp__supabase__generate_typescript_types le 2026-10-21. Ne pas éditer à la main : régénérer
-// après toute migration dans database/migrations/ pour garder ce fichier synchronisé.
-
 export type Json =
   | string
   | number
@@ -18,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          admin_decision_at: string | null
+          admin_decision_by_user_id: string | null
+          admin_note: string | null
+          created_at: string
+          id: string
+          message: string | null
+          organization_id: string
+          requested_by_user_id: string
+          service_id: string
+          status: Database["public"]["Enums"]["access_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_decision_at?: string | null
+          admin_decision_by_user_id?: string | null
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          organization_id: string
+          requested_by_user_id: string
+          service_id: string
+          status?: Database["public"]["Enums"]["access_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_decision_at?: string | null
+          admin_decision_by_user_id?: string | null
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          organization_id?: string
+          requested_by_user_id?: string
+          service_id?: string
+          status?: Database["public"]["Enums"]["access_request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_admin_decision_by_user_id_fkey"
+            columns: ["admin_decision_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -183,6 +250,73 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entitlement_grants: {
+        Row: {
+          action: Database["public"]["Enums"]["entitlement_action"]
+          expires_at: string | null
+          id: string
+          new_status: Database["public"]["Enums"]["entitlement_status"]
+          note: string | null
+          organization_id: string
+          performed_at: string
+          performed_by_user_id: string
+          previous_status:
+            | Database["public"]["Enums"]["entitlement_status"]
+            | null
+          service_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["entitlement_action"]
+          expires_at?: string | null
+          id?: string
+          new_status: Database["public"]["Enums"]["entitlement_status"]
+          note?: string | null
+          organization_id: string
+          performed_at?: string
+          performed_by_user_id: string
+          previous_status?:
+            | Database["public"]["Enums"]["entitlement_status"]
+            | null
+          service_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["entitlement_action"]
+          expires_at?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["entitlement_status"]
+          note?: string | null
+          organization_id?: string
+          performed_at?: string
+          performed_by_user_id?: string
+          previous_status?:
+            | Database["public"]["Enums"]["entitlement_status"]
+            | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_performed_by_user_id_fkey"
+            columns: ["performed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
             referencedColumns: ["id"]
           },
         ]
@@ -441,6 +575,100 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_entitlements: {
+        Row: {
+          expires_at: string | null
+          granted_at: string
+          granted_by_user_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          price_id: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by_user_id: string | null
+          service_id: string
+          source_access_request_id: string | null
+          status: Database["public"]["Enums"]["entitlement_status"]
+          updated_at: string
+        }
+        Insert: {
+          expires_at?: string | null
+          granted_at?: string
+          granted_by_user_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          price_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          service_id: string
+          source_access_request_id?: string | null
+          status: Database["public"]["Enums"]["entitlement_status"]
+          updated_at?: string
+        }
+        Update: {
+          expires_at?: string | null
+          granted_at?: string
+          granted_by_user_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          price_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          service_id?: string
+          source_access_request_id?: string | null
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_entitlements_granted_by_user_id_fkey"
+            columns: ["granted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_entitlements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_entitlements_price_id_fkey"
+            columns: ["price_id"]
+            isOneToOne: false
+            referencedRelation: "service_prices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_entitlements_revoked_by_user_id_fkey"
+            columns: ["revoked_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_entitlements_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_entitlements_source_access_request_id_fkey"
+            columns: ["source_access_request_id"]
+            isOneToOne: false
+            referencedRelation: "access_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -761,6 +989,128 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_catalog: {
+        Row: {
+          billing_model: Database["public"]["Enums"]["service_billing_model"]
+          category_id: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          requires_admin_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          billing_model: Database["public"]["Enums"]["service_billing_model"]
+          category_id: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          requires_admin_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          billing_model?: Database["public"]["Enums"]["service_billing_model"]
+          category_id?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          requires_admin_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_catalog_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_categories: {
+        Row: {
+          code: Database["public"]["Enums"]["service_category_code"]
+          description: string | null
+          id: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          code: Database["public"]["Enums"]["service_category_code"]
+          description?: string | null
+          id?: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          code?: Database["public"]["Enums"]["service_category_code"]
+          description?: string | null
+          id?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      service_prices: {
+        Row: {
+          amount_cents: number
+          billing_period: Database["public"]["Enums"]["billing_period"]
+          created_at: string
+          created_by_user_id: string
+          currency: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          service_id: string
+        }
+        Insert: {
+          amount_cents: number
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          created_at?: string
+          created_by_user_id: string
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          service_id: string
+        }
+        Update: {
+          amount_cents?: number
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          created_at?: string
+          created_by_user_id?: string
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_prices_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
             referencedColumns: ["id"]
           },
         ]
@@ -1212,25 +1562,113 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _upsert_entitlement: {
+        Args: {
+          p_action: Database["public"]["Enums"]["entitlement_action"]
+          p_expires_at: string
+          p_new_status: Database["public"]["Enums"]["entitlement_status"]
+          p_note: string
+          p_org_id: string
+          p_price_id: string
+          p_service_id: string
+          p_source_request_id: string
+        }
+        Returns: undefined
+      }
+      approve_access_request: {
+        Args: {
+          p_admin_note?: string
+          p_expires_at?: string
+          p_price_id?: string
+          p_request_id: string
+        }
+        Returns: undefined
+      }
       can_access_organization: {
         Args: { target_org_id: string }
         Returns: boolean
       }
       can_access_site: { Args: { target_site_id: string }; Returns: boolean }
+      cancel_access_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
       current_app_user_id: { Args: never; Returns: string }
       current_user_organization_id: { Args: never; Returns: string }
       current_user_permission_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_permission_role"]
       }
+      extend_entitlement: {
+        Args: {
+          p_new_expires_at: string
+          p_note?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      grant_entitlement: {
+        Args: {
+          p_expires_at?: string
+          p_note?: string
+          p_organization_id: string
+          p_price_id?: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      has_entitlement: {
+        Args: { target_org_id: string; target_service_code: string }
+        Returns: boolean
+      }
       has_portfolio_access: {
         Args: { target_org_id: string }
         Returns: boolean
       }
+      reactivate_entitlement: {
+        Args: {
+          p_expires_at?: string
+          p_note?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      reject_access_request: {
+        Args: { p_admin_note?: string; p_request_id: string }
+        Returns: undefined
+      }
+      request_service_access: {
+        Args: {
+          p_message?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: string
+      }
+      revoke_entitlement: {
+        Args: {
+          p_organization_id: string
+          p_reason?: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      suspend_entitlement: {
+        Args: {
+          p_note?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
+      access_request_status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
       approval_decision: "APPROUVE" | "REFUSE" | "MODIFICATION_DEMANDEE"
       audit_actor_type: "USER" | "AUTOMATION" | "AI"
+      billing_period: "MONTHLY" | "ANNUAL" | "ONE_TIME"
       document_category:
         | "COURRIER"
         | "COMPTE_RENDU"
@@ -1252,6 +1690,13 @@ export type Database = {
         | "VALIDE"
         | "ENVOYE"
         | "ARCHIVE"
+      entitlement_action:
+        | "GRANT"
+        | "SUSPEND"
+        | "REACTIVATE"
+        | "EXTEND"
+        | "REVOKE"
+      entitlement_status: "ACTIVE" | "SUSPENDED" | "EXPIRED" | "REVOKED"
       expertise_request_status:
         | "NOUVELLE"
         | "ASSIGNEE"
@@ -1305,6 +1750,27 @@ export type Database = {
         | "ANNULEE"
       reminder_channel: "EMAIL" | "WHATSAPP" | "COURRIER"
       role_scope: "PLATEFORME" | "ENTREPRISE"
+      service_billing_model:
+        | "FREE"
+        | "SUBSCRIPTION_MONTHLY"
+        | "SUBSCRIPTION_ANNUAL"
+        | "PER_UNIT"
+        | "PREPAID_CREDIT"
+        | "CREDIT_PACK"
+        | "SERVICE_PACKAGE"
+        | "CUSTOM"
+        | "QUOTE"
+      service_category_code:
+        | "DIRECTORY"
+        | "DOCUMENTS"
+        | "AUTOMATION"
+        | "AI"
+        | "MESSAGING"
+        | "SITE_MANAGEMENT"
+        | "INTEGRATIONS"
+        | "SIGNATURES"
+        | "EXPERT_SERVICES"
+        | "CUSTOM_SERVICES"
       site_status:
         | "ETUDE"
         | "CONSULTATION"
@@ -1468,8 +1934,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_request_status: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
       approval_decision: ["APPROUVE", "REFUSE", "MODIFICATION_DEMANDEE"],
       audit_actor_type: ["USER", "AUTOMATION", "AI"],
+      billing_period: ["MONTHLY", "ANNUAL", "ONE_TIME"],
       document_category: [
         "COURRIER",
         "COMPTE_RENDU",
@@ -1493,6 +1961,14 @@ export const Constants = {
         "ENVOYE",
         "ARCHIVE",
       ],
+      entitlement_action: [
+        "GRANT",
+        "SUSPEND",
+        "REACTIVATE",
+        "EXTEND",
+        "REVOKE",
+      ],
+      entitlement_status: ["ACTIVE", "SUSPENDED", "EXPIRED", "REVOKED"],
       expertise_request_status: [
         "NOUVELLE",
         "ASSIGNEE",
@@ -1552,6 +2028,29 @@ export const Constants = {
       ],
       reminder_channel: ["EMAIL", "WHATSAPP", "COURRIER"],
       role_scope: ["PLATEFORME", "ENTREPRISE"],
+      service_billing_model: [
+        "FREE",
+        "SUBSCRIPTION_MONTHLY",
+        "SUBSCRIPTION_ANNUAL",
+        "PER_UNIT",
+        "PREPAID_CREDIT",
+        "CREDIT_PACK",
+        "SERVICE_PACKAGE",
+        "CUSTOM",
+        "QUOTE",
+      ],
+      service_category_code: [
+        "DIRECTORY",
+        "DOCUMENTS",
+        "AUTOMATION",
+        "AI",
+        "MESSAGING",
+        "SITE_MANAGEMENT",
+        "INTEGRATIONS",
+        "SIGNATURES",
+        "EXPERT_SERVICES",
+        "CUSTOM_SERVICES",
+      ],
       site_status: [
         "ETUDE",
         "CONSULTATION",

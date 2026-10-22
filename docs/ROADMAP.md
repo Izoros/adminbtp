@@ -75,6 +75,91 @@ Arrêt explicite ici — Phase 2 non démarrée sans confirmation utilisateur.
       configuration `organization_integrations`/`signature_profiles`, écrans multi-domaines) — le
       schéma est prêt, l'UI reste à construire au fur et à mesure (voir Phase 8).
 
+## Module Marketplace & Entitlements — commercialisation (phases A à E)
+
+Exigence actée le 2026-10-22 (voir `docs/MONETIZATION_AND_ENTITLEMENTS.md`) : système natif de
+commercialisation (fonctionnalités incluses/payantes, bibliothèque de documents premium, annuaire
+BTP, services à l'unité/sur devis, crédits prépayés, abonnements). **Règle non négociable
+transverse à toutes les phases** : seul un utilisateur `ADMIN_PLATEFORME` ("Super Administrateur")
+peut autoriser, activer, suspendre, prolonger ou révoquer un accès premium — une demande ou un
+paiement enregistré n'active jamais rien seul. Numérotation A-E propre à ce module, distincte des
+phases 0-11 ci-dessus (ce module est transverse, pas une étape séquentielle du produit cœur).
+
+### Phase A — Catalogue, tarifs et moteur d'autorisation ✅ (2026-10-22)
+
+- [x] Schéma : `service_categories`, `service_catalog`, `service_prices` (tarif versionné, un seul
+      "courant" par service), `access_requests`, `organization_entitlements` (état courant),
+      `entitlement_grants` (historique immuable) — voir
+      `database/migrations/0010_entitlements_phase_a.sql` et `0011_entitlements_phase_a_fk_indexes.sql`.
+- [x] Fonction réutilisable `has_entitlement(org_id, service_code)` — point d'entrée unique pour
+      toute vérification d'accès future (annuaire/bibliothèque en Phase B/C), `SECURITY DEFINER`
+      pour rester utilisable depuis une policy RLS d'une autre table sans dépendre des droits du
+      lecteur sur `organization_entitlements`.
+- [x] Cycle de vie complet via fonctions `SECURITY DEFINER` uniquement (aucune policy
+      INSERT/UPDATE/DELETE sur `organization_entitlements`/`entitlement_grants`/`access_requests`,
+      même pour `ADMIN_PLATEFORME`) : `request_service_access`, `cancel_access_request`,
+      `approve_access_request`, `reject_access_request`, `grant_entitlement`,
+      `suspend_entitlement`, `reactivate_entitlement`, `extend_entitlement`, `revoke_entitlement`.
+      Chaque fonction de mutation admin vérifie explicitement
+      `current_user_permission_role() = 'ADMIN_PLATEFORME'` en première ligne — nécessaire car
+      `SECURITY DEFINER` contourne RLS, donc cette vérification applicative est la seule
+      protection réelle sur ces fonctions.
+- [x] Architecture pour activation automatique future sans modifier les règles actuelles :
+      `service_catalog.requires_admin_approval` (aujourd'hui `true` pour les 14 services du
+      catalogue initial — aucun n'est auto-activable tant qu'un Super Administrateur ne change pas
+      ce réglage) ; la branche d'auto-activation existe dans `request_service_access` mais reste
+      inactive.
+- [x] UI client (`/services`) : catalogue par catégorie, prix formatés selon le modèle tarifaire,
+      statut d'entitlement, bouton "Demander l'activation" créant une vraie ligne
+      `access_requests`, annulation de demande, historique des demandes.
+- [x] UI Super Administrateur (`/admin`, garde de layout + policy RLS) : vue d'ensemble (compteurs
+      uniquement — jamais de montant encaissé présenté comme réel), demandes en attente avec
+      approuver/refuser, entitlements actifs/suspendus avec suspendre/réactiver/prolonger/révoquer,
+      catalogue en lecture.
+- [x] Catalogue initial (14 services, codes stables `directory.btp`, `directory.bet`,
+      `directory.suppliers`, `templates.basic`, `templates.moe`, `templates.tce`, `templates.moa`,
+      `documents.ppsps`, `documents.dc4`, `automation.followups`, `automation.mail`,
+      `integrations.odoo`, `expert.engineering`, `expert.architecture`) et scénario de
+      démonstration (1 entitlement actif, 1 demande) — `database/seeds/0003_entitlements_phase_a_seed.sql`.
+- [x] Vérifications : `pnpm -r typecheck/lint/test/build` verts, advisors sécurité/performance
+      Supabase revus (avertissements `SECURITY DEFINER` cohérents avec le reste du schéma),
+      invariants RLS critiques vérifiés par simulation SQL directe, parcours client/admin complet
+      vérifié en navigateur (voir `docs/VALIDATION_CHECKLIST.md`).
+
+**Arrêt explicite ici — Phase B (annuaire BTP) non démarrée sans confirmation utilisateur.**
+
+### Phase B — Annuaire professionnel BTP (non démarrée)
+
+- Tables `directory_companies`, `directory_contacts`, `directory_categories`, `directory_sources`.
+- Import CSV/XLSX, déduplication, quotas d'accès appliqués côté serveur et base (jamais côté UI
+  seule) via `has_entitlement(org_id, 'directory.btp' | 'directory.bet' | 'directory.suppliers')`.
+- Validation : un client non autorisé ne peut pas accéder aux données protégées, même par appel
+  API direct.
+
+### Phase C — Bibliothèque de modèles de documents premium (non démarrée)
+
+- Tables `document_template_catalog`, `template_versions`, `template_purchases`.
+- Moteur de génération (import DOCX, variables, PDF), modèles privés jamais redistribués entre
+  organisations.
+- Validation : une organisation achetant un modèle peut l'utiliser selon ses droits, les autres
+  non ; un document déjà généré reste accessible même après retrait du modèle du catalogue.
+
+### Phase D — Abonnements et crédits (non démarrée)
+
+- Tables `organization_subscriptions`, `credit_wallets`, `credit_transactions`, `usage_records`.
+- Débit de crédit exactement une fois par opération, transactions atomiques/idempotentes,
+  expiration gérée.
+- Validation : aucun double débit, aucun contournement de quota.
+
+### Phase E — Intégration Odoo et commercialisation (non démarrée)
+
+- Tables `service_orders`, `service_order_items` — correspondance avec Odoo via l'adaptateur
+  existant (`IOdooAdapter`), jamais un second système comptable parallèle. AdminBTP reste
+  autoritaire sur les droits d'accès/quotas/consommation ; Odoo peut être autoritaire sur la
+  facturation. Si Odoo est indisponible, les demandes restent en attente de synchronisation —
+  jamais de paiement fictif créé.
+- Validation : droits et commandes restent cohérents même si Odoo est temporairement indisponible.
+
 ## Phase 3 — Génération de documents réelle
 
 - Branchement d'un fournisseur IA réel derrière `IAIProvider` pour la génération de documents à

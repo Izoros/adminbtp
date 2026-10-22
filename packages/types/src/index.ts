@@ -9,4 +9,5 @@ export * from "./mail";
 export * from "./finance";
 export * from "./task";
 export * from "./expertise";
+export * from "./entitlements";
 export * from "./database";

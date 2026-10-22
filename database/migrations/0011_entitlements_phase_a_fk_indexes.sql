@@ -1,0 +1,11 @@
+-- Index de couverture pour les clés étrangères signalées par l'advisor de performance Supabase
+-- après la migration 0010 (entitlements Phase A).
+
+create index access_requests_admin_decision_by_user_id_idx on access_requests(admin_decision_by_user_id);
+create index access_requests_requested_by_user_id_idx on access_requests(requested_by_user_id);
+create index entitlement_grants_performed_by_user_id_idx on entitlement_grants(performed_by_user_id);
+create index organization_entitlements_granted_by_user_id_idx on organization_entitlements(granted_by_user_id);
+create index organization_entitlements_price_id_idx on organization_entitlements(price_id);
+create index organization_entitlements_revoked_by_user_id_idx on organization_entitlements(revoked_by_user_id);
+create index organization_entitlements_source_access_request_id_idx on organization_entitlements(source_access_request_id);
+create index service_prices_created_by_user_id_idx on service_prices(created_by_user_id);

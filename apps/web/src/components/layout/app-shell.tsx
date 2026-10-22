@@ -21,8 +21,12 @@ export function AppShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-subtle">
-      <Sidebar />
-      <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+      <Sidebar permissionRole={user.permissionRole} />
+      <MobileNav
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        permissionRole={user.permissionRole}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
           onMenuClick={() => setMobileNavOpen(true)}

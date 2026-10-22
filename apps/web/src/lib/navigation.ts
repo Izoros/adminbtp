@@ -9,6 +9,8 @@ import {
   BellRing,
   Settings,
   Users,
+  Store,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,5 +30,11 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/taches", label: "Tâches", icon: CheckSquare },
   { href: "/validations", label: "Validations", icon: ShieldCheck },
   { href: "/relances", label: "Relances", icon: BellRing },
+  { href: "/services", label: "Services & options", icon: Store },
   { href: "/parametres", label: "Paramètres", icon: Settings },
+];
+
+/** Visible uniquement pour permissionRole === "ADMIN_PLATEFORME" (Super Administrateur). */
+export const ADMIN_NAV_ITEMS: NavItem[] = [
+  { href: "/admin", label: "Administration", icon: Crown },
 ];

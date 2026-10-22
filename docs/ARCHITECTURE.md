@@ -95,3 +95,38 @@ Aucune requête réseau, aucune base de données réelle. L'authentification sur
 
 Voir `docs/ROADMAP.md` pour quand ces éléments sont prévus, et `docs/INTEGRATIONS_STATUS.md` pour
 le détail des services externes et outils CLI non disponibles dans cet environnement.
+
+## Module Marketplace & Entitlements (2026-10-22)
+
+Système de commercialisation — catalogue de services premium, demandes d'activation, droits
+d'accès (`entitlements`). Voir `docs/MONETIZATION_AND_ENTITLEMENTS.md` pour les règles produit
+complètes et `docs/ROADMAP.md` pour le découpage en phases A-E. Ce qui suit décrit uniquement la
+Phase A (catalogue + moteur d'autorisation), seule implémentée à ce stade.
+
+```
+packages/types/src/entitlements.ts   Schémas Zod (ServiceCatalogItem, AccessRequest,
+                                      OrganizationEntitlement, EntitlementGrant, ...)
+database/migrations/0010_*.sql       Tables + fonctions SECURITY DEFINER + RLS
+database/migrations/0011_*.sql       Index de couverture FK (suivi advisor performance)
+database/seeds/0003_*.sql            Catalogue initial (14 services) + scénario de démo
+apps/web/src/lib/data/entitlements.ts     Lectures (mapping snake_case → Zod)
+apps/web/src/lib/actions/entitlements.ts  Server Actions — appellent uniquement les RPC SQL,
+                                           aucune logique d'autorisation dupliquée côté Next.js
+apps/web/src/app/(app)/services/page.tsx  Catalogue client + demandes
+apps/web/src/app/(app)/admin/            Interface Super Administrateur (layout = garde de rôle)
+```
+
+**Principe central** : toute mutation d'un droit d'accès passe par une fonction SQL
+`SECURITY DEFINER` dédiée (`grant_entitlement`, `approve_access_request`, etc.), jamais par un
+`UPDATE`/`INSERT` direct depuis le code applicatif — `organization_entitlements` et
+`entitlement_grants` n'ont **aucune** policy RLS d'écriture, pas même pour `ADMIN_PLATEFORME`.
+Chaque fonction de mutation réservée à l'administration revérifie explicitement
+`current_user_permission_role() = 'ADMIN_PLATEFORME'` en première instruction, parce que
+`SECURITY DEFINER` contourne RLS — cette vérification applicative est donc la seule protection
+réelle sur ces fonctions, pas une redondance. Voir
+`docs/MONETIZATION_AND_ENTITLEMENTS.md#règle-absolue` pour le détail des trois niveaux de défense.
+
+La fonction `has_entitlement(organization_id, service_code)` est le point d'entrée réutilisable
+unique pour vérifier un accès premium — pensée dès Phase A pour être appelée depuis une future
+policy RLS d'une table protégée (annuaire Phase B, bibliothèque Phase C), jamais dupliquée dans du
+code React ou une route API.

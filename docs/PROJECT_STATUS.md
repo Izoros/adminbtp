@@ -1,8 +1,42 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Phase 2 — persistance réelle, sélecteur d'organisation et formulaires de
-création (chantiers/documents) terminés (2026-10-21).** Phase 1 validée. Voir `docs/ROADMAP.md`
-pour le détail des cases cochées/restantes.
+**Phase actuelle : Module Marketplace & Entitlements, Phase A — catalogue de services et moteur
+d'autorisation terminés (2026-10-22).** Phase 2 (persistance réelle) et Phase 1 validées. Voir
+`docs/ROADMAP.md` pour le détail des cases cochées/restantes, et
+`docs/MONETIZATION_AND_ENTITLEMENTS.md` pour les règles produit du nouveau module.
+
+## Module Marketplace & Entitlements — Phase A (2026-10-22)
+
+Système de commercialisation natif : catalogue de services premium, demandes d'activation,
+entitlements (droits d'accès). **Règle absolue** : seul `ADMIN_PLATEFORME` ("Super
+Administrateur") peut accorder/suspendre/prolonger/révoquer un accès — appliquée à trois niveaux
+(RLS sans aucune policy d'écriture sur les tables d'entitlement, vérification explicite dans
+chaque fonction SQL, garde UI). Voir `docs/MONETIZATION_AND_ENTITLEMENTS.md` pour le détail
+complet.
+
+- Schéma : 6 nouvelles tables (`service_categories`, `service_catalog`, `service_prices`,
+  `access_requests`, `organization_entitlements`, `entitlement_grants`) +
+  `has_entitlement()` (primitive réutilisable) + 9 fonctions `SECURITY DEFINER` pour le cycle de
+  vie complet (demande, annulation, approbation, refus, octroi, suspension, réactivation,
+  prolongation, révocation) — `database/migrations/0010` et `0011`.
+- Catalogue initial : 14 services avec codes stables (`directory.btp`, `templates.moe`,
+  `documents.ppsps`, etc.), tous `requires_admin_approval = true` — l'architecture permet de
+  configurer plus tard une auto-activation par service sans toucher aux règles des services
+  actuellement protégés (`database/seeds/0003_entitlements_phase_a_seed.sql`).
+- UI client (`/services`) : catalogue par catégorie, demande d'activation réelle, annulation,
+  historique. UI Super Administrateur (`/admin`, gardée par layout + RLS) : demandes en attente
+  (approuver/refuser), entitlements (suspendre/réactiver/prolonger/révoquer), catalogue en lecture,
+  compteurs (jamais de montant présenté comme encaissé réel).
+- Vérifié : `pnpm -r typecheck/lint/test/build` verts ; invariants RLS critiques (isolation
+  cross-org, impossibilité de self-grant, pas de double activation, révocation immédiate, écriture
+  directe hors fonction refusée) vérifiés par simulation SQL ; parcours client → admin complet
+  (demande → approbation → suspension → réactivation → refus) vérifié en navigateur avec les deux
+  comptes de démonstration. Détail complet dans `docs/VALIDATION_CHECKLIST.md`.
+- Explicitement non fait en Phase A : annuaire BTP, bibliothèque de documents premium, crédits,
+  abonnements facturés, intégration Odoo réelle (Phases B-E, voir `docs/ROADMAP.md`) ; édition du
+  catalogue/tarifs via UI (services initiaux seedés directement).
+
+**Arrêt explicite ici, comme demandé — Phase B non démarrée sans confirmation utilisateur.**
 
 ## Ce qui fonctionne aujourd'hui
 
@@ -74,24 +108,33 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 - MFA, onboarding self-service, feature-gating par `plan_features` : non implémentés (schéma
   prêt, voir `docs/ROADMAP.md` Phase 8).
 - "Leaked password protection" Supabase Auth : désactivé, à activer manuellement (dashboard).
+- Marketplace : annuaire BTP, bibliothèque de documents premium, crédits, abonnements facturés,
+  intégration Odoo réelle du module (Phases B-E, voir `docs/ROADMAP.md`) ; édition du
+  catalogue/tarifs via UI.
 
 ## Structure du dépôt
 
-Voir `docs/ARCHITECTURE.md`. Ajouts notables de cette phase : `apps/web/src/lib/data/` (requêtes
+Voir `docs/ARCHITECTURE.md`. Ajouts notables de la Phase 2 : `apps/web/src/lib/data/` (requêtes
 Supabase typées, mappées vers les schémas Zod existants, dont `organization-context.ts` pour le
 sélecteur), `apps/web/src/lib/actions/` (Server Actions, dont `sites.ts`/`documents.ts` pour la
 création), `apps/web/src/components/layout/org-switcher.tsx`,
 `apps/web/src/app/(app)/{chantiers,documents}/nouveau/`, `database/migrations/0005` à `0009`,
-`database/seeds/0002_demo_dataset.sql`, `docs/CDC/MULTI_TENANT_SAAS.md`.
+`database/seeds/0002_demo_dataset.sql`, `docs/CDC/MULTI_TENANT_SAAS.md`. Ajouts notables du module
+Marketplace (Phase A) : `packages/types/src/entitlements.ts`,
+`database/migrations/0010` et `0011`, `database/seeds/0003_entitlements_phase_a_seed.sql`,
+`apps/web/src/lib/{data,actions}/entitlements.ts`,
+`apps/web/src/app/(app)/{services,admin}/`, `docs/MONETIZATION_AND_ENTITLEMENTS.md`.
 
 ## Décisions notables de cette phase
 
 Voir `docs/DECISIONS.md` — notamment : suppression d'un schéma Supabase hérité, exigences SaaS
 multi-tenant actées (jamais un outil MAWU), bug de récursion RLS et sa correction, bug
-`RETURNING`/policy auto-référentielle et sa correction.
+`RETURNING`/policy auto-référentielle et sa correction. Module Marketplace (Phase A) : voir
+`docs/MONETIZATION_AND_ENTITLEMENTS.md` pour la défense en profondeur à trois niveaux retenue pour
+garantir que seul un Super Administrateur peut accorder un accès premium.
 
 ## Prochaine étape
 
-Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase 3
-(génération de documents réelle), ou des formulaires de création pour les entités encore en
-lecture seule (organisation, modèle de document...).
+Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase B du module
+Marketplace (annuaire BTP), Phase 3 (génération de documents réelle), ou des formulaires de
+création pour les entités encore en lecture seule (organisation, modèle de document...).
