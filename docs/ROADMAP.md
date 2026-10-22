@@ -273,6 +273,87 @@ métier. Voir `packages/types/src/{roles,trade,document,market,finance,chantier}
 **Ne pas démarrer les phases B+ du module Marketplace à partir de ce travail** — ce sont deux
 chantiers indépendants (voir section précédente).
 
+### Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien (en cours, non validé, 2026-10-22)
+
+Quatre tranches livrées à la suite du module ci-dessus, **non terminées et non validées par
+l'utilisateur** — toujours un seul moteur (phases/documents/lots/situations/validations/tâches/mails),
+aucun moteur parallèle par métier. Voir `packages/types/src/{roles,chantier,document,market,finance,
+task,execution}.ts` et `database/migrations/0021` à `0027`.
+
+- [x] **Tranche A — profil, actes, groupement** : `organization_credentials` (ASSURANCE_RC/
+      ASSURANCE_DECENNALE/URSSAF/QUALIFICATION/AUTRE, échéance optionnelle, statut) rattachées à
+      l'organisation, pas au chantier — une échéance dépassée s'affiche toujours comme expirée côté
+      UI, quel que soit le statut déclaré en base. Diffusion ciblée des actes par lot
+      (`documents.lot_id`, sélecteur optionnel dans le formulaire d'émission). `lot_members` (lot,
+      organisation, rôle MANDATAIRE/COTRAITANT/TITULAIRE, part optionnelle) pour macrolots et
+      groupements, distinct de la sous-traitance. Blocage de ventilation vers un sous-traitant
+      étendu : refusé aussi si une `organization_credentials` requise est `EXPIRE`
+      (`check_subcontractor_allocation()` redéfinie). Clôture de participant (`site_participants.
+      left_at`) sans réécrire les OS ni les décomptes passés — testé en navigateur (badge
+      "Clôturée", bouton retiré).
+- [x] **Tranche B — avenants, retenue, avance, DGD, relances** : `amendments` (numéro, motif, delta
+      HT, statut BROUILLON/VALIDE/REFUSE) ; une fois `VALIDE`, ses `price_lines.amendment_id`
+      entrent dans les décomptes suivants, distinct du DPGF d'origine. Retenue de garantie
+      (`retention_basis_amount_ht`, `retention_release_due_on`, `retention_substituted_by_caution`,
+      `caution_document_id`) et avance forfaitaire (`advance_amount_ht`) sur le marché — solde
+      d'avance **jamais négatif**, imposé par un trigger (`check_advance_balance()`, vérifié par
+      simulation SQL directe positive et négative). Situation de solde (DGD) via `situations.
+      is_final`. Relances de situation tracées (`reminder_logs` : canal, date, situation) via les
+      adaptateurs `Demo*` existants (WhatsApp jamais une signature).
+- [x] **Tranche C — exécution** : visa de plans (`plan_submissions`, statuts DEPOSE/VISE_BPE/
+      VISE_AVEC_REMARQUES/REFUSE, file d'attente par chantier). Réserves (`reserve_items`, gravité
+      MINEURE/MAJEURE/BLOQUANTE, statut OUVERTE/LEVEE/CONTESTEE). Journal de chantier
+      (`site_log_entries`, nature INTEMPERIE/ARRET/LIVRAISON/INCIDENT/AUTRE) — citable comme motif
+      d'un avenant ou d'un acte via `source_log_entry_id` nullable, jamais générateur automatique
+      d'OS. Comptes-rendus (`meeting_notes`/`meeting_attendees`/`meeting_decisions`) : chaque
+      décision crée immédiatement une tâche existante (`source_type = MEETING`) — le PDF
+      compte-rendu resterait un export généré à partir de ces lignes, pas l'inverse (export non
+      implémenté, voir ci-dessous). Avancement déclaré par lot (`lot_progress`, pourcentage déclaré
+      à une date), affiché sans moteur de planning (pas de Gantt/CPM).
+- [x] **Tranche D — quotidien** : classement de mail assisté (`DemoAIProvider.suggestMailFiling`,
+      suggestion par mots-clés sur le sujet, confirmation humaine obligatoire via le formulaire) créant
+      une tâche ou un document BROUILLON (PREEDITION si PPSPS) et passant le mail en `AFFECTE` —
+      UI ajoutée sur `/mails`, aucune boîte mail réelle ingérée. Relances internes idempotentes
+      (`check_internal_reminders(site_id)`, SECURITY DEFINER) : visa en attente au-delà de
+      `sites.internal_reminder_days` (paramètre par chantier, défaut 7 en base, pas une constante
+      UI), situation `A_ETABLIR` en retard, pièce d'agrément sous-traitant manquante/expirée —
+      bouton "Vérifier les relances" dans l'onglet Exécution, crée des tâches `AUTOMATISATION`
+      sans doublon (vérifié par appel répété en navigateur et par simulation SQL). Filtrage des
+      modèles de documents par forme juridique/corps d'état (`document_templates.
+      audience_legal_kind`/`audience_trade_code`, nullable — un modèle sans tag reste toujours
+      visible), branché sur `/parametres` → "Modèles de documents" ; vérifié en navigateur en
+      taguant temporairement un modèle de test (exclu puis retag retiré).
+- [x] **UI minimale** : nouvel onglet "Exécution" sur `/chantiers/[id]` (visas en attente, réserves
+      ouvertes, journal, comptes-rendus, avancement, bouton relances internes) ; onglet
+      "Intervenants & lots" étendu (clôture de participant, membres de lot) ; onglet "Décompte"
+      étendu (avenants, avance/retenue sur le marché, badge DGD, gating de l'actualisation,
+      formulaire de relance) ; nouvelle carte "Pièces d'entreprise" sur `/parametres` ; section de
+      classement sur `/mails`.
+- [x] **Vérifications exécutées** : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web
+      build` verts. Parcours complet vérifié en navigateur (comptes de démonstration) : dépôt et
+      décision de visa, création/levée de réserve, entrée de journal, compte-rendu avec décisions
+      devenues tâches, avancement déclaré, clôture de participant, ajout de membre de lot, avenant
+      créé puis validé, marché avec avance/retenue, situation de solde (DGD), gating de
+      l'actualisation (aucune clause validée → non calculée, affiché tel quel), envoi de relance,
+      pièce d'entreprise expirée (badge "Expirée" piloté par la date, indépendamment du statut
+      stocké), classement de mail (suggestion IA, tâche créée), filtrage des modèles par audience.
+      Toutes les données de test créées pendant cette vérification ont été nettoyées après coup
+      (comptes rendus, visas, réserves, avenant, contrat de test, pièce d'entreprise, tâches et
+      statuts associés) pour laisser le jeu de données de démonstration inchangé.
+
+**Explicitement non fait, cases volontairement non cochées :**
+
+- [ ] Export PDF du compte-rendu à partir des décisions enregistrées (les décisions existent et
+      deviennent des tâches, mais aucun rendu PDF n'est généré).
+- [ ] Capture de preuve WhatsApp réelle pour les relances (`WHATSAPP` reste une trace déclarative
+      dans `reminder_logs`, aucun fournisseur réel branché, voir Phase 4).
+- [ ] Rapprochement automatique avancement déclaré ↔ HT facturé (l'écart n'est pas calculé/affiché
+      dans l'UI actuelle, seules les deux séries de données existent côte à côte).
+- [ ] Édition ou suppression a posteriori d'une entrée de journal, d'une réserve ou d'un
+      compte-rendu déjà créés — uniquement création et changement de statut.
+- [ ] Interface de configuration de `sites.internal_reminder_days` (le champ existe avec un défaut
+      en base, modifiable uniquement en base pour l'instant, pas de formulaire dédié).
+
 ## Phase 3 — Génération de documents réelle
 
 - Branchement d'un fournisseur IA réel derrière `IAIProvider` pour la génération de documents à

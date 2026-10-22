@@ -68,10 +68,8 @@ import {
   LotMemberRole,
   LOT_MEMBER_ROLE_LABELS,
   AMENDMENT_STATUS_LABELS,
-  PLAN_SUBMISSION_STATUS_LABELS,
   ReserveSeverity,
   RESERVE_SEVERITY_LABELS,
-  RESERVE_STATUS_LABELS,
   SiteLogEntryKind,
   SITE_LOG_ENTRY_KIND_LABELS,
 } from "@adminbtp/types";
@@ -216,7 +214,6 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
   );
   const pendingPlanSubmissions = planSubmissions.filter((p) => p.status === "DEPOSE");
   const openReserves = reserveItems.filter((r) => r.status === "OUVERTE");
-  const pendingAmendments = amendments.filter((a) => a.status === "BROUILLON");
 
   return (
     <div className="space-y-6">

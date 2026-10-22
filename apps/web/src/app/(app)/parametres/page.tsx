@@ -56,17 +56,26 @@ export default async function ParametresPage() {
     getActiveOrganizationIdCookie(),
   ]);
   const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
-  const [documentTemplates, organizationProfile, organizationTrades, tradeCodes, credentials] = activeOrg
+  const [organizationProfile, organizationTrades, tradeCodes, credentials] = activeOrg
     ? await Promise.all([
-        getDocumentTemplates(activeOrg.id),
         getOrganizationProfile(activeOrg.id),
         getOrganizationTrades(activeOrg.id),
         getTradeCodes(),
         getOrganizationCredentials(activeOrg.id),
       ])
-    : [[], null, [], [], []];
+    : [null, [], [], []];
   const selectedTradeCodeIds = new Set(organizationTrades.map((t) => t.tradeCodeId));
   const primaryTradeCodeId = organizationTrades.find((t) => t.isPrimary)?.tradeCodeId;
+  const tradeCodesById = new Map(tradeCodes.map((t) => [t.id, t.code]));
+  const organizationTradeCodes = organizationTrades
+    .map((t) => tradeCodesById.get(t.tradeCodeId))
+    .filter((code): code is string => Boolean(code));
+  const documentTemplates = activeOrg
+    ? await getDocumentTemplates(activeOrg.id, {
+        legalKind: organizationProfile?.legalKind,
+        tradeCodes: organizationTradeCodes,
+      })
+    : [];
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -316,28 +325,34 @@ export default async function ParametresPage() {
               key: "documents",
               label: "Modèles de documents",
               content: (
-                <Card className="overflow-hidden">
-                  {documentTemplates.length === 0 ? (
-                    <EmptyState icon={Building2} title="Aucun modèle de document" className="border-none" />
-                  ) : (
-                    <table className="w-full text-sm">
-                      <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
-                        <tr>
-                          <th className="px-4 py-2.5">Modèle</th>
-                          <th className="px-4 py-2.5">Catégorie</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-border">
-                        {documentTemplates.map((tpl) => (
-                          <tr key={tpl.id} className="hover:bg-surface-subtle">
-                            <td className="px-4 py-3 font-medium text-graphite-900">{tpl.name}</td>
-                            <td className="px-4 py-3 text-graphite-700">{DOCUMENT_CATEGORY_LABELS[tpl.category]}</td>
+                <div className="space-y-2">
+                  <p className="text-xs text-graphite-500">
+                    Filtré selon la forme juridique et les corps d&apos;état du profil (onglet
+                    &quot;Profil métier&quot;) — un modèle sans tag d&apos;audience reste toujours visible.
+                  </p>
+                  <Card className="overflow-hidden">
+                    {documentTemplates.length === 0 ? (
+                      <EmptyState icon={Building2} title="Aucun modèle de document" className="border-none" />
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
+                          <tr>
+                            <th className="px-4 py-2.5">Modèle</th>
+                            <th className="px-4 py-2.5">Catégorie</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </Card>
+                        </thead>
+                        <tbody className="divide-y divide-surface-border">
+                          {documentTemplates.map((tpl) => (
+                            <tr key={tpl.id} className="hover:bg-surface-subtle">
+                              <td className="px-4 py-3 font-medium text-graphite-900">{tpl.name}</td>
+                              <td className="px-4 py-3 text-graphite-700">{DOCUMENT_CATEGORY_LABELS[tpl.category]}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </Card>
+                </div>
               ),
             },
             {

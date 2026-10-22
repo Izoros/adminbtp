@@ -1,10 +1,11 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Module Moteur de chantier avancé (profils, actes, marché, décompte) — en
-cours, non terminé et non validé par l'utilisateur (démarré 2026-10-22).** Module Marketplace &
-Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP) terminée** le
-2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md` pour le
-détail des cases cochées/restantes.
+**Phase actuelle : Tranches A-D du moteur de chantier (pièces d'entreprise, avenants/retenue/
+avance/DGD, exécution, quotidien) — en cours, non terminées et non validées par l'utilisateur
+(livrées 2026-10-22, s'ajoutent au Module Moteur de chantier avancé du même jour).** Module
+Marketplace & Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP)
+terminée** le 2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md`
+pour le détail des cases cochées/restantes.
 
 ## Module Marketplace & Entitlements — Phase B : annuaire professionnel BTP (2026-10-22)
 
@@ -29,6 +30,40 @@ Phase A. Voir `docs/ROADMAP.md` (section Phase B) pour le détail complet et
 - Non fait : import XLSX, édition individuelle de fiche/contact, export — voir `docs/ROADMAP.md`.
 
 **Arrêt ici comme demandé — Phase C (bibliothèque de documents premium) non démarrée.**
+
+## Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien (en cours, 2026-10-22)
+
+**Non terminé, ne pas considérer cette étape comme close.** Quatre tranches livrées à la suite du
+module ci-dessous, même moteur unique — détail complet, y compris ce qui reste explicitement non
+fait, dans `docs/ROADMAP.md` (section "Tranches A-D").
+
+- Pièces d'entreprise (`organization_credentials`, rattachées à l'organisation) : échéance dépassée
+  toujours affichée comme expirée côté UI quel que soit le statut stocké. Diffusion ciblée des
+  actes par lot (`documents.lot_id`). Groupement/sous-traitance (`lot_members` : MANDATAIRE/
+  COTRAITANT/TITULAIRE) distinct de la sous-traitance. Blocage de ventilation étendu aux pièces
+  expirées. Clôture de participant (`left_at`) sans réécrire l'historique.
+- Avenants (`amendments`) entrant dans les décomptes suivants une fois validés, distincts du DPGF
+  d'origine. Retenue de garantie et avance forfaitaire sur le marché, solde d'avance **jamais
+  négatif** (trigger `check_advance_balance()`, vérifié positif et négatif). Situation de solde
+  (DGD, `situations.is_final`). Relances de situation tracées (`reminder_logs`).
+- Exécution : visa de plans (`plan_submissions`), réserves (`reserve_items`), journal de chantier
+  (`site_log_entries`), comptes-rendus dont chaque décision crée une tâche
+  (`meeting_notes`/`meeting_decisions`), avancement déclaré par lot (`lot_progress`). Nouvel onglet
+  "Exécution" sur `/chantiers/[id]`.
+- Quotidien : classement de mail assisté (suggestion IA par mots-clés, confirmation humaine,
+  UI sur `/mails`), relances internes idempotentes par chantier (`check_internal_reminders`,
+  paramètre `sites.internal_reminder_days`), filtrage des modèles de documents par forme
+  juridique/corps d'état (branché sur `/parametres`).
+- Vérifié : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web build` verts ; parcours
+  complet des six sous-domaines vérifié en navigateur avec les comptes de démonstration (visa,
+  réserve, journal, compte-rendu → tâche, avancement, clôture de participant, membre de lot,
+  avenant, avance/retenue, DGD, gating de l'actualisation, relance, pièce expirée, classement de
+  mail, filtrage de modèle) ; données de test nettoyées après vérification.
+- Non fait : export PDF du compte-rendu, preuve WhatsApp réelle, rapprochement automatique
+  avancement/facturé, édition a posteriori d'une entrée de journal/réserve/compte-rendu,
+  formulaire de configuration du délai de relance interne — voir `docs/ROADMAP.md`.
+
+**Arrêt ici, comme pour toute étape non explicitement validée.**
 
 ## Module Moteur de chantier avancé — profils, actes, marché, décompte (en cours, 2026-10-22)
 
@@ -167,6 +202,10 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 - Marketplace : annuaire BTP, bibliothèque de documents premium, crédits, abonnements facturés,
   intégration Odoo réelle du module (Phases B-E, voir `docs/ROADMAP.md`) ; édition du
   catalogue/tarifs via UI.
+- Tranches A-D : export PDF du compte-rendu, preuve WhatsApp réelle pour les relances,
+  rapprochement automatique avancement/HT facturé, édition a posteriori d'une entrée de
+  journal/réserve/compte-rendu, formulaire de configuration du délai de relance interne par
+  chantier — voir `docs/ROADMAP.md`.
 
 ## Structure du dépôt
 
@@ -191,6 +230,7 @@ garantir que seul un Super Administrateur peut accorder un accès premium.
 
 ## Prochaine étape
 
-Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase B du module
-Marketplace (annuaire BTP), Phase 3 (génération de documents réelle), ou des formulaires de
-création pour les entités encore en lecture seule (organisation, modèle de document...).
+Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase C du module
+Marketplace (bibliothèque de documents premium), Phase 3 (génération de documents réelle), ou
+combler l'une des cases non faites des Tranches A-D (export PDF du compte-rendu, formulaire de
+configuration du délai de relance interne...).

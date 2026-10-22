@@ -78,3 +78,10 @@ export async function getLots(siteId: string): Promise<Lot[]> {
   if (error) throw error;
   return (data ?? []).map(mapLot);
 }
+
+export async function getAllLots(): Promise<Lot[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("lots").select("*");
+  if (error) throw error;
+  return (data ?? []).map(mapLot);
+}
