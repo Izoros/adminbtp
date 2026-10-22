@@ -31,7 +31,7 @@ export const Task = z.object({
   priority: TaskPriority,
   assignedUserId: z.string().uuid().optional(),
   dueDate: z.string().date().optional(),
-  sourceType: z.enum(["MANUEL", "MAIL", "PHASE", "VALIDATION", "AUTOMATISATION"]).default("MANUEL"),
+  sourceType: z.enum(["MANUEL", "MAIL", "PHASE", "VALIDATION", "AUTOMATISATION", "MEETING"]).default("MANUEL"),
   sourceId: z.string().uuid().optional(),
   createdAt: z.string().datetime(),
 });

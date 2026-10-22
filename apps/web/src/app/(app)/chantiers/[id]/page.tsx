@@ -17,11 +17,41 @@ import { getTasksBySite } from "@/lib/data/tasks";
 import { getActiveOrganizationIdCookie, resolveActiveOrganization } from "@/lib/data/organization-context";
 import { getActTemplates } from "@/lib/data/acts";
 import { getMarketContractsBySite, getMarketClauses, getPriceLines } from "@/lib/data/market";
-import { getSituationsBySite, getSituationLines, getSituationAllocations } from "@/lib/data/finance";
+import {
+  getSituationsBySite,
+  getSituationLines,
+  getSituationAllocations,
+  getReminderLogs,
+} from "@/lib/data/finance";
+import { getLotMembers } from "@/lib/data/lot-members";
+import { getOrganizationCredentialsFor } from "@/lib/data/credentials";
+import { getAmendmentsBySite } from "@/lib/data/amendments";
+import {
+  getPlanSubmissionsBySite,
+  getReserveItemsBySite,
+  getSiteLogEntries,
+  getMeetingNotesBySite,
+  getMeetingAttendees,
+  getMeetingDecisions,
+  getLotProgress,
+} from "@/lib/data/execution";
 import { emitAct } from "@/lib/actions/acts";
 import { createMarketContract, createPriceLine } from "@/lib/actions/market";
 import { createSituation, addSituationLine, addSituationAllocation } from "@/lib/actions/finance";
 import { runAiReview } from "@/lib/actions/document-reviews";
+import { addLotMember } from "@/lib/actions/lot-members";
+import { endParticipation, addParticipant } from "@/lib/actions/participants";
+import { createAmendment, decideAmendment } from "@/lib/actions/amendments";
+import {
+  createPlanSubmission,
+  reviewPlanSubmission,
+  createReserveItem,
+  updateReserveStatus,
+  createSiteLogEntry,
+  createMeetingNote,
+  recordLotProgress,
+} from "@/lib/actions/execution";
+import { sendReminder, runInternalReminderCheck } from "@/lib/actions/reminders";
 import {
   SITE_STATUS_LABELS,
   MISSION_ROLE_LABELS,
@@ -34,8 +64,18 @@ import {
   MarketContractType,
   MARKET_CLAUSE_KIND_LABELS,
   EXTRACTION_STATUS_LABELS,
+  MissionRole,
+  LotMemberRole,
+  LOT_MEMBER_ROLE_LABELS,
+  AMENDMENT_STATUS_LABELS,
+  PLAN_SUBMISSION_STATUS_LABELS,
+  ReserveSeverity,
+  RESERVE_SEVERITY_LABELS,
+  RESERVE_STATUS_LABELS,
+  SiteLogEntryKind,
+  SITE_LOG_ENTRY_KIND_LABELS,
 } from "@adminbtp/types";
-import { FileText, Mail as MailIcon, CheckSquare } from "lucide-react";
+import { FileText, Mail as MailIcon, CheckSquare, ClipboardList } from "lucide-react";
 
 const PHASE_STATUS_TONE = {
   A_VENIR: "neutral",
@@ -86,11 +126,38 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
   const org = organizations.find((o) => o.id === site.organizationId);
   const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
 
-  const [marketClauses, priceLines, situationLines, situationAllocations] = await Promise.all([
+  const [
+    marketClauses,
+    priceLines,
+    situationLines,
+    situationAllocations,
+    reminderLogs,
+    lotMembers,
+    credentials,
+    amendments,
+    planSubmissions,
+    reserveItems,
+    logEntries,
+    meetingNotes,
+  ] = await Promise.all([
     getMarketClauses(marketContracts.map((c) => c.id)),
     getPriceLines(lots.map((l) => l.id)),
     getSituationLines(situations.map((s) => s.id)),
     getSituationAllocations(situations.map((s) => s.id)),
+    getReminderLogs(situations.map((s) => s.id)),
+    getLotMembers(lots.map((l) => l.id)),
+    getOrganizationCredentialsFor(participants.map((p) => p.organizationId)),
+    getAmendmentsBySite(site.id),
+    getPlanSubmissionsBySite(site.id),
+    getReserveItemsBySite(site.id),
+    getSiteLogEntries(site.id),
+    getMeetingNotesBySite(site.id),
+  ]);
+
+  const [meetingAttendees, meetingDecisions, lotProgress] = await Promise.all([
+    getMeetingAttendees(meetingNotes.map((m) => m.id)),
+    getMeetingDecisions(meetingNotes.map((m) => m.id)),
+    getLotProgress(lots.map((l) => l.id)),
   ]);
 
   // Statut courant d'un acte = dernier document émis pour ce code (ENVOYE prioritaire sur les
@@ -119,6 +186,37 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
     siblings.push(lot);
     childLotsByParent.set(lot.parentLotId, siblings);
   }
+
+  const hasExpiredCredentialByOrg = new Map<string, boolean>();
+  for (const c of credentials) {
+    if (c.status === "EXPIRE") hasExpiredCredentialByOrg.set(c.organizationId, true);
+  }
+  const lotMembersByLot = new Map<string, typeof lotMembers>();
+  for (const lm of lotMembers) {
+    const siblings = lotMembersByLot.get(lm.lotId) ?? [];
+    siblings.push(lm);
+    lotMembersByLot.set(lm.lotId, siblings);
+  }
+  const meetingAttendeesByMeeting = new Map<string, typeof meetingAttendees>();
+  for (const a of meetingAttendees) {
+    const siblings = meetingAttendeesByMeeting.get(a.meetingId) ?? [];
+    siblings.push(a);
+    meetingAttendeesByMeeting.set(a.meetingId, siblings);
+  }
+  const meetingDecisionsByMeeting = new Map<string, typeof meetingDecisions>();
+  for (const d of meetingDecisions) {
+    const siblings = meetingDecisionsByMeeting.get(d.meetingId) ?? [];
+    siblings.push(d);
+    meetingDecisionsByMeeting.set(d.meetingId, siblings);
+  }
+  // L'actualisation d'une situation n'est affichée que si une clause ACTUALISATION VALIDE existe
+  // pour le contrat du chantier/lot correspondant — jamais une formule par défaut.
+  const hasValidatedActualizationClause = marketContracts.some((contract) =>
+    marketClauses.some((cl) => cl.contractId === contract.id && cl.kind === "ACTUALISATION" && cl.status === "VALIDE")
+  );
+  const pendingPlanSubmissions = planSubmissions.filter((p) => p.status === "DEPOSE");
+  const openReserves = reserveItems.filter((r) => r.status === "OUVERTE");
+  const pendingAmendments = amendments.filter((a) => a.status === "BROUILLON");
 
   return (
     <div className="space-y-6">
@@ -153,38 +251,136 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader><CardTitle>Organisations participantes</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-3">
                     {participants.map((p) => {
                       const pOrg = organizations.find((o) => o.id === p.organizationId);
+                      const ended = Boolean(p.leftAt);
+                      const expired = p.missionRole === "SOUS_TRAITANT" && hasExpiredCredentialByOrg.get(p.organizationId);
                       return (
-                        <div key={p.id} className="flex items-center justify-between text-sm">
-                          <span className="text-graphite-900">{pOrg?.name}</span>
-                          <Badge tone="info">{MISSION_ROLE_LABELS[p.missionRole]}</Badge>
+                        <div key={p.id} className="flex items-center justify-between gap-2 text-sm">
+                          <div>
+                            <span className="text-graphite-900">{pOrg?.name}</span>
+                            {expired && <Badge tone="danger" className="ml-2">Pièce expirée</Badge>}
+                            {ended && <Badge tone="neutral" className="ml-2">Clôturée</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge tone="info">{MISSION_ROLE_LABELS[p.missionRole]}</Badge>
+                            {!ended && (
+                              <form action={endParticipation}>
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="participantId" value={p.id} />
+                                <Button type="submit" size="sm" variant="secondary">Clôturer</Button>
+                              </form>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
+                    <form action={addParticipant} className="flex flex-wrap items-end gap-2 border-t border-surface-border pt-3">
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Organisation</label>
+                        <Select name="organizationId" className="h-8 w-40 text-xs" required defaultValue="">
+                          <option value="" disabled>Choisir…</option>
+                          {organizations.map((o) => (
+                            <option key={o.id} value={o.id}>{o.name}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Rôle</label>
+                        <Select name="missionRole" className="h-8 w-40 text-xs" required defaultValue="">
+                          <option value="" disabled>Choisir…</option>
+                          {MissionRole.options.map((r) => (
+                            <option key={r} value={r}>{MISSION_ROLE_LABELS[r]}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Lot (si sous-traitant)</label>
+                        <Select name="lotId" className="h-8 w-32 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {lots.map((lot) => (
+                            <option key={lot.id} value={lot.id}>{lot.number}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                    </form>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader><CardTitle>Lots</CardTitle></CardHeader>
-                  <CardContent className="space-y-1">
+                  <CardHeader><CardTitle>Lots et groupement</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
                     {lots.length === 0 ? (
                       <p className="text-sm text-graphite-500">Aucun lot défini.</p>
                     ) : (
                       rootLots.map((lot) => (
-                        <div key={lot.id}>
+                        <div key={lot.id} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-graphite-900">{lot.number} — {lot.name}</span>
                             <span className="text-graphite-500">{formatEuro(lot.amountHt)}</span>
                           </div>
+                          {(lotMembersByLot.get(lot.id) ?? []).map((lm) => {
+                            const lmOrg = organizations.find((o) => o.id === lm.organizationId);
+                            return (
+                              <p key={lm.id} className="ml-3 text-xs text-graphite-500">
+                                {LOT_MEMBER_ROLE_LABELS[lm.role]} — {lmOrg?.name}
+                                {lm.sharePercent ? ` (${lm.sharePercent}%)` : ""}
+                              </p>
+                            );
+                          })}
                           {(childLotsByParent.get(lot.id) ?? []).map((child) => (
-                            <div key={child.id} className="ml-5 flex items-center justify-between border-l border-surface-border pl-3 text-sm">
-                              <span className="text-graphite-700">{child.number} — {child.name}</span>
-                              <span className="text-graphite-500">{formatEuro(child.amountHt)}</span>
+                            <div key={child.id} className="ml-5 border-l border-surface-border pl-3">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-graphite-700">{child.number} — {child.name}</span>
+                                <span className="text-graphite-500">{formatEuro(child.amountHt)}</span>
+                              </div>
+                              {(lotMembersByLot.get(child.id) ?? []).map((lm) => {
+                                const lmOrg = organizations.find((o) => o.id === lm.organizationId);
+                                return (
+                                  <p key={lm.id} className="ml-3 text-xs text-graphite-500">
+                                    {LOT_MEMBER_ROLE_LABELS[lm.role]} — {lmOrg?.name}
+                                  </p>
+                                );
+                              })}
                             </div>
                           ))}
                         </div>
                       ))
+                    )}
+                    {lots.length > 0 && (
+                      <form action={addLotMember} className="flex flex-wrap items-end gap-2 border-t border-surface-border pt-3">
+                        <input type="hidden" name="siteId" value={site.id} />
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Lot</label>
+                          <Select name="lotId" className="h-8 w-28 text-xs" required defaultValue="">
+                            <option value="" disabled>Choisir…</option>
+                            {lots.map((lot) => (
+                              <option key={lot.id} value={lot.id}>{lot.number}</option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Organisation</label>
+                          <Select name="organizationId" className="h-8 w-36 text-xs" required defaultValue="">
+                            <option value="" disabled>Choisir…</option>
+                            {organizations.map((o) => (
+                              <option key={o.id} value={o.id}>{o.name}</option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Rôle</label>
+                          <Select name="role" className="h-8 w-32 text-xs" required defaultValue="">
+                            <option value="" disabled>Choisir…</option>
+                            {LotMemberRole.options.map((r) => (
+                              <option key={r} value={r}>{LOT_MEMBER_ROLE_LABELS[r]}</option>
+                            ))}
+                          </Select>
+                        </div>
+                        <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                      </form>
                     )}
                   </CardContent>
                 </Card>
@@ -354,6 +550,19 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                           <input type="hidden" name="organizationId" value={activeOrg.id} />
                           <input type="hidden" name="siteId" value={site.id} />
                           <input type="hidden" name="actTemplateId" value={template.id} />
+                          {lots.length > 0 && (
+                            <div>
+                              <label className="mb-1 block text-xs text-graphite-500">
+                                Lot visé (diffusion ciblée)
+                              </label>
+                              <Select name="lotId" className="h-8 w-36 text-xs" defaultValue="">
+                                <option value="">Chantier entier</option>
+                                {lots.map((lot) => (
+                                  <option key={lot.id} value={lot.id}>{lot.number}</option>
+                                ))}
+                              </Select>
+                            </div>
+                          )}
                           {!dependencySatisfied && (
                             <div>
                               <label className="mb-1 block text-xs text-graphite-500">Motif de déblocage (tracé)</label>
@@ -376,6 +585,62 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
             label: `Décompte (${situations.length})`,
             content: (
               <div className="space-y-6">
+                <Card>
+                  <CardHeader><CardTitle>Avenants ({amendments.length})</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {amendments.length === 0 ? (
+                      <p className="text-sm text-graphite-500">Aucun avenant.</p>
+                    ) : (
+                      amendments.map((a) => (
+                        <div key={a.id} className="flex items-center justify-between gap-2 rounded-md border border-surface-border p-3 text-sm">
+                          <div>
+                            <p className="text-graphite-900">Avenant n°{a.number} — {a.reason}</p>
+                            <p className="text-xs text-graphite-500">Delta : {formatEuro(a.deltaHt)} HT</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge tone={a.status === "VALIDE" ? "success" : a.status === "REFUSE" ? "danger" : "neutral"}>
+                              {AMENDMENT_STATUS_LABELS[a.status]}
+                            </Badge>
+                            {a.status === "BROUILLON" && (
+                              <form action={decideAmendment} className="flex gap-1">
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="amendmentId" value={a.id} />
+                                <Button type="submit" name="decision" value="VALIDE" size="sm" variant="accent">Valider</Button>
+                                <Button type="submit" name="decision" value="REFUSE" size="sm" variant="secondary">Refuser</Button>
+                              </form>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <form action={createAmendment} className="flex flex-wrap items-end gap-2 border-t border-surface-border pt-3">
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Lot</label>
+                        <Select name="lotId" className="h-8 w-28 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {lots.map((lot) => (
+                            <option key={lot.id} value={lot.id}>{lot.number}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">N° *</label>
+                        <Input name="number" type="number" min="1" className="h-8 w-16 text-xs" required />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Motif *</label>
+                        <Input name="reason" className="h-8 w-48 text-xs" required />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Delta HT *</label>
+                        <Input name="deltaHt" type="number" step="0.01" className="h-8 w-28 text-xs" required />
+                      </div>
+                      <Button type="submit" size="sm" variant="secondary">Créer</Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader><CardTitle>Pièces de marché</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
@@ -400,6 +665,12 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                                 {" · "}Délai paiement {contract.paymentTermDays ? `${contract.paymentTermDays} j` : "—"}
                               </span>
                             </div>
+                            <p className="mt-1 text-xs text-graphite-500">
+                              Avance versée : {contract.advanceAmountHt ? formatEuro(contract.advanceAmountHt) : "—"}
+                              {" · "}Libération retenue prévue :{" "}
+                              {contract.retentionReleaseDueOn ?? "—"}
+                              {contract.retentionSubstitutedByCaution ? " (substituée par caution)" : ""}
+                            </p>
                             {clauses.length > 0 && (
                               <ul className="mt-1 space-y-0.5 text-xs text-graphite-500">
                                 {clauses.map((clause) => (
@@ -444,6 +715,18 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                         <label className="mb-1 block text-xs text-graphite-500">Délai paiement (j)</label>
                         <Input name="paymentTermDays" type="number" min="1" className="h-8 w-24 text-xs" />
                       </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Avance versée (€)</label>
+                        <Input name="advanceAmountHt" type="number" min="0" step="0.01" className="h-8 w-28 text-xs" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Libération retenue prévue</label>
+                        <Input name="retentionReleaseDueOn" type="date" className="h-8 w-36 text-xs" />
+                      </div>
+                      <label className="flex items-center gap-1 text-xs text-graphite-500">
+                        <input type="checkbox" name="retentionSubstitutedByCaution" className="h-3.5 w-3.5" />
+                        Substituée par caution
+                      </label>
                       <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
                     </form>
                   </CardContent>
@@ -523,10 +806,14 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                       {situations.map((situation) => {
                         const lines = situationLines.filter((l) => l.situationId === situation.id);
                         const allocations = situationAllocations.filter((a) => a.situationId === situation.id);
+                        const logs = reminderLogs.filter((r) => r.situationId === situation.id);
                         return (
                           <Card key={situation.id} className="p-4">
                             <div className="flex items-center justify-between">
-                              <p className="font-medium text-graphite-900">Situation n°{situation.number}</p>
+                              <p className="font-medium text-graphite-900">
+                                Situation n°{situation.number}
+                                {situation.isFinal && <Badge tone="accent" className="ml-2">DGD</Badge>}
+                              </p>
                               <div className="flex items-center gap-2">
                                 <Badge>{PAYMENT_STATUS_LABELS[situation.status]}</Badge>
                                 <span className="text-sm text-graphite-700">{formatEuro(situation.amountHt)} HT</span>
@@ -535,6 +822,19 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                             {(situation.retentionAmount || situation.netAmountHt) && (
                               <p className="mt-1 text-xs text-graphite-500">
                                 Retenue {formatEuro(situation.retentionAmount)} · Net {formatEuro(situation.netAmountHt)}
+                              </p>
+                            )}
+                            <p className="mt-1 text-xs text-graphite-500">
+                              Actualisation :{" "}
+                              {hasValidatedActualizationClause && situation.actualizationCoefficient
+                                ? `coefficient ${situation.actualizationCoefficient} (mois ${situation.indexMonth ?? "—"})`
+                                : "non calculée — aucune clause ACTUALISATION validée"}
+                              {situation.advanceRecovered ? ` · Avance récupérée ${formatEuro(situation.advanceRecovered)}` : ""}
+                            </p>
+                            {logs.length > 0 && (
+                              <p className="mt-1 text-xs text-graphite-500">
+                                {logs.length} relance{logs.length > 1 ? "s" : ""} envoyée{logs.length > 1 ? "s" : ""} — dernière le{" "}
+                                {new Date(logs[0]!.sentAt).toLocaleDateString("fr-FR")} ({logs[0]!.channel})
                               </p>
                             )}
                             {lines.length > 0 && (
@@ -606,6 +906,19 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                                 </div>
                                 <Button type="submit" size="sm" variant="secondary">Ventiler</Button>
                               </form>
+                              <form action={sendReminder} className="flex flex-wrap items-end gap-2">
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="situationId" value={situation.id} />
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Relance</label>
+                                  <Select name="channel" className="h-8 w-28 text-xs" defaultValue="EMAIL">
+                                    <option value="EMAIL">Email</option>
+                                    <option value="WHATSAPP">WhatsApp</option>
+                                    <option value="COURRIER">Courrier</option>
+                                  </Select>
+                                </div>
+                                <Button type="submit" size="sm" variant="secondary">Envoyer</Button>
+                              </form>
                             </div>
                           </Card>
                         );
@@ -627,9 +940,286 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                       <label className="mb-1 block text-xs text-graphite-500">Numéro *</label>
                       <Input name="number" type="number" min="1" className="h-8 w-20 text-xs" required />
                     </div>
+                    <label className="flex items-center gap-1 text-xs text-graphite-500">
+                      <input type="checkbox" name="isFinal" className="h-3.5 w-3.5" />
+                      Situation de solde (DGD)
+                    </label>
                     <Button type="submit" size="sm" variant="accent">Nouvelle situation</Button>
                   </form>
                 </div>
+              </div>
+            ),
+          },
+          {
+            key: "execution",
+            label: `Exécution`,
+            content: (
+              <div className="space-y-6">
+                <Card className="p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-graphite-900">Relances internes</p>
+                      <p className="text-xs text-graphite-500">
+                        Délai avant relance : {site.internalReminderDays} jours (visa en attente, situation
+                        due non transmise, pièce d&apos;agrément manquante) — paramètre de ce chantier.
+                      </p>
+                    </div>
+                    <form action={runInternalReminderCheck}>
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <Button type="submit" size="sm" variant="secondary">Vérifier les relances</Button>
+                    </form>
+                  </div>
+                </Card>
+
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+                    Visas en attente ({pendingPlanSubmissions.length})
+                  </h2>
+                  {pendingPlanSubmissions.length === 0 ? (
+                    <EmptyState icon={ClipboardList} title="Aucun visa en attente" />
+                  ) : (
+                    <div className="space-y-2">
+                      {pendingPlanSubmissions.map((p) => {
+                        const doc = documents.find((d) => d.id === p.documentId);
+                        return (
+                          <Card key={p.id} className="flex items-center justify-between gap-4 p-4">
+                            <div>
+                              <p className="font-medium text-graphite-900">{doc?.title ?? p.documentId}</p>
+                              <p className="text-xs text-graphite-500">
+                                Déposé le {new Date(p.createdAt).toLocaleDateString("fr-FR")}
+                              </p>
+                            </div>
+                            <form action={reviewPlanSubmission} className="flex gap-1">
+                              <input type="hidden" name="siteId" value={site.id} />
+                              <input type="hidden" name="submissionId" value={p.id} />
+                              <Button type="submit" name="status" value="VISE_BPE" size="sm" variant="accent">
+                                Visé BPE
+                              </Button>
+                              <Button type="submit" name="status" value="VISE_AVEC_REMARQUES" size="sm" variant="secondary">
+                                Avec remarques
+                              </Button>
+                              <Button type="submit" name="status" value="REFUSE" size="sm" variant="danger">
+                                Refuser
+                              </Button>
+                            </form>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {documents.length > 0 && (
+                    <form action={createPlanSubmission} className="mt-2 flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Document</label>
+                        <Select name="documentId" className="h-8 w-48 text-xs" required defaultValue="">
+                          <option value="" disabled>Choisir…</option>
+                          {documents.map((d) => (
+                            <option key={d.id} value={d.id}>{d.title}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Lot</label>
+                        <Select name="lotId" className="h-8 w-28 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {lots.map((lot) => (
+                            <option key={lot.id} value={lot.id}>{lot.number}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <Button type="submit" size="sm" variant="secondary">Déposer pour visa</Button>
+                    </form>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+                    Réserves ouvertes ({openReserves.length})
+                  </h2>
+                  {openReserves.length === 0 ? (
+                    <EmptyState icon={ClipboardList} title="Aucune réserve ouverte" />
+                  ) : (
+                    <div className="space-y-2">
+                      {openReserves.map((r) => (
+                        <Card key={r.id} className="flex items-center justify-between gap-4 p-4">
+                          <div>
+                            <p className="font-medium text-graphite-900">{r.description}</p>
+                            <p className="text-xs text-graphite-500">
+                              {r.location ?? "—"} · {RESERVE_SEVERITY_LABELS[r.severity]}
+                              {r.dueDate ? ` · échéance ${r.dueDate}` : ""}
+                            </p>
+                          </div>
+                          <form action={updateReserveStatus} className="flex gap-1">
+                            <input type="hidden" name="siteId" value={site.id} />
+                            <input type="hidden" name="reserveId" value={r.id} />
+                            <Button type="submit" name="status" value="LEVEE" size="sm" variant="accent">Levée</Button>
+                            <Button type="submit" name="status" value="CONTESTEE" size="sm" variant="secondary">Contestée</Button>
+                          </form>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                  <form action={createReserveItem} className="mt-2 flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="siteId" value={site.id} />
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Lot</label>
+                      <Select name="lotId" className="h-8 w-28 text-xs" defaultValue="">
+                        <option value="">Aucun</option>
+                        {lots.map((lot) => (
+                          <option key={lot.id} value={lot.id}>{lot.number}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Local</label>
+                      <Input name="location" className="h-8 w-28 text-xs" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Description *</label>
+                      <Input name="description" className="h-8 w-48 text-xs" required />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Gravité *</label>
+                      <Select name="severity" className="h-8 w-28 text-xs" required defaultValue="">
+                        <option value="" disabled>Choisir…</option>
+                        {ReserveSeverity.options.map((s) => (
+                          <option key={s} value={s}>{RESERVE_SEVERITY_LABELS[s]}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Échéance</label>
+                      <Input name="dueDate" type="date" className="h-8 w-32 text-xs" />
+                    </div>
+                    <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                  </form>
+                </div>
+
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold text-graphite-900">Journal de chantier</h2>
+                  {logEntries.length === 0 ? (
+                    <p className="text-sm text-graphite-500">Aucune entrée.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {logEntries.map((l) => (
+                        <p key={l.id} className="text-sm text-graphite-700">
+                          <span className="text-graphite-500">{l.entryDate}</span> —{" "}
+                          <Badge tone="neutral">{SITE_LOG_ENTRY_KIND_LABELS[l.kind]}</Badge> {l.description}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  <form action={createSiteLogEntry} className="mt-2 flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="siteId" value={site.id} />
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                      <Input name="entryDate" type="date" className="h-8 w-36 text-xs" required />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Nature *</label>
+                      <Select name="kind" className="h-8 w-32 text-xs" required defaultValue="">
+                        <option value="" disabled>Choisir…</option>
+                        {SiteLogEntryKind.options.map((k) => (
+                          <option key={k} value={k}>{SITE_LOG_ENTRY_KIND_LABELS[k]}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">Description *</label>
+                      <Input name="description" className="h-8 w-56 text-xs" required />
+                    </div>
+                    <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                  </form>
+                </div>
+
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+                    Comptes-rendus ({meetingNotes.length})
+                  </h2>
+                  {meetingNotes.length === 0 ? (
+                    <p className="text-sm text-graphite-500">Aucun compte-rendu.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {meetingNotes.map((m) => (
+                        <Card key={m.id} className="p-4">
+                          <p className="font-medium text-graphite-900">Réunion du {m.meetingDate}</p>
+                          {(meetingAttendeesByMeeting.get(m.id) ?? []).length > 0 && (
+                            <p className="text-xs text-graphite-500">
+                              Présents :{" "}
+                              {(meetingAttendeesByMeeting.get(m.id) ?? []).map((a) => a.name).join(", ")}
+                            </p>
+                          )}
+                          {(meetingDecisionsByMeeting.get(m.id) ?? []).length > 0 && (
+                            <ul className="mt-1 space-y-0.5 text-sm text-graphite-700">
+                              {(meetingDecisionsByMeeting.get(m.id) ?? []).map((d) => (
+                                <li key={d.id}>— {d.text} {d.taskId && <Badge tone="info" className="ml-1">Tâche créée</Badge>}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                  <form action={createMeetingNote} className="mt-2 space-y-2">
+                    <input type="hidden" name="siteId" value={site.id} />
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                        <Input name="meetingDate" type="date" className="h-8 w-36 text-xs" required />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-graphite-500">
+                        Décisions (une par ligne — chacune crée une tâche)
+                      </label>
+                      <textarea
+                        name="decisions"
+                        rows={3}
+                        className="w-full rounded-md border border-surface-border bg-surface-white p-2 text-xs text-graphite-900"
+                        placeholder={"Relancer le BET structure\nValider le plan d'exécution lot 02"}
+                      />
+                    </div>
+                    <Button type="submit" size="sm" variant="secondary">Créer le compte-rendu</Button>
+                  </form>
+                </div>
+
+                {lots.length > 0 && (
+                  <div>
+                    <h2 className="mb-2 text-sm font-semibold text-graphite-900">Avancement déclaré</h2>
+                    <div className="space-y-1">
+                      {lotProgress.slice(0, 8).map((lp) => {
+                        const lot = lotsById.get(lp.lotId);
+                        return (
+                          <p key={lp.id} className="text-sm text-graphite-700">
+                            {lot?.number} — {lp.recordDate} : {lp.declaredPercent}%
+                          </p>
+                        );
+                      })}
+                    </div>
+                    <form action={recordLotProgress} className="mt-2 flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Lot *</label>
+                        <Select name="lotId" className="h-8 w-28 text-xs" required defaultValue="">
+                          <option value="" disabled>Choisir…</option>
+                          {lots.map((lot) => (
+                            <option key={lot.id} value={lot.id}>{lot.number}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                        <Input name="recordDate" type="date" className="h-8 w-36 text-xs" required />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Pourcentage déclaré *</label>
+                        <Input name="declaredPercent" type="number" min="0" max="100" className="h-8 w-24 text-xs" required />
+                      </div>
+                      <Button type="submit" size="sm" variant="secondary">Enregistrer</Button>
+                    </form>
+                  </div>
+                )}
               </div>
             ),
           },

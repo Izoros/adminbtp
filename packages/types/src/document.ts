@@ -62,6 +62,13 @@ export const DocumentTemplate = z.object({
   variables: z.array(z.string()).default([]),
   requiresExpertReview: z.boolean().default(false), // true pour PPSPS notamment
   version: z.number().int().positive().default(1),
+  /**
+   * Tags optionnels de préfiltre par profil d'organisation (forme juridique, corps d'état) — un
+   * modèle sans tag reste visible à tous. Ne crée aucun droit ; si un modèle devient un service
+   * premium, c'est has_entitlement() qui gouverne l'accès, pas ces tags.
+   */
+  audienceLegalKind: z.string().optional(),
+  audienceTradeCode: z.string().optional(),
   createdAt: z.string().datetime(),
 });
 export type DocumentTemplate = z.infer<typeof DocumentTemplate>;
@@ -105,6 +112,13 @@ export const Document = z.object({
   concernsOrganizationId: z.string().uuid().optional(),
   /** Code d'acte précis (voir ActTemplate) quand ce document en est l'émission — ex: "OS_DEMARRAGE". */
   actCode: z.string().optional(),
+  /**
+   * Diffusion ciblée : quand un acte concerne un lot précis, il vise le titulaire de ce lot
+   * (site_participants + lotId), pas tout le chantier. Vide pour un document chantier-large.
+   */
+  lotId: z.string().uuid().optional(),
+  /** Entrée de journal citée comme motif (ex: un OS de prolongation après une intempérie). */
+  sourceLogEntryId: z.string().uuid().optional(),
   createdByUserId: z.string().uuid(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

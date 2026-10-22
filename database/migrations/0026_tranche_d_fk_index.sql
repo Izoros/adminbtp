@@ -1,0 +1,1 @@
+create index document_templates_audience_trade_code_idx on document_templates(audience_trade_code);

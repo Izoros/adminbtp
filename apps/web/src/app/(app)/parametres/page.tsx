@@ -15,6 +15,7 @@ import {
 } from "@/lib/data/organization-context";
 import { getOrganizationProfile, getOrganizationTrades } from "@/lib/data/organization-profile";
 import { getTradeCodes } from "@/lib/data/trades";
+import { getOrganizationCredentials } from "@/lib/data/credentials";
 import {
   DOCUMENT_CATEGORY_LABELS,
   LegalKind,
@@ -24,9 +25,13 @@ import {
   MissionRole,
   MISSION_ROLE_LABELS,
   TRADE_FAMILY_LABELS,
+  CredentialKind,
+  CREDENTIAL_KIND_LABELS,
+  CREDENTIAL_STATUS_LABELS,
 } from "@adminbtp/types";
 import { updateOrganizationProfile } from "@/lib/actions/organizations";
 import { saveOrganizationProfile, saveOrganizationTrades } from "@/lib/actions/organization-profile";
+import { saveOrganizationCredential } from "@/lib/actions/credentials";
 
 const VALIDATION_CIRCUIT = [
   { step: "Préparation", responsible: "Chargé d'affaires" },
@@ -51,16 +56,18 @@ export default async function ParametresPage() {
     getActiveOrganizationIdCookie(),
   ]);
   const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
-  const [documentTemplates, organizationProfile, organizationTrades, tradeCodes] = activeOrg
+  const [documentTemplates, organizationProfile, organizationTrades, tradeCodes, credentials] = activeOrg
     ? await Promise.all([
         getDocumentTemplates(activeOrg.id),
         getOrganizationProfile(activeOrg.id),
         getOrganizationTrades(activeOrg.id),
         getTradeCodes(),
+        getOrganizationCredentials(activeOrg.id),
       ])
-    : [[], null, [], []];
+    : [[], null, [], [], []];
   const selectedTradeCodeIds = new Set(organizationTrades.map((t) => t.tradeCodeId));
   const primaryTradeCodeId = organizationTrades.find((t) => t.isPrimary)?.tradeCodeId;
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -240,6 +247,65 @@ export default async function ParametresPage() {
                         <Button type="submit" variant="secondary" size="sm">
                           Enregistrer les métiers
                         </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Pièces d&apos;entreprise</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-xs text-graphite-500">
+                        Préfiltre les lots et sous-traitances proposables, ne crée aucun droit en soi.
+                        Une échéance dépassée s&apos;affiche toujours comme expirée, quel que soit le
+                        statut déclaré.
+                      </p>
+                      {credentials.length === 0 ? (
+                        <p className="text-sm text-graphite-500">Aucune pièce déclarée.</p>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead className="text-left text-xs uppercase text-graphite-500">
+                            <tr>
+                              <th className="py-1">Type</th>
+                              <th>Échéance</th>
+                              <th>Statut</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-border">
+                            {credentials.map((c) => {
+                              const isExpired = c.expiresOn && c.expiresOn < today;
+                              return (
+                                <tr key={c.id}>
+                                  <td className="py-1.5">{CREDENTIAL_KIND_LABELS[c.kind]}</td>
+                                  <td>{c.expiresOn ?? "—"}</td>
+                                  <td>
+                                    <Badge tone={isExpired ? "danger" : c.status === "VALIDE" ? "success" : "neutral"}>
+                                      {isExpired ? "Expirée" : CREDENTIAL_STATUS_LABELS[c.status]}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                      <form action={saveOrganizationCredential} className="flex flex-wrap items-end gap-2 border-t border-surface-border pt-3">
+                        <input type="hidden" name="organizationId" value={activeOrg.id} />
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Type de pièce</label>
+                          <Select name="kind" className="h-8 w-48 text-xs" required defaultValue="">
+                            <option value="" disabled>Choisir…</option>
+                            {CredentialKind.options.map((kind) => (
+                              <option key={kind} value={kind}>{CREDENTIAL_KIND_LABELS[kind]}</option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Échéance</label>
+                          <Input type="date" name="expiresOn" className="h-8 w-36 text-xs" />
+                        </div>
+                        <Button type="submit" size="sm" variant="secondary">Déclarer</Button>
                       </form>
                     </CardContent>
                   </Card>

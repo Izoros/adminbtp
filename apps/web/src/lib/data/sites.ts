@@ -20,6 +20,7 @@ function mapSite(row: SiteRow): Site {
     startDate: row.start_date ?? undefined,
     endDateEstimated: row.end_date_estimated ?? undefined,
     managerUserId: row.manager_user_id ?? undefined,
+    internalReminderDays: row.internal_reminder_days,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -34,6 +35,7 @@ function mapSiteParticipant(row: SiteParticipantRow): SiteParticipant {
     lotId: row.lot_id ?? undefined,
     contractAmountHt: row.contract_amount_ht ?? undefined,
     joinedAt: row.joined_at,
+    leftAt: row.left_at ?? undefined,
   };
 }
 

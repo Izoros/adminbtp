@@ -15,6 +15,11 @@ function mapMarketContract(row: MarketContractRow): MarketContract {
     priceReferenceMonth: row.price_reference_month ?? undefined,
     retentionGuaranteeRate: row.retention_guarantee_rate ?? undefined,
     paymentTermDays: row.payment_term_days ?? undefined,
+    retentionBasisAmountHt: row.retention_basis_amount_ht ?? undefined,
+    retentionReleaseDueOn: row.retention_release_due_on ?? undefined,
+    retentionSubstitutedByCaution: row.retention_substituted_by_caution,
+    cautionDocumentId: row.caution_document_id ?? undefined,
+    advanceAmountHt: row.advance_amount_ht ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -44,6 +49,7 @@ function mapPriceLine(row: PriceLineRow): PriceLine {
     unitPriceHt: row.unit_price_ht,
     origin: row.origin,
     status: row.status,
+    amendmentId: row.amendment_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

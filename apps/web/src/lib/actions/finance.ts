@@ -8,6 +8,7 @@ export async function createSituation(formData: FormData) {
   const siteId = String(formData.get("siteId") ?? "").trim();
   const lotId = String(formData.get("lotId") ?? "").trim();
   const numberRaw = String(formData.get("number") ?? "").trim();
+  const isFinal = formData.get("isFinal") === "on";
 
   if (!siteId || !numberRaw) throw new Error("Chantier et numéro sont obligatoires.");
 
@@ -20,6 +21,7 @@ export async function createSituation(formData: FormData) {
     number: Number(numberRaw),
     amount_ht: 0,
     status: "A_ETABLIR",
+    is_final: isFinal,
   });
   if (error) throw error;
 

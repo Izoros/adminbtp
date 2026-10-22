@@ -36,6 +36,13 @@ export const MarketContract = z.object({
   priceReferenceMonth: z.string().optional(), // "YYYY-MM", mois de référence des prix du marché
   retentionGuaranteeRate: z.number().min(0).max(1).optional(), // taux, ex: 0.05
   paymentTermDays: z.number().int().positive().optional(),
+  /** Assiette de la retenue de garantie — vide tant que non définie, jamais déduite implicitement. */
+  retentionBasisAmountHt: z.number().nonnegative().optional(),
+  retentionReleaseDueOn: z.string().date().optional(),
+  retentionSubstitutedByCaution: z.boolean().default(false),
+  cautionDocumentId: z.string().uuid().optional(),
+  /** Montant d'avance forfaitaire versé — la récupération cumulée est portée par les situations. */
+  advanceAmountHt: z.number().nonnegative().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -90,6 +97,8 @@ export const PriceLine = z.object({
   unitPriceHt: z.number().nonnegative(),
   origin: PriceLineOrigin,
   status: ExtractionStatus,
+  /** Si issue d'un avenant VALIDE — distincte du DPGF d'origine, jamais une quantité ajoutée en silence. */
+  amendmentId: z.string().uuid().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

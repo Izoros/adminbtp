@@ -140,6 +140,52 @@ export const OrganizationProfile = z.object({
 });
 export type OrganizationProfile = z.infer<typeof OrganizationProfile>;
 
+/**
+ * Pièce d'entreprise à validité datée, rattachée à l'organisation (pas au chantier) — préfiltre
+ * les lots/sous-traitances proposables, ne crée aucun droit en soi. `status` est déclaré par
+ * l'organisation/l'admin à la saisie ; l'UI recalcule toujours l'état réel à partir de
+ * `expiresOn` (aucune échéance codée en dur ni laissée obsolète silencieusement) — voir
+ * `check_subcontractor_allocation()` côté base, qui bloque une allocation si une pièce de ce
+ * sous-traitant est EXPIRE.
+ */
+export const CredentialKind = z.enum([
+  "ASSURANCE_RC",
+  "ASSURANCE_DECENNALE",
+  "URSSAF",
+  "QUALIFICATION",
+  "AUTRE",
+]);
+export type CredentialKind = z.infer<typeof CredentialKind>;
+
+export const CREDENTIAL_KIND_LABELS: Record<CredentialKind, string> = {
+  ASSURANCE_RC: "Assurance responsabilité civile",
+  ASSURANCE_DECENNALE: "Assurance décennale",
+  URSSAF: "Attestation URSSAF",
+  QUALIFICATION: "Qualification professionnelle",
+  AUTRE: "Autre pièce",
+};
+
+export const CredentialStatus = z.enum(["VALIDE", "EXPIRE", "MANQUANT"]);
+export type CredentialStatus = z.infer<typeof CredentialStatus>;
+
+export const CREDENTIAL_STATUS_LABELS: Record<CredentialStatus, string> = {
+  VALIDE: "Valide",
+  EXPIRE: "Expirée",
+  MANQUANT: "Manquante",
+};
+
+export const OrganizationCredential = z.object({
+  id: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  kind: CredentialKind,
+  expiresOn: z.string().date().optional(),
+  documentId: z.string().uuid().optional(),
+  status: CredentialStatus,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type OrganizationCredential = z.infer<typeof OrganizationCredential>;
+
 /** Quel role_scope chaque UserPermissionRole suppose — utilisé pour valider la cohérence. */
 export const PERMISSION_ROLE_SCOPE: Record<UserPermissionRole, RoleScope> = {
   ADMIN_PLATEFORME: "PLATEFORME",

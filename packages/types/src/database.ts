@@ -121,6 +121,80 @@ export type Database = {
         }
         Relationships: []
       }
+      amendments: {
+        Row: {
+          created_at: string
+          delta_ht: number
+          id: string
+          lot_id: string | null
+          number: number
+          reason: string
+          site_id: string
+          source_log_entry_id: string | null
+          status: Database["public"]["Enums"]["amendment_status"]
+          updated_at: string
+          validated_at: string | null
+          validated_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delta_ht: number
+          id?: string
+          lot_id?: string | null
+          number: number
+          reason: string
+          site_id: string
+          source_log_entry_id?: string | null
+          status?: Database["public"]["Enums"]["amendment_status"]
+          updated_at?: string
+          validated_at?: string | null
+          validated_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delta_ht?: number
+          id?: string
+          lot_id?: string | null
+          number?: number
+          reason?: string
+          site_id?: string
+          source_log_entry_id?: string | null
+          status?: Database["public"]["Enums"]["amendment_status"]
+          updated_at?: string
+          validated_at?: string | null
+          validated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amendments_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amendments_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amendments_source_log_entry_id_fkey"
+            columns: ["source_log_entry_id"]
+            isOneToOne: false
+            referencedRelation: "site_log_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amendments_validated_by_user_id_fkey"
+            columns: ["validated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -446,6 +520,8 @@ export type Database = {
       }
       document_templates: {
         Row: {
+          audience_legal_kind: Database["public"]["Enums"]["legal_kind"] | null
+          audience_trade_code: string | null
           category: Database["public"]["Enums"]["document_category"]
           created_at: string
           file_url: string
@@ -457,6 +533,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          audience_legal_kind?: Database["public"]["Enums"]["legal_kind"] | null
+          audience_trade_code?: string | null
           category: Database["public"]["Enums"]["document_category"]
           created_at?: string
           file_url: string
@@ -468,6 +546,8 @@ export type Database = {
           version?: number
         }
         Update: {
+          audience_legal_kind?: Database["public"]["Enums"]["legal_kind"] | null
+          audience_trade_code?: string | null
           category?: Database["public"]["Enums"]["document_category"]
           created_at?: string
           file_url?: string
@@ -479,6 +559,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "document_templates_audience_trade_code_fkey"
+            columns: ["audience_trade_code"]
+            isOneToOne: false
+            referencedRelation: "trade_codes"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "document_templates_organization_id_fkey"
             columns: ["organization_id"]
@@ -497,8 +584,10 @@ export type Database = {
           created_by_user_id: string
           file_url: string
           id: string
+          lot_id: string | null
           organization_id: string
           site_id: string | null
+          source_log_entry_id: string | null
           status: Database["public"]["Enums"]["document_status"]
           template_id: string | null
           title: string
@@ -513,8 +602,10 @@ export type Database = {
           created_by_user_id: string
           file_url: string
           id?: string
+          lot_id?: string | null
           organization_id: string
           site_id?: string | null
+          source_log_entry_id?: string | null
           status: Database["public"]["Enums"]["document_status"]
           template_id?: string | null
           title: string
@@ -529,8 +620,10 @@ export type Database = {
           created_by_user_id?: string
           file_url?: string
           id?: string
+          lot_id?: string | null
           organization_id?: string
           site_id?: string | null
+          source_log_entry_id?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           template_id?: string | null
           title?: string
@@ -553,6 +646,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documents_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documents_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -564,6 +664,13 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_source_log_entry_id_fkey"
+            columns: ["source_log_entry_id"]
+            isOneToOne: false
+            referencedRelation: "site_log_entries"
             referencedColumns: ["id"]
           },
           {
@@ -709,6 +816,87 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lot_members: {
+        Row: {
+          id: string
+          lot_id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["lot_member_role"]
+          share_percent: number | null
+        }
+        Insert: {
+          id?: string
+          lot_id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["lot_member_role"]
+          share_percent?: number | null
+        }
+        Update: {
+          id?: string
+          lot_id?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["lot_member_role"]
+          share_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_members_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lot_progress: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          declared_percent: number
+          id: string
+          lot_id: string
+          record_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          declared_percent: number
+          id?: string
+          lot_id: string
+          record_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          declared_percent?: number
+          id?: string
+          lot_id?: string
+          record_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_progress_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_progress_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
             referencedColumns: ["id"]
           },
         ]
@@ -928,39 +1116,61 @@ export type Database = {
       }
       market_contracts: {
         Row: {
+          advance_amount_ht: number | null
+          caution_document_id: string | null
           contract_type: Database["public"]["Enums"]["market_contract_type"]
           created_at: string
           id: string
           lot_id: string | null
           payment_term_days: number | null
           price_reference_month: string | null
+          retention_basis_amount_ht: number | null
           retention_guarantee_rate: number | null
+          retention_release_due_on: string | null
+          retention_substituted_by_caution: boolean
           site_id: string
           updated_at: string
         }
         Insert: {
+          advance_amount_ht?: number | null
+          caution_document_id?: string | null
           contract_type: Database["public"]["Enums"]["market_contract_type"]
           created_at?: string
           id?: string
           lot_id?: string | null
           payment_term_days?: number | null
           price_reference_month?: string | null
+          retention_basis_amount_ht?: number | null
           retention_guarantee_rate?: number | null
+          retention_release_due_on?: string | null
+          retention_substituted_by_caution?: boolean
           site_id: string
           updated_at?: string
         }
         Update: {
+          advance_amount_ht?: number | null
+          caution_document_id?: string | null
           contract_type?: Database["public"]["Enums"]["market_contract_type"]
           created_at?: string
           id?: string
           lot_id?: string | null
           payment_term_days?: number | null
           price_reference_month?: string | null
+          retention_basis_amount_ht?: number | null
           retention_guarantee_rate?: number | null
+          retention_release_due_on?: string | null
+          retention_substituted_by_caution?: boolean
           site_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "market_contracts_caution_document_id_fkey"
+            columns: ["caution_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "market_contracts_lot_id_fkey"
             columns: ["lot_id"]
@@ -973,6 +1183,185 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_attendees: {
+        Row: {
+          id: string
+          meeting_id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          id?: string
+          meeting_id: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          id?: string
+          meeting_id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_decisions: {
+        Row: {
+          id: string
+          lot_id: string | null
+          meeting_id: string
+          task_id: string | null
+          text: string
+        }
+        Insert: {
+          id?: string
+          lot_id?: string | null
+          meeting_id: string
+          task_id?: string | null
+          text: string
+        }
+        Update: {
+          id?: string
+          lot_id?: string | null
+          meeting_id?: string
+          task_id?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_decisions_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_decisions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_decisions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_notes: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          document_id: string | null
+          id: string
+          meeting_date: string
+          site_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          document_id?: string | null
+          id?: string
+          meeting_date: string
+          site_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          document_id?: string | null
+          id?: string
+          meeting_date?: string
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_notes_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notes_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_credentials: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          expires_on: string | null
+          id: string
+          kind: Database["public"]["Enums"]["credential_kind"]
+          organization_id: string
+          status: Database["public"]["Enums"]["credential_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          expires_on?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["credential_kind"]
+          organization_id: string
+          status?: Database["public"]["Enums"]["credential_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          expires_on?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["credential_kind"]
+          organization_id?: string
+          status?: Database["public"]["Enums"]["credential_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_credentials_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1405,6 +1794,81 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_submissions: {
+        Row: {
+          author_user_id: string
+          created_at: string
+          document_id: string
+          id: string
+          lot_id: string | null
+          remarks: string | null
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          site_id: string
+          status: Database["public"]["Enums"]["plan_submission_status"]
+        }
+        Insert: {
+          author_user_id: string
+          created_at?: string
+          document_id: string
+          id?: string
+          lot_id?: string | null
+          remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          site_id: string
+          status?: Database["public"]["Enums"]["plan_submission_status"]
+        }
+        Update: {
+          author_user_id?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          lot_id?: string | null
+          remarks?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          site_id?: string
+          status?: Database["public"]["Enums"]["plan_submission_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_submissions_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_submissions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_submissions_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_submissions_reviewed_by_user_id_fkey"
+            columns: ["reviewed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_submissions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_grants: {
         Row: {
           granted_at: string
@@ -1466,6 +1930,7 @@ export type Database = {
       }
       price_lines: {
         Row: {
+          amendment_id: string | null
           code: string
           created_at: string
           id: string
@@ -1479,6 +1944,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amendment_id?: string | null
           code: string
           created_at?: string
           id?: string
@@ -1492,6 +1958,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amendment_id?: string | null
           code?: string
           created_at?: string
           id?: string
@@ -1506,10 +1973,66 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "price_lines_amendment_id_fkey"
+            columns: ["amendment_id"]
+            isOneToOne: false
+            referencedRelation: "amendments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "price_lines_lot_id_fkey"
             columns: ["lot_id"]
             isOneToOne: false
             referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_logs: {
+        Row: {
+          channel: Database["public"]["Enums"]["reminder_channel"]
+          created_by_user_id: string | null
+          id: string
+          reminder_rule_id: string | null
+          sent_at: string
+          situation_id: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["reminder_channel"]
+          created_by_user_id?: string | null
+          id?: string
+          reminder_rule_id?: string | null
+          sent_at?: string
+          situation_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["reminder_channel"]
+          created_by_user_id?: string | null
+          id?: string
+          reminder_rule_id?: string | null
+          sent_at?: string
+          situation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_logs_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_logs_reminder_rule_id_fkey"
+            columns: ["reminder_rule_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_logs_situation_id_fkey"
+            columns: ["situation_id"]
+            isOneToOne: false
+            referencedRelation: "situations"
             referencedColumns: ["id"]
           },
         ]
@@ -1552,6 +2075,73 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reserve_items: {
+        Row: {
+          created_at: string
+          description: string
+          document_id: string | null
+          due_date: string | null
+          id: string
+          location: string | null
+          lot_id: string | null
+          photo_url: string | null
+          severity: Database["public"]["Enums"]["reserve_severity"]
+          site_id: string
+          status: Database["public"]["Enums"]["reserve_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          document_id?: string | null
+          due_date?: string | null
+          id?: string
+          location?: string | null
+          lot_id?: string | null
+          photo_url?: string | null
+          severity: Database["public"]["Enums"]["reserve_severity"]
+          site_id: string
+          status?: Database["public"]["Enums"]["reserve_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          document_id?: string | null
+          due_date?: string | null
+          id?: string
+          location?: string | null
+          lot_id?: string | null
+          photo_url?: string | null
+          severity?: Database["public"]["Enums"]["reserve_severity"]
+          site_id?: string
+          status?: Database["public"]["Enums"]["reserve_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserve_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_items_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_items_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
             referencedColumns: ["id"]
           },
         ]
@@ -1774,11 +2364,57 @@ export type Database = {
           },
         ]
       }
+      site_log_entries: {
+        Row: {
+          author_user_id: string
+          created_at: string
+          description: string
+          entry_date: string
+          id: string
+          kind: Database["public"]["Enums"]["site_log_entry_kind"]
+          site_id: string
+        }
+        Insert: {
+          author_user_id: string
+          created_at?: string
+          description: string
+          entry_date: string
+          id?: string
+          kind: Database["public"]["Enums"]["site_log_entry_kind"]
+          site_id: string
+        }
+        Update: {
+          author_user_id?: string
+          created_at?: string
+          description?: string
+          entry_date?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["site_log_entry_kind"]
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_log_entries_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_log_entries_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_participants: {
         Row: {
           contract_amount_ht: number | null
           id: string
           joined_at: string
+          left_at: string | null
           lot_id: string | null
           mission_role: Database["public"]["Enums"]["mission_role"]
           organization_id: string
@@ -1788,6 +2424,7 @@ export type Database = {
           contract_amount_ht?: number | null
           id?: string
           joined_at?: string
+          left_at?: string | null
           lot_id?: string | null
           mission_role: Database["public"]["Enums"]["mission_role"]
           organization_id: string
@@ -1797,6 +2434,7 @@ export type Database = {
           contract_amount_ht?: number | null
           id?: string
           joined_at?: string
+          left_at?: string | null
           lot_id?: string | null
           mission_role?: Database["public"]["Enums"]["mission_role"]
           organization_id?: string
@@ -1834,6 +2472,7 @@ export type Database = {
           created_at: string
           end_date_estimated: string | null
           id: string
+          internal_reminder_days: number
           manager_user_id: string | null
           name: string
           organization_id: string
@@ -1850,6 +2489,7 @@ export type Database = {
           created_at?: string
           end_date_estimated?: string | null
           id?: string
+          internal_reminder_days?: number
           manager_user_id?: string | null
           name: string
           organization_id: string
@@ -1866,6 +2506,7 @@ export type Database = {
           created_at?: string
           end_date_estimated?: string | null
           id?: string
+          internal_reminder_days?: number
           manager_user_id?: string | null
           name?: string
           organization_id?: string
@@ -1985,6 +2626,7 @@ export type Database = {
           due_date: string | null
           id: string
           index_month: string | null
+          is_final: boolean
           lot_id: string | null
           net_amount_ht: number | null
           number: number
@@ -2003,6 +2645,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           index_month?: string | null
+          is_final?: boolean
           lot_id?: string | null
           net_amount_ht?: number | null
           number: number
@@ -2021,6 +2664,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           index_month?: string | null
+          is_final?: boolean
           lot_id?: string | null
           net_amount_ht?: number | null
           number?: number
@@ -2280,6 +2924,7 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      check_internal_reminders: { Args: { p_site_id: string }; Returns: number }
       current_app_user_id: { Args: never; Returns: string }
       current_user_organization_id: { Args: never; Returns: string }
       current_user_permission_role: {
@@ -2426,9 +3071,17 @@ export type Database = {
     }
     Enums: {
       access_request_status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
+      amendment_status: "BROUILLON" | "VALIDE" | "REFUSE"
       approval_decision: "APPROUVE" | "REFUSE" | "MODIFICATION_DEMANDEE"
       audit_actor_type: "USER" | "AUTOMATION" | "AI"
       billing_period: "MONTHLY" | "ANNUAL" | "ONE_TIME"
+      credential_kind:
+        | "ASSURANCE_RC"
+        | "ASSURANCE_DECENNALE"
+        | "URSSAF"
+        | "QUALIFICATION"
+        | "AUTRE"
+      credential_status: "VALIDE" | "EXPIRE" | "MANQUANT"
       document_category:
         | "COURRIER"
         | "COMPTE_RENDU"
@@ -2493,6 +3146,7 @@ export type Database = {
         | "COLLECTIVITE"
         | "ARTISAN"
         | "GROUPE"
+      lot_member_role: "MANDATAIRE" | "COTRAITANT" | "TITULAIRE"
       mail_status:
         | "NON_TRAITE"
         | "AFFECTE"
@@ -2537,8 +3191,15 @@ export type Database = {
         | "VALIDEE"
         | "BLOQUEE"
         | "ANNULEE"
+      plan_submission_status:
+        | "DEPOSE"
+        | "VISE_BPE"
+        | "VISE_AVEC_REMARQUES"
+        | "REFUSE"
       price_line_origin: "SAISIE" | "IMPORT_OCR"
       reminder_channel: "EMAIL" | "WHATSAPP" | "COURRIER"
+      reserve_severity: "MINEURE" | "MAJEURE" | "BLOQUANTE"
+      reserve_status: "OUVERTE" | "LEVEE" | "CONTESTEE"
       role_scope: "PLATEFORME" | "ENTREPRISE"
       service_billing_model:
         | "FREE"
@@ -2561,6 +3222,12 @@ export type Database = {
         | "SIGNATURES"
         | "EXPERT_SERVICES"
         | "CUSTOM_SERVICES"
+      site_log_entry_kind:
+        | "INTEMPERIE"
+        | "ARRET"
+        | "LIVRAISON"
+        | "INCIDENT"
+        | "AUTRE"
       site_status:
         | "ETUDE"
         | "CONSULTATION"
@@ -2578,6 +3245,7 @@ export type Database = {
         | "PHASE"
         | "VALIDATION"
         | "AUTOMATISATION"
+        | "MEETING"
       task_status: "A_FAIRE" | "EN_COURS" | "EN_ATTENTE" | "FAIT" | "ANNULE"
       trade_family:
         | "STRUCTURE_VRD"
@@ -2730,9 +3398,18 @@ export const Constants = {
   public: {
     Enums: {
       access_request_status: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
+      amendment_status: ["BROUILLON", "VALIDE", "REFUSE"],
       approval_decision: ["APPROUVE", "REFUSE", "MODIFICATION_DEMANDEE"],
       audit_actor_type: ["USER", "AUTOMATION", "AI"],
       billing_period: ["MONTHLY", "ANNUAL", "ONE_TIME"],
+      credential_kind: [
+        "ASSURANCE_RC",
+        "ASSURANCE_DECENNALE",
+        "URSSAF",
+        "QUALIFICATION",
+        "AUTRE",
+      ],
+      credential_status: ["VALIDE", "EXPIRE", "MANQUANT"],
       document_category: [
         "COURRIER",
         "COMPTE_RENDU",
@@ -2803,6 +3480,7 @@ export const Constants = {
         "ARTISAN",
         "GROUPE",
       ],
+      lot_member_role: ["MANDATAIRE", "COTRAITANT", "TITULAIRE"],
       mail_status: [
         "NON_TRAITE",
         "AFFECTE",
@@ -2852,8 +3530,16 @@ export const Constants = {
         "BLOQUEE",
         "ANNULEE",
       ],
+      plan_submission_status: [
+        "DEPOSE",
+        "VISE_BPE",
+        "VISE_AVEC_REMARQUES",
+        "REFUSE",
+      ],
       price_line_origin: ["SAISIE", "IMPORT_OCR"],
       reminder_channel: ["EMAIL", "WHATSAPP", "COURRIER"],
+      reserve_severity: ["MINEURE", "MAJEURE", "BLOQUANTE"],
+      reserve_status: ["OUVERTE", "LEVEE", "CONTESTEE"],
       role_scope: ["PLATEFORME", "ENTREPRISE"],
       service_billing_model: [
         "FREE",
@@ -2878,6 +3564,13 @@ export const Constants = {
         "EXPERT_SERVICES",
         "CUSTOM_SERVICES",
       ],
+      site_log_entry_kind: [
+        "INTEMPERIE",
+        "ARRET",
+        "LIVRAISON",
+        "INCIDENT",
+        "AUTRE",
+      ],
       site_status: [
         "ETUDE",
         "CONSULTATION",
@@ -2896,6 +3589,7 @@ export const Constants = {
         "PHASE",
         "VALIDATION",
         "AUTOMATISATION",
+        "MEETING",
       ],
       task_status: ["A_FAIRE", "EN_COURS", "EN_ATTENTE", "FAIT", "ANNULE"],
       trade_family: [

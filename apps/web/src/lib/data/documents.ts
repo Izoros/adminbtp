@@ -18,6 +18,8 @@ function mapDocument(row: DocumentRow): Document {
     templateId: row.template_id ?? undefined,
     concernsOrganizationId: row.concerns_organization_id ?? undefined,
     actCode: row.act_code ?? undefined,
+    lotId: row.lot_id ?? undefined,
+    sourceLogEntryId: row.source_log_entry_id ?? undefined,
     createdByUserId: row.created_by_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -34,6 +36,8 @@ function mapDocumentTemplate(row: DocumentTemplateRow): DocumentTemplate {
     variables: row.variables ?? [],
     requiresExpertReview: row.requires_expert_review,
     version: row.version,
+    audienceLegalKind: row.audience_legal_kind ?? undefined,
+    audienceTradeCode: row.audience_trade_code ?? undefined,
     createdAt: row.created_at,
   };
 }
@@ -63,7 +67,15 @@ export async function getDocumentsBySite(siteId: string): Promise<Document[]> {
   return (data ?? []).map(mapDocument);
 }
 
-export async function getDocumentTemplates(organizationId: string): Promise<DocumentTemplate[]> {
+/**
+ * Préfiltre optionnel par profil d'organisation (forme juridique, corps d'état) — un modèle sans
+ * tag reste visible à tous. Ne crée aucun droit ; si un modèle devient un service premium, c'est
+ * has_entitlement() qui gouverne l'accès, pas ce filtre.
+ */
+export async function getDocumentTemplates(
+  organizationId: string,
+  audience?: { legalKind?: string; tradeCodes?: string[] }
+): Promise<DocumentTemplate[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("document_templates")
@@ -71,5 +83,11 @@ export async function getDocumentTemplates(organizationId: string): Promise<Docu
     .eq("organization_id", organizationId)
     .order("name");
   if (error) throw error;
-  return (data ?? []).map(mapDocumentTemplate);
+  const templates = (data ?? []).map(mapDocumentTemplate);
+  if (!audience) return templates;
+  return templates.filter((t) => {
+    const legalKindOk = !t.audienceLegalKind || t.audienceLegalKind === audience.legalKind;
+    const tradeOk = !t.audienceTradeCode || (audience.tradeCodes ?? []).includes(t.audienceTradeCode);
+    return legalKindOk && tradeOk;
+  });
 }

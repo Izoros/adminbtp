@@ -13,4 +13,5 @@ export * from "./entitlements";
 export * from "./trade";
 export * from "./market";
 export * from "./directory";
+export * from "./execution";
 export * from "./database";

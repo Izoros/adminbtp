@@ -45,6 +45,8 @@ export const Situation = z.object({
   advanceRecovered: z.number().nonnegative().optional(),
   penaltiesAmount: z.number().nonnegative().optional(),
   netAmountHt: z.number().optional(), // montant net après retenue/avance/pénalités/actualisation
+  /** Situation de solde (DGD) — le document DGD s'y rattache, pas un second workflow. */
+  isFinal: z.boolean().default(false),
 });
 export type Situation = z.infer<typeof Situation>;
 
@@ -73,6 +75,48 @@ export const SituationAllocation = z.object({
   createdAt: z.string().datetime(),
 });
 export type SituationAllocation = z.infer<typeof SituationAllocation>;
+
+/**
+ * Avenant à un marché — une fois VALIDE, ses lignes de prix (price_lines.amendmentId) entrent
+ * dans les décomptes suivants, distinctes du DPGF d'origine. Jamais de quantité supplémentaire
+ * silencieuse sur une ligne de marché existante.
+ */
+export const AmendmentStatus = z.enum(["BROUILLON", "VALIDE", "REFUSE"]);
+export type AmendmentStatus = z.infer<typeof AmendmentStatus>;
+
+export const AMENDMENT_STATUS_LABELS: Record<AmendmentStatus, string> = {
+  BROUILLON: "Brouillon",
+  VALIDE: "Validé",
+  REFUSE: "Refusé",
+};
+
+export const Amendment = z.object({
+  id: z.string().uuid(),
+  siteId: z.string().uuid(),
+  lotId: z.string().uuid().optional(),
+  number: z.number().int().positive(),
+  reason: z.string().min(1),
+  deltaHt: z.number(),
+  status: AmendmentStatus,
+  /** Entrée de journal citée comme motif — jamais générée automatiquement. */
+  sourceLogEntryId: z.string().uuid().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  validatedAt: z.string().datetime().optional(),
+  validatedByUserId: z.string().uuid().optional(),
+});
+export type Amendment = z.infer<typeof Amendment>;
+
+/** Trace d'une relance envoyée — une relance ne constitue jamais une signature électronique. */
+export const ReminderLog = z.object({
+  id: z.string().uuid(),
+  situationId: z.string().uuid(),
+  reminderRuleId: z.string().uuid().optional(),
+  channel: z.enum(["EMAIL", "WHATSAPP", "COURRIER"]),
+  sentAt: z.string().datetime(),
+  createdByUserId: z.string().uuid().optional(),
+});
+export type ReminderLog = z.infer<typeof ReminderLog>;
 
 /** Règle de relance configurable, rattachée à un contrat/marché plutôt qu'à la loi générale. */
 export const ReminderRule = z.object({

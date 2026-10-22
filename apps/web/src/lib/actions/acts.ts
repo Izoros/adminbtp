@@ -18,6 +18,7 @@ export async function emitAct(formData: FormData) {
   const siteId = String(formData.get("siteId") ?? "").trim();
   const actTemplateId = String(formData.get("actTemplateId") ?? "").trim();
   const overrideReason = String(formData.get("overrideReason") ?? "").trim();
+  const lotId = String(formData.get("lotId") ?? "").trim() || null;
 
   if (!organizationId || !siteId || !actTemplateId) {
     throw new Error("Organisation, chantier et acte sont obligatoires.");
@@ -42,10 +43,11 @@ export async function emitAct(formData: FormData) {
     .eq("site_id", siteId)
     .eq("organization_id", organizationId)
     .eq("mission_role", template.required_mission_role)
+    .is("left_at", null)
     .maybeSingle();
   if (!participation) {
     throw new Error(
-      `Seule une organisation avec le rôle "${template.required_mission_role}" sur ce chantier peut émettre cet acte.`
+      `Seule une organisation avec le rôle "${template.required_mission_role}" actif sur ce chantier peut émettre cet acte.`
     );
   }
 
@@ -78,6 +80,7 @@ export async function emitAct(formData: FormData) {
     id,
     organization_id: organizationId,
     site_id: siteId,
+    lot_id: lotId,
     category: template.document_category,
     act_code: template.code,
     title: `${template.label} — ${new Date().toLocaleDateString("fr-FR")}`,
@@ -86,6 +89,22 @@ export async function emitAct(formData: FormData) {
     created_by_user_id: user.id,
   });
   if (error) throw error;
+
+  // OS de démarrage d'un lot : crée systématiquement la tâche « PPSPS du lot », comme pour la
+  // préparation de chantier actuelle. L'IA ne valide jamais le PPSPS lui-même.
+  if (template.code === "OS_DEMARRAGE" && lotId) {
+    const { data: lot } = await supabase.from("lots").select("number").eq("id", lotId).maybeSingle();
+    const { error: taskError } = await supabase.from("tasks").insert({
+      organization_id: organizationId,
+      site_id: siteId,
+      title: `PPSPS du lot ${lot?.number ?? ""}`.trim(),
+      status: "A_FAIRE",
+      priority: "HAUTE",
+      source_type: "AUTOMATISATION",
+      source_id: id,
+    });
+    if (taskError) throw taskError;
+  }
 
   revalidatePath(`/chantiers/${siteId}`);
 }

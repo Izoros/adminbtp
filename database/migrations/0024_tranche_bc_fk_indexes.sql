@@ -1,0 +1,2 @@
+create index market_contracts_caution_document_id_idx on market_contracts(caution_document_id);
+create index meeting_notes_created_by_user_id_idx on meeting_notes(created_by_user_id);

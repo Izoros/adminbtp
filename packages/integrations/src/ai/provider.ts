@@ -13,6 +13,11 @@ export interface DocumentReviewResult {
   findings: Record<string, unknown>;
 }
 
+export interface MailFilingSuggestion {
+  suggestedCategory: string | null; // code DocumentCategory, ex: "DC4" — jamais appliqué sans confirmation humaine
+  confidence: number;
+}
+
 export interface IAIProvider {
   classifyMailUrgency(subject: string, body: string): Promise<AIClassificationResult>;
   draftReply(context: string): Promise<string>;
@@ -22,6 +27,12 @@ export interface IAIProvider {
    * existante) peut faire passer un document à VALIDE.
    */
   reviewDocument(category: string, title: string): Promise<DocumentReviewResult>;
+  /**
+   * Suggère une catégorie de document pour classer un mail déjà lié à un chantier — jamais le
+   * lot (l'IA n'a pas le contexte des lots réels du chantier, choisi par l'humain). Une simple
+   * proposition à confirmer, jamais appliquée automatiquement.
+   */
+  suggestMailFiling(subject: string, body: string): Promise<MailFilingSuggestion>;
 }
 
 export class DemoAIProvider implements IAIProvider {
@@ -44,5 +55,21 @@ export class DemoAIProvider implements IAIProvider {
         category,
       },
     };
+  }
+
+  async suggestMailFiling(subject: string, body: string): Promise<MailFilingSuggestion> {
+    console.warn(`[DEMO] Suggestion de classement simulée pour: "${subject}" — aucun appel réseau.`);
+    const text = `${subject} ${body}`.toLowerCase();
+    const rules: Array<{ keywords: string[]; category: string }> = [
+      { keywords: ["dc4", "sous-traitant", "sous traitant"], category: "DC4" },
+      { keywords: ["situation", "décompte", "facture"], category: "SITUATION_TRAVAUX" },
+      { keywords: ["réserve", "reserve"], category: "RESERVES" },
+      { keywords: ["doe", "dossier des ouvrages"], category: "DOE" },
+      { keywords: ["ppsps", "sécurité", "prévention"], category: "PPSPS" },
+    ];
+    const match = rules.find((rule) => rule.keywords.some((kw) => text.includes(kw)));
+    return match
+      ? { suggestedCategory: match.category, confidence: 0.6 }
+      : { suggestedCategory: null, confidence: 0 };
   }
 }

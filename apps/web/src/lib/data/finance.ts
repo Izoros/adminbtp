@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Situation, SituationLine, SituationAllocation } from "@adminbtp/types";
+import type { Situation, SituationLine, SituationAllocation, ReminderLog } from "@adminbtp/types";
 import type { Database } from "@adminbtp/types";
 
 type SituationRow = Database["public"]["Tables"]["situations"]["Row"];
 type SituationLineRow = Database["public"]["Tables"]["situation_lines"]["Row"];
 type SituationAllocationRow = Database["public"]["Tables"]["situation_allocations"]["Row"];
+type ReminderLogRow = Database["public"]["Tables"]["reminder_logs"]["Row"];
 
 function mapSituation(row: SituationRow): Situation {
   return {
@@ -24,6 +25,18 @@ function mapSituation(row: SituationRow): Situation {
     advanceRecovered: row.advance_recovered ?? undefined,
     penaltiesAmount: row.penalties_amount ?? undefined,
     netAmountHt: row.net_amount_ht ?? undefined,
+    isFinal: row.is_final,
+  };
+}
+
+function mapReminderLog(row: ReminderLogRow): ReminderLog {
+  return {
+    id: row.id,
+    situationId: row.situation_id,
+    reminderRuleId: row.reminder_rule_id ?? undefined,
+    channel: row.channel,
+    sentAt: row.sent_at,
+    createdByUserId: row.created_by_user_id ?? undefined,
   };
 }
 
@@ -81,4 +94,16 @@ export async function getSituationAllocations(situationIds: string[]): Promise<S
   const { data, error } = await supabase.from("situation_allocations").select("*").in("situation_id", situationIds);
   if (error) throw error;
   return (data ?? []).map(mapSituationAllocation);
+}
+
+export async function getReminderLogs(situationIds: string[]): Promise<ReminderLog[]> {
+  if (situationIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reminder_logs")
+    .select("*")
+    .in("situation_id", situationIds)
+    .order("sent_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapReminderLog);
 }
