@@ -1,0 +1,2 @@
+create index directory_categories_service_code_idx on directory_categories(service_code);
+create index directory_sources_imported_by_user_id_idx on directory_sources(imported_by_user_id);

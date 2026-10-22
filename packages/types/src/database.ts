@@ -172,6 +172,233 @@ export type Database = {
           },
         ]
       }
+      directory_access_log: {
+        Row: {
+          accessed_at: string
+          accessed_by_user_id: string
+          company_id: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_by_user_id: string
+          company_id: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          accessed_at?: string
+          accessed_by_user_id?: string
+          company_id?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_access_log_accessed_by_user_id_fkey"
+            columns: ["accessed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_access_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "directory_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_access_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      directory_categories: {
+        Row: {
+          code: string
+          id: string
+          label: string
+          service_code: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          label: string
+          service_code: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          label?: string
+          service_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_categories_service_code_fkey"
+            columns: ["service_code"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      directory_companies: {
+        Row: {
+          address: string | null
+          category_id: string
+          city: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          siret: string | null
+          source_id: string | null
+          trade_code_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          category_id: string
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          siret?: string | null
+          source_id?: string | null
+          trade_code_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          category_id?: string
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          siret?: string | null
+          source_id?: string | null
+          trade_code_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_companies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "directory_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_companies_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "directory_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_companies_trade_code_id_fkey"
+            columns: ["trade_code_id"]
+            isOneToOne: false
+            referencedRelation: "trade_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      directory_contacts: {
+        Row: {
+          company_id: string
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean
+          phone: string | null
+          role: string | null
+        }
+        Insert: {
+          company_id: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary?: boolean
+          phone?: string | null
+          role?: string | null
+        }
+        Update: {
+          company_id?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary?: boolean
+          phone?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "directory_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      directory_sources: {
+        Row: {
+          created_count: number
+          error_count: number
+          id: string
+          imported_at: string
+          imported_by_user_id: string
+          label: string
+          skipped_count: number
+        }
+        Insert: {
+          created_count?: number
+          error_count?: number
+          id?: string
+          imported_at?: string
+          imported_by_user_id: string
+          label: string
+          skipped_count?: number
+        }
+        Update: {
+          created_count?: number
+          error_count?: number
+          id?: string
+          imported_at?: string
+          imported_by_user_id?: string
+          label?: string
+          skipped_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_sources_imported_by_user_id_fkey"
+            columns: ["imported_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_reviews: {
         Row: {
           created_at: string
@@ -784,6 +1011,7 @@ export type Database = {
       }
       organization_entitlements: {
         Row: {
+          access_quota: number | null
           expires_at: string | null
           granted_at: string
           granted_by_user_id: string
@@ -800,6 +1028,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_quota?: number | null
           expires_at?: string | null
           granted_at?: string
           granted_by_user_id: string
@@ -816,6 +1045,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_quota?: number | null
           expires_at?: string | null
           granted_at?: string
           granted_by_user_id?: string
@@ -2020,6 +2250,7 @@ export type Database = {
     Functions: {
       _upsert_entitlement: {
         Args: {
+          p_access_quota?: number
           p_action: Database["public"]["Enums"]["entitlement_action"]
           p_expires_at: string
           p_new_status: Database["public"]["Enums"]["entitlement_status"]
@@ -2064,8 +2295,38 @@ export type Database = {
         }
         Returns: undefined
       }
+      find_directory_duplicate: {
+        Args: { p_name: string; p_postal_code: string; p_siret: string }
+        Returns: string
+      }
+      get_directory_company_contacts: {
+        Args: { p_company_id: string; p_organization_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+          is_primary: boolean
+          phone: string
+          role: string
+        }[]
+      }
+      get_directory_company_detail: {
+        Args: { p_company_id: string; p_organization_id: string }
+        Returns: {
+          address: string
+          city: string
+          email: string
+          id: string
+          notes: string
+          phone: string
+          postal_code: string
+          siret: string
+          website: string
+        }[]
+      }
       grant_entitlement: {
         Args: {
+          p_access_quota?: number
           p_expires_at?: string
           p_note?: string
           p_organization_id: string
@@ -2073,6 +2334,10 @@ export type Database = {
           p_service_id: string
         }
         Returns: undefined
+      }
+      has_any_accessible_entitlement: {
+        Args: { target_service_code: string }
+        Returns: boolean
       }
       has_entitlement: {
         Args: { target_org_id: string; target_service_code: string }
@@ -2085,6 +2350,32 @@ export type Database = {
       has_valid_subcontractor_agreement: {
         Args: { p_organization_id: string; p_site_id: string }
         Returns: boolean
+      }
+      list_directory_companies_admin: {
+        Args: { p_category_id?: string; p_search?: string }
+        Returns: {
+          address: string | null
+          category_id: string
+          city: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          siret: string | null
+          source_id: string | null
+          trade_code_id: string | null
+          updated_at: string
+          website: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "directory_companies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       log_act_override: {
         Args: {

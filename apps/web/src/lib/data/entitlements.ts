@@ -87,6 +87,7 @@ function mapEntitlement(row: OrganizationEntitlementRow): OrganizationEntitlemen
     revokeReason: row.revoke_reason ?? undefined,
     sourceAccessRequestId: row.source_access_request_id ?? undefined,
     notes: row.notes ?? undefined,
+    accessQuota: row.access_quota ?? undefined,
     updatedAt: row.updated_at,
   };
 }

@@ -87,6 +87,7 @@ export async function grantEntitlement(formData: FormData) {
   const expiresAt = optionalString(formData, "expiresAt");
   const note = optionalString(formData, "note");
   const priceId = optionalString(formData, "priceId");
+  const accessQuotaRaw = optionalString(formData, "accessQuota");
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("grant_entitlement", {
@@ -95,6 +96,7 @@ export async function grantEntitlement(formData: FormData) {
     p_expires_at: expiresAt ? new Date(expiresAt).toISOString() : undefined,
     p_note: note,
     p_price_id: priceId,
+    p_access_quota: accessQuotaRaw ? Number(accessQuotaRaw) : undefined,
   });
   if (error) throw error;
 

@@ -1,9 +1,10 @@
 import { FileCheck2, Package } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getOrganizations } from "@/lib/data/organizations";
@@ -20,17 +21,24 @@ import {
   reactivateEntitlement,
   revokeEntitlement,
   extendEntitlement,
+  grantEntitlement,
 } from "@/lib/actions/entitlements";
+import { getDirectoryCategories, getDirectoryCompaniesAdmin, getDirectorySources } from "@/lib/data/directory";
+import { importDirectoryCsv } from "@/lib/actions/directory";
 import { BILLING_MODEL_LABELS, SERVICE_CATEGORY_LABELS } from "@adminbtp/types";
 
 export default async function AdminPage() {
-  const [organizations, requests, entitlements, catalog, categories] = await Promise.all([
-    getOrganizations(),
-    getAllAccessRequests(),
-    getAllOrganizationEntitlements(),
-    getServiceCatalogWithPrices(),
-    getServiceCategories(),
-  ]);
+  const [organizations, requests, entitlements, catalog, categories, directoryCategories, directoryCompanies, directorySources] =
+    await Promise.all([
+      getOrganizations(),
+      getAllAccessRequests(),
+      getAllOrganizationEntitlements(),
+      getServiceCatalogWithPrices(),
+      getServiceCategories(),
+      getDirectoryCategories(),
+      getDirectoryCompaniesAdmin(),
+      getDirectorySources(),
+    ]);
 
   const orgName = (id: string) => organizations.find((o) => o.id === id)?.name ?? id;
   const serviceName = (id: string) => catalog.find((c) => c.id === id)?.name ?? id;
@@ -158,6 +166,47 @@ export default async function AdminPage() {
 
   const entitlementsTab = (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Octroyer directement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-xs text-graphite-500">
+            Geste commercial ou essai, sans passer par une demande — le quota (optionnel) limite le
+            nombre de fiches annuaire distinctes consultées par mois civil pour les services concernés.
+          </p>
+          <form action={grantEntitlement} className="flex flex-wrap items-end gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-graphite-500">Organisation</label>
+              <Select name="organizationId" className="h-8 w-48 text-xs" required defaultValue="">
+                <option value="" disabled>Choisir…</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-graphite-500">Service</label>
+              <Select name="serviceId" className="h-8 w-56 text-xs" required defaultValue="">
+                <option value="" disabled>Choisir…</option>
+                {catalog.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-graphite-500">Échéance (optionnel)</label>
+              <Input type="date" name="expiresAt" className="h-8 w-36 text-xs" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-graphite-500">Quota mensuel (optionnel)</label>
+              <Input type="number" name="accessQuota" min="1" className="h-8 w-24 text-xs" placeholder="Illimité" />
+            </div>
+            <Button type="submit" size="sm" variant="accent">Octroyer</Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <div>
         <h2 className="mb-2 text-sm font-semibold text-graphite-900">Actifs / suspendus ({activeEntitlements.length})</h2>
         {activeEntitlements.length === 0 ? (
@@ -174,6 +223,7 @@ export default async function AdminPage() {
                       {entitlement.expiresAt
                         ? ` — échéance ${new Date(entitlement.expiresAt).toLocaleDateString("fr-FR")}`
                         : " — sans échéance"}
+                      {entitlement.accessQuota ? ` — quota ${entitlement.accessQuota}/mois` : ""}
                     </p>
                   </div>
                   <Badge tone={entitlement.status === "ACTIVE" ? "success" : "warning"}>
@@ -289,6 +339,85 @@ export default async function AdminPage() {
     </Card>
   );
 
+  const annuaireTab = (
+    <div className="space-y-6">
+      <div className="grid gap-3 md:grid-cols-3">
+        {directoryCategories.map((cat) => (
+          <Card key={cat.id} className="p-4">
+            <p className="text-xs text-graphite-500">{cat.label}</p>
+            <p className="text-2xl font-semibold text-graphite-900">
+              {directoryCompanies.filter((c) => c.categoryId === cat.id).length}
+            </p>
+            <p className="text-xs text-graphite-500">Service requis : {cat.serviceCode}</p>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Importer des fiches (CSV)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-graphite-500">
+            Colonnes attendues : category_code, name, siret, trade_code, address, postal_code, city,
+            phone, email, website, contact_name, contact_role, contact_email, contact_phone. Codes de
+            catégorie : {directoryCategories.map((c) => c.code).join(", ")}. Déduplication par SIRET,
+            sinon nom + code postal — aucune fiche dupliquée recréée. Pas d&apos;import XLSX (hors
+            scope, voir docs/ROADMAP.md).
+          </p>
+          <form action={importDirectoryCsv} className="space-y-2">
+            <Input name="label" placeholder="Libellé de l'import (ex: Lot annuaire BTP octobre 2026)" required />
+            <textarea
+              name="csvText"
+              required
+              rows={6}
+              placeholder={"category_code,name,siret,trade_code,address,postal_code,city,phone,email,website\nENTREPRISE_BTP,Exemple SARL,12345678900012,GO,1 rue Test,97600,Mamoudzou,0269600000,contact@exemple.yt,"}
+              className="w-full rounded-md border border-surface-border bg-surface-white p-2 font-mono text-xs text-graphite-900"
+            />
+            <Button type="submit" variant="accent" size="sm">Importer</Button>
+          </form>
+          {directorySources.length > 0 && (
+            <div className="border-t border-surface-border pt-3 text-xs text-graphite-500">
+              <p className="mb-1 font-medium text-graphite-700">Derniers imports</p>
+              {directorySources.slice(0, 5).map((source) => (
+                <p key={source.id}>
+                  {source.label} — {new Date(source.importedAt).toLocaleDateString("fr-FR")} :{" "}
+                  {source.createdCount} créées, {source.skippedCount} ignorées (doublons),{" "}
+                  {source.errorCount} erreurs
+                </p>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
+            <tr>
+              <th className="px-4 py-2.5">Fiche</th>
+              <th className="px-4 py-2.5">Catégorie</th>
+              <th className="px-4 py-2.5">SIRET</th>
+              <th className="px-4 py-2.5">Ville</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-surface-border">
+            {directoryCompanies.map((company) => (
+              <tr key={company.id} className="hover:bg-surface-subtle">
+                <td className="px-4 py-3 font-medium text-graphite-900">{company.name}</td>
+                <td className="px-4 py-3 text-graphite-700">
+                  {directoryCategories.find((c) => c.id === company.categoryId)?.label ?? "—"}
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-graphite-500">{company.siret ?? "—"}</td>
+                <td className="px-4 py-3 text-graphite-700">{company.city ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -302,6 +431,7 @@ export default async function AdminPage() {
           { key: "demandes", label: `Demandes (${pendingRequests.length})`, content: demandesTab },
           { key: "entitlements", label: "Entitlements", content: entitlementsTab },
           { key: "catalogue", label: "Catalogue", content: catalogueTab },
+          { key: "annuaire", label: "Annuaire", content: annuaireTab },
         ]}
       />
     </div>

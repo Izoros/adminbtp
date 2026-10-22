@@ -2,8 +2,33 @@
 
 **Phase actuelle : Module Moteur de chantier avancé (profils, actes, marché, décompte) — en
 cours, non terminé et non validé par l'utilisateur (démarré 2026-10-22).** Module Marketplace &
-Entitlements Phase A, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md`
-pour le détail des cases cochées/restantes.
+Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP) terminée** le
+2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md` pour le
+détail des cases cochées/restantes.
+
+## Module Marketplace & Entitlements — Phase B : annuaire professionnel BTP (2026-10-22)
+
+Catalogue partagé d'entreprises BTP/BET/fournisseurs, accès gouverné par les entitlements de
+Phase A. Voir `docs/ROADMAP.md` (section Phase B) pour le détail complet et
+`docs/MONETIZATION_AND_ENTITLEMENTS.md` pour les règles produit.
+
+- Deux niveaux de protection des données, **tous deux côté base** : RLS (une organisation sans
+  entitlement actif ne voit aucune fiche de la catégorie, même par appel API direct) et privilèges
+  par colonne (les coordonnées ne sont lisibles que via une fonction dédiée, pas par `SELECT`
+  direct même pour une organisation habilitée).
+- Quota mensuel générique (`organization_entitlements.access_quota`) : nombre de fiches
+  **distinctes** consultées par organisation et mois civil, réglable à l'octroi depuis `/admin`.
+- Import CSV réel avec déduplication (SIRET, sinon nom + code postal) ; pas d'import XLSX.
+- UI client `/annuaire` (catalogue par catégorie, verrouillé si non souscrit) et
+  `/annuaire/[id]` (détail, consomme le quota) ; UI admin dans `/admin` (onglet Annuaire : import,
+  liste complète, compteurs par catégorie).
+- **Vérifié** (pas seulement en SQL — aussi en navigateur) : isolation RLS stricte, refus des
+  privilèges de colonne, 404 sur accès direct par URL à une catégorie non souscrite, quota
+  positif/négatif, import CSV réel avec doublon SIRET ignoré. Trois bugs réels trouvés et corrigés
+  pendant l'implémentation — voir `docs/DECISIONS.md`.
+- Non fait : import XLSX, édition individuelle de fiche/contact, export — voir `docs/ROADMAP.md`.
+
+**Arrêt ici comme demandé — Phase C (bibliothèque de documents premium) non démarrée.**
 
 ## Module Moteur de chantier avancé — profils, actes, marché, décompte (en cours, 2026-10-22)
 

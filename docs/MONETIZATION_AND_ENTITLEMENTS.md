@@ -143,10 +143,41 @@ d'Odoo. Odoo peut devenir autoritaire sur la facturation une fois l'intégration
 les demandes restent en attente de synchronisation — **aucun paiement fictif n'est jamais créé**
 pour compenser.
 
+## Annuaire professionnel BTP (Phase B, 2026-10-22)
+
+Catalogue partagé (entreprises BTP, BET, fournisseurs), gouverné par les mêmes entitlements posés
+en Phase A (`directory.btp`, `directory.bet`, `directory.suppliers`). Deux niveaux de protection
+des données, **tous deux côté base, jamais seulement côté UI** — voir `docs/ARCHITECTURE.md` pour
+le détail technique :
+
+1. **RLS** (`has_any_accessible_entitlement()`) : une organisation sans entitlement `ACTIVE` pour
+   la catégorie ne voit aucune fiche, même par appel API direct.
+2. **Privilèges par colonne**, indépendants de RLS : même avec l'entitlement, un `SELECT` direct
+   ne retourne que les colonnes de navigation (nom, catégorie, métier, ville) — les coordonnées
+   ne sont accessibles que via une fonction dédiée (`get_directory_company_detail()`), qui
+   applique en plus le quota et journalise la consultation.
+
+### Quota mensuel générique
+
+`organization_entitlements.access_quota` (nullable, réutilisable au-delà de l'annuaire) limite le
+nombre de fiches **distinctes** consultées par organisation sur le mois civil en cours. Reconsulter
+une fiche déjà vue ce mois-ci ne recompte pas — le quota porte sur la diversité des fiches
+consultées, pas sur le nombre total de vues. `ADMIN_PLATEFORME` n'est jamais soumis au quota
+(exploration plateforme, pas une consommation cliente mesurée). Réglable au moment de l'octroi
+(`grant_entitlement(..., p_access_quota)`), jamais modifiable après coup via une autre action à ce
+stade — un changement de quota nécessite un nouvel octroi.
+
+### Import et déduplication
+
+Seul `ADMIN_PLATEFORME` importe des fiches (CSV uniquement, pas XLSX). La déduplication est
+prioritairement par SIRET, puis par nom + code postal si le SIRET est absent — une fiche détectée
+comme doublon est ignorée (comptée séparément), jamais fusionnée ni écrasée. Chaque import est
+tracé dans `directory_sources` avec ses compteurs (créées/ignorées/erreurs).
+
 ## Ce que Phase A ne fait pas (explicitement, prévu aux phases suivantes)
 
-- Annuaire BTP, bibliothèque de documents premium, crédits prépayés, abonnements facturés,
-  intégration Odoo réelle : voir `docs/ROADMAP.md` Phases B-E.
+- Bibliothèque de documents premium, crédits prépayés, abonnements facturés, intégration Odoo
+  réelle : voir `docs/ROADMAP.md` Phases C-E. (L'annuaire BTP, Phase B, est fait — voir ci-dessus.)
 - Tâche planifiée de passage automatique `ACTIVE → EXPIRED` quand `expires_at` est dépassé —
   `has_entitlement()` traite déjà correctement une échéance dépassée comme un accès inactif, donc
   aucune fonctionnalité n'est bloquée, mais la colonne `status` elle-même peut rester `ACTIVE` en

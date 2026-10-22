@@ -126,15 +126,56 @@ phases 0-11 ci-dessus (ce module est transverse, pas une étape séquentielle du
       invariants RLS critiques vérifiés par simulation SQL directe, parcours client/admin complet
       vérifié en navigateur (voir `docs/VALIDATION_CHECKLIST.md`).
 
-**Arrêt explicite ici — Phase B (annuaire BTP) non démarrée sans confirmation utilisateur.**
+**Phase A validée par l'utilisateur le 2026-10-22.**
 
-### Phase B — Annuaire professionnel BTP (non démarrée)
+### Phase B — Annuaire professionnel BTP ✅ (2026-10-22)
 
-- Tables `directory_companies`, `directory_contacts`, `directory_categories`, `directory_sources`.
-- Import CSV/XLSX, déduplication, quotas d'accès appliqués côté serveur et base (jamais côté UI
-  seule) via `has_entitlement(org_id, 'directory.btp' | 'directory.bet' | 'directory.suppliers')`.
-- Validation : un client non autorisé ne peut pas accéder aux données protégées, même par appel
-  API direct.
+- [x] Tables `directory_categories`, `directory_sources`, `directory_companies`, `directory_contacts`,
+      `directory_access_log` — voir `database/migrations/0017` à `0020`,
+      `database/seeds/0005_directory_phase_b_seed.sql`.
+- [x] Import **CSV** (pas XLSX, voir ci-dessous), déduplication par SIRET sinon nom + code postal
+      (`find_directory_duplicate()`), traçabilité par lot (`directory_sources`, compteurs
+      créées/ignorées/erreurs). UI : onglet "Annuaire" dans `/admin`.
+- [x] Accès gouverné par les entitlements de Phase A (`directory.btp`/`directory.bet`/
+      `directory.suppliers`) à **deux niveaux**, tous deux côté base, jamais seulement UI :
+      1. RLS — `has_any_accessible_entitlement()` : une organisation sans entitlement `ACTIVE`
+         pour la catégorie ne voit **aucune ligne**, même via un appel API direct.
+      2. Privilèges par colonne — même avec l'entitlement, un `SELECT` direct sur
+         `directory_companies` ne retourne que les colonnes de navigation (nom, catégorie, métier,
+         ville) ; les coordonnées (téléphone, email, site, adresse, SIRET, notes) ne sont
+         accessibles que via `get_directory_company_detail()`. `directory_contacts` n'est lisible
+         par aucun `SELECT` direct, uniquement via `get_directory_company_contacts()`.
+- [x] **Quotas d'accès** : `organization_entitlements.access_quota` (générique, réutilisable
+      au-delà de l'annuaire), appliqué par `get_directory_company_detail()` — nombre de fiches
+      **distinctes** consultées par organisation et mois civil ; reconsulter une fiche déjà vue ce
+      mois-ci ne recompte pas. `ADMIN_PLATEFORME` n'est jamais soumis au quota. Réglable à l'octroi
+      via le nouveau formulaire "Octroyer directement" dans `/admin` (onglet Entitlements),
+      au-dessus de `grant_entitlement()` désormais étendu avec `p_access_quota` optionnel.
+- [x] UI client : `/annuaire` (catégories, locked/unlocked selon l'entitlement de l'organisation
+      active, lien vers `/services` si non souscrit) et `/annuaire/[id]` (détail — consomme le
+      quota, affiche l'erreur Postgres telle quelle si refusé).
+- [x] **Validation exécutée** (voir `docs/VALIDATION_CHECKLIST.md` pour le détail des commandes) :
+      un utilisateur sans aucune organisation habilitée voit 0 ligne en `SELECT` direct (RLS) ;
+      un `SELECT` direct de la colonne `phone` est refusé par les privilèges de colonne même pour
+      une organisation habilitée (`42501 permission denied for table`) ; accès direct par URL à
+      une fiche d'une catégorie non souscrite → `404` ; quota testé positif (1ʳᵉ fiche acceptée,
+      reconsultation non recomptée) et négatif (2ᵉ fiche distincte refusée, message Postgres exact
+      remonté à l'UI) ; import CSV réel avec doublon SIRET correctement ignoré (vérifié en
+      navigateur, pas seulement en SQL).
+- [x] Trois bugs réels trouvés et corrigés pendant cette implémentation (référence de colonne
+      ambiguë dans une fonction `RETURNS TABLE`, cast `char(14)`→`text` manquant,
+      `create or replace function` créant une surcharge au lieu de remplacer une fonction Phase A
+      dont l'arité a changé) — voir `docs/DECISIONS.md` pour l'analyse complète de chacun.
+
+**Explicitement non fait, cases volontairement non cochées :**
+
+- [ ] Import **XLSX** — seul le CSV est implémenté (pas de dépendance de parsing binaire ajoutée
+      pour cette étape). Les colonnes attendues sont documentées dans l'UI d'import.
+- [ ] Interface d'édition individuelle d'une fiche/d'un contact déjà importé (modification,
+      suppression unitaire) — l'admin importe et consulte la liste, pas d'édition ligne à ligne.
+- [ ] Export de fiches (CSV/PDF) côté client.
+- [ ] Quota appliqué à un axe autre que "nombre de fiches distinctes par mois" (ex: export en
+      masse, recherche illimitée) — seule la consultation de détail est quota-gated.
 
 ### Phase C — Bibliothèque de modèles de documents premium (non démarrée)
 

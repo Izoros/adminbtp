@@ -3,6 +3,49 @@
 Format : date, décision, contexte/alternative écartée. Ajouter une entrée à chaque décision
 d'architecture significative ou écart volontaire par rapport au cahier des charges initial.
 
+## 2026-10-22 — Trois bugs réels trouvés et corrigés en implémentant l'annuaire BTP (Phase B)
+
+**Contexte** : module annuaire BTP (`database/migrations/0017` à `0020`), protection des données à
+deux niveaux (RLS + privilèges de colonne) avec quota mensuel. Trois bugs réels détectés par
+simulation SQL directe pendant l'implémentation, avant tout code applicatif — pas des suppositions.
+
+**1. Colonne `RETURNS TABLE` qui porte le même nom qu'une colonne de la table interrogée.**
+`get_directory_company_detail()` déclare `returns table (id uuid, ...)` ; à l'intérieur du corps
+PL/pgSQL, `where id = p_company_id` est devenu ambigu (`42702`) car PL/pgSQL voit `id` comme une
+variable de sortie en plus de la colonne `directory_companies.id`. Corrigé en aliasant
+systématiquement la table (`dc.id`, `cat.service_code`, `dal.company_id`...) dans tout le corps de
+la fonction, pas seulement là où l'erreur s'est manifestée. **Leçon** : toute fonction
+`returns table (...)` dont les noms de colonnes de sortie recoupent des noms de colonnes de table
+doit aliaser explicitement chaque référence de colonne dans son corps, même les requêtes qui
+semblent sans ambiguïté au premier coup d'œil.
+
+**2. Type de colonne `char(n)` incompatible avec une sortie déclarée `text`.** La même fonction
+déclare `siret text` en sortie, mais `directory_companies.siret` est `char(14)` — Postgres refuse
+`42804 structure of query does not match function result type` au lieu de convertir implicitement.
+Corrigé par un cast explicite (`dc.siret::text`). **Leçon** : `char(n)`/`varchar(n)` dans une table
+source doivent être castés explicitement si la fonction qui les expose déclare `text` en sortie —
+ne jamais supposer qu'un type "proche" passe sans cast.
+
+**3. `create or replace function` avec une nouvelle signature crée une surcharge au lieu de
+remplacer.** Pour permettre un quota optionnel à l'octroi, `grant_entitlement()` et
+`_upsert_entitlement()` (Phase A) ont reçu un paramètre `p_access_quota integer default null`
+supplémentaire — changeant leur arité de 5→6 et 8→9 paramètres. Postgres identifie une fonction par
+nom **et** types de paramètres : `create or replace` n'a donc pas remplacé l'originale, il a créé
+une **seconde surcharge** coexistant avec l'ancienne (confirmé via
+`select oid::regprocedure from pg_proc where proname = '...'`, qui listait les deux signatures).
+Un appel ambigu ou un appel utilisant par erreur l'ancienne signature (sans la logique de quota)
+serait resté possible tant que les deux existaient. Corrigé par un `drop function if exists` explicite
+sur l'ancienne signature avant de recréer la nouvelle (`0020_directory_phase_b_drop_stale_overloads.sql`).
+**Leçon** : changer le nombre de paramètres d'une fonction existante nécessite un `drop function`
+explicite avec l'ancienne signature exacte — `create or replace` seul ne suffit jamais dans ce cas,
+contrairement à l'ajout d'une colonne de sortie ou à un changement de corps à signature inchangée.
+
+**Vérification** : chacun des trois bugs a été reproduit puis corrigé via simulation SQL directe
+(`set local role authenticated` + `request.jwt.claims`) avant tout code TypeScript, avec un nouveau
+test positif après correction. Voir `docs/VALIDATION_CHECKLIST.md` pour la liste complète des
+scénarios vérifiés sur l'annuaire (quota, isolation cross-catégorie, privilèges de colonne, 404 sur
+accès direct non autorisé).
+
 ## 2026-10-21 — `RETURNING` + policy SELECT auto-référentielle = faux négatif RLS sur Postgres 17
 
 **Problème** : le formulaire de création de chantier échouait systématiquement avec

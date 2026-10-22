@@ -130,3 +130,51 @@ La fonction `has_entitlement(organization_id, service_code)` est le point d'entr
 unique pour vérifier un accès premium — pensée dès Phase A pour être appelée depuis une future
 policy RLS d'une table protégée (annuaire Phase B, bibliothèque Phase C), jamais dupliquée dans du
 code React ou une route API.
+
+## Module Marketplace — Phase B : annuaire professionnel BTP (2026-10-22)
+
+```
+database/migrations/0017_directory_phase_b_schema.sql        Tables + fonctions + RLS + privilèges colonne
+database/migrations/0018 à 0020_*.sql                        Index FK, quota à l'octroi, correctif surcharge
+database/seeds/0005_directory_phase_b_seed.sql                Catégories + 6 fiches de démonstration
+packages/types/src/directory.ts                                Schémas Zod
+apps/web/src/lib/data/directory.ts                              Lectures — colonnes de navigation en direct,
+                                                                 coordonnées/contacts via RPC uniquement
+apps/web/src/lib/actions/directory.ts                           Import CSV (parseur maison, pas de dépendance)
+apps/web/src/app/(app)/annuaire/                                Catalogue client + fiche détail (consomme le quota)
+apps/web/src/app/(app)/admin/page.tsx (onglet Annuaire)          Import, liste complète, compteurs
+```
+
+**Deux niveaux de protection, tous deux côté base** (voir `docs/MONETIZATION_AND_ENTITLEMENTS.md`
+pour les règles produit complètes) :
+
+1. **RLS** (`has_any_accessible_entitlement()`) — une organisation sans entitlement `ACTIVE` pour
+   la catégorie (`directory.btp`/`directory.bet`/`directory.suppliers`) ne voit **aucune ligne**
+   de `directory_companies`, même via un appel API direct.
+2. **Privilèges par colonne**, indépendants de RLS — même avec l'entitlement, un `SELECT` direct
+   sur `directory_companies` ne retourne que les colonnes de navigation (`id`, `category_id`,
+   `name`, `trade_code_id`, `city`, `postal_code`, `source_id`, `created_at`, `updated_at` :
+   `grant select (...)` nommé explicitement, après `revoke select` du grant large par défaut).
+   Les coordonnées (téléphone, email, site, adresse, SIRET, notes) ne sont accessibles que via
+   `get_directory_company_detail()`, qui applique en plus le quota et journalise. `directory_contacts`
+   n'a **aucune** policy ni privilège `SELECT` direct : uniquement `get_directory_company_contacts()`.
+
+**Conséquence pour le code applicatif** : `apps/web/src/lib/data/directory.ts` ne doit **jamais**
+faire `select("*")` sur `directory_companies` pour la navigation (ça échouerait avec
+`permission denied for column`) — toujours la liste exacte de colonnes autorisées. Les coordonnées
+et contacts passent systématiquement par `supabase.rpc(...)`, jamais par un `select()` direct.
+
+**Quota mensuel générique** : `organization_entitlements.access_quota` (ajouté en Phase B mais pas
+spécifique à l'annuaire) compte les fiches **distinctes** consultées par organisation et mois
+civil dans `directory_access_log` — reconsulter une fiche déjà vue ce mois-ci ne recompte pas.
+`ADMIN_PLATEFORME` n'est jamais soumis au quota. Réglable à l'octroi via `grant_entitlement()`,
+étendu en Phase B avec un paramètre `p_access_quota` optionnel (rétrocompatible).
+
+**Piège rencontré, à retenir pour toute future fonction `SECURITY DEFINER`** : changer le nombre
+de paramètres d'une fonction existante (`grant_entitlement`, `_upsert_entitlement`) avec
+`create or replace function` ne la remplace pas — ça crée une **surcharge** coexistant avec
+l'ancienne signature, puisque Postgres identifie une fonction par nom **et** types de paramètres.
+Toujours `drop function if exists <ancienne signature exacte>` avant de recréer avec une arité
+différente. Voir `docs/DECISIONS.md` (2026-10-22) pour cette leçon et deux autres bugs réels
+(référence de colonne ambiguë dans une fonction `RETURNS TABLE`, cast `char(14)`→`text` manquant)
+trouvés et corrigés pendant cette implémentation.

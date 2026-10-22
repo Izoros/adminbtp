@@ -165,6 +165,13 @@ export const OrganizationEntitlement = z.object({
   revokeReason: z.string().optional(),
   sourceAccessRequestId: z.string().uuid().optional(),
   notes: z.string().optional(),
+  /**
+   * Quota générique optionnel (ex: nombre de fiches annuaire consultées par mois civil) —
+   * `undefined` = sans limite. Réutilisable par tout service à consommation mesurée, pas
+   * spécifique à l'annuaire BTP. Voir `has_valid_subcontractor_agreement`-style enforcement :
+   * toujours vérifié côté fonction SQL, jamais seulement côté UI.
+   */
+  accessQuota: z.number().int().positive().optional(),
   updatedAt: z.string().datetime(),
 });
 export type OrganizationEntitlement = z.infer<typeof OrganizationEntitlement>;

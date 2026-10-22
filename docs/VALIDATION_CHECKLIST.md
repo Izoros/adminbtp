@@ -160,3 +160,90 @@ démonstration altérée par ces tests)
   `docs/MONETIZATION_AND_ENTITLEMENTS.md`).
 - Quota réel sur un service premium (aucun service du catalogue initial n'en a besoin — la
   primitive `has_entitlement()` est prête pour qu'une future table protégée l'utilise).
+
+---
+
+# Checklist de validation — Module Marketplace & Entitlements, Phase B (2026-10-22)
+
+Annuaire professionnel BTP. Voir `docs/MONETIZATION_AND_ENTITLEMENTS.md` et
+`docs/ARCHITECTURE.md` (section Phase B) pour les règles complètes. Porte de validation du cahier
+des charges : *"un client non autorisé ne peut pas accéder aux données protégées, même par appel
+API direct"* — vérifiée ci-dessous à deux niveaux indépendants (RLS et privilèges de colonne).
+
+## Schéma, fonctions et RLS
+
+- [x] 5 tables (`directory_categories`, `directory_sources`, `directory_companies`,
+      `directory_contacts`, `directory_access_log`), RLS activée partout.
+- [x] `directory_contacts` : aucune policy `SELECT` ni privilège `SELECT` direct pour
+      `authenticated`/`anon` — uniquement lisible via `get_directory_company_contacts()`.
+- [x] `directory_companies` : privilèges par colonne (`revoke select` puis `grant select` sur la
+      liste exacte des colonnes de navigation) en plus de la policy RLS — deux mécanismes
+      indépendants, l'un n'est pas un filet de sécurité pour l'autre, chacun suffit seul à bloquer.
+- [x] Advisors Supabase sécurité/performance revus après application — avertissements cohérents
+      avec le reste du schéma ; index de couverture FK ajoutés (`0018_directory_phase_b_fk_indexes.sql`).
+- [x] Trois bugs réels trouvés par simulation SQL directe **avant** tout code applicatif, corrigés
+      et reproduits en test positif après correction — voir `docs/DECISIONS.md` (2026-10-22) :
+      référence de colonne ambiguë dans `get_directory_company_detail()`/`get_directory_company_contacts()`
+      (`returns table (id uuid, ...)` recoupant `directory_companies.id`), cast `char(14)`→`text`
+      manquant sur `siret`, et `create or replace function` ayant créé une surcharge au lieu de
+      remplacer `grant_entitlement()`/`_upsert_entitlement()` dont l'arité changeait.
+
+## Scénarios de test exécutés réellement (simulation SQL directe, chaque transaction `rollback`ée
+ou constatée sans effet persistant après coup — vérifié par relecture de `directory_access_log`)
+
+- [x] **Utilisateur sans aucune organisation habilitée → 0 ligne** : Julien (portfolio grant vers
+      SARL Madaterrassement temporairement révoqué dans la transaction) ne voit aucune ligne de
+      `directory_companies` en `SELECT` direct, alors que `COUNT(*)` sans RLS confirme que les
+      lignes existent bien en base.
+- [x] **Privilèges de colonne refusent `phone`/`siret` même pour une organisation habilitée** :
+      Julien (entitled via SARL Madaterrassement) peut `SELECT name, city` mais `SELECT name, phone`
+      échoue avec `42501 permission denied for table directory_companies` — un second mécanisme
+      indépendant de RLS, qui aurait bloqué même si une policy RLS avait eu une faille.
+- [x] **Quota positif** : 1er appel à `get_directory_company_detail()` réussit et retourne les
+      coordonnées (quota = 1/mois pour SARL Madaterrassement sur `directory.btp`).
+- [x] **Quota — pas de recomptage** : un second appel sur la **même** fiche le même mois réussit
+      sans consommer de quota supplémentaire.
+- [x] **Quota négatif** : un appel sur une fiche **différente** le même mois est refusé
+      (`Quota mensuel de consultations atteint pour cet annuaire`).
+- [x] **Déduplication** : `find_directory_duplicate()` retrouve une fiche existante par SIRET et
+      par nom + code postal ; retourne `null` quand aucune correspondance.
+- [x] **Admin voit tout** : `list_directory_companies_admin()` retourne les 6 fiches de
+      démonstration sans filtrage par entitlement (réservé `ADMIN_PLATEFORME`, vérifié par refus
+      pour un rôle non-admin).
+
+## Parcours navigateur réel (desktop, authentification réelle, deux comptes de démonstration)
+
+- [x] Connexion non-admin (Julien, organisation active par défaut Bâti Mayotte Construction, sans
+      entitlement annuaire) → `/annuaire` affiche les 3 catégories toutes verrouillées ("Non
+      souscrit" + lien vers `/services`).
+- [x] Changement d'organisation active vers SARL Madaterrassement (entitlement `directory.btp`
+      actif) → la catégorie "Entreprises BTP" se déverrouille avec ses 2 fiches réelles, les deux
+      autres catégories restent verrouillées.
+- [x] Clic réel sur une fiche → `/annuaire/[id]` affiche coordonnées et contact réels (consommation
+      de quota confirmée).
+- [x] Accès direct par URL à une fiche d'une catégorie non souscrite (Fournisseurs) → **404 réel**,
+      pas un message d'erreur — la ligne est invisible dès la lecture des colonnes de navigation.
+- [x] Reconsultation de la même fiche → toujours accessible (pas de recomptage).
+- [x] Consultation d'une **deuxième** fiche le même mois → message d'erreur Postgres exact
+      ("Quota mensuel...") remonté jusqu'à l'UI, pas un message générique.
+- [x] Connexion admin → `/admin` onglet Annuaire : import CSV réel (2 nouvelles fiches + 1 doublon
+      SIRET volontaire) → résultat exact affiché ("2 créées, 1 ignorée (doublon), 0 erreur"),
+      compteurs par catégorie mis à jour, nouvelles fiches visibles dans la liste admin.
+- [x] Formulaire "Octroyer directement" (onglet Entitlements) avec quota = 2 → entitlement créé et
+      affiché avec "quota 2/mois" ; l'entitlement existant de SARL Madaterrassement affiche
+      correctement "quota 1/mois" (régression de l'affichage vérifiée en même temps).
+
+## Vérifications techniques
+
+- [x] `pnpm -r typecheck` : 0 erreur sur tout le monorepo.
+- [x] `pnpm -r lint` : 0 erreur.
+- [x] `pnpm --filter @adminbtp/web build` : build de production réussi (`/annuaire` et
+      `/annuaire/[id]` générés comme routes dynamiques).
+- [x] `pnpm -r test` : 10 tests passants (inchangés, aucune régression).
+
+## Explicitement non fait en Phase B (voir `docs/ROADMAP.md`)
+
+- Import XLSX (CSV uniquement).
+- Édition individuelle d'une fiche/d'un contact déjà importé.
+- Export de fiches.
+- Quota appliqué à un axe autre que "nombre de fiches distinctes consultées par mois".
