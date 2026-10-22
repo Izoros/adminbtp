@@ -51,3 +51,21 @@ export async function createSite(formData: FormData) {
   revalidatePath("/dashboard");
   redirect(`/chantiers/${id}`);
 }
+
+export async function updateInternalReminderDays(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const daysRaw = String(formData.get("internalReminderDays") ?? "").trim();
+  const days = Number(daysRaw);
+  if (!siteId || !daysRaw || !Number.isInteger(days) || days <= 0) {
+    throw new Error("Chantier et délai (entier positif) sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sites")
+    .update({ internal_reminder_days: days })
+    .eq("id", siteId);
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}

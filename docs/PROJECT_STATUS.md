@@ -59,9 +59,12 @@ fait, dans `docs/ROADMAP.md` (section "Tranches A-D").
   réserve, journal, compte-rendu → tâche, avancement, clôture de participant, membre de lot,
   avenant, avance/retenue, DGD, gating de l'actualisation, relance, pièce expirée, classement de
   mail, filtrage de modèle) ; données de test nettoyées après vérification.
-- Non fait : export PDF du compte-rendu, preuve WhatsApp réelle, rapprochement automatique
-  avancement/facturé, édition a posteriori d'une entrée de journal/réserve/compte-rendu,
-  formulaire de configuration du délai de relance interne — voir `docs/ROADMAP.md`.
+- Comblé le 2026-10-22 (branche `claude/suite-moteur-chantier`) : rapprochement avancement
+  déclaré/HT facturé affiché par lot (badge d'écart) ; édition a posteriori d'une entrée de
+  journal, d'une réserve et de la date d'un compte-rendu ; formulaire de configuration du délai de
+  relance interne par chantier. Vérifié en navigateur, données de test nettoyées.
+- Toujours non fait : export PDF du compte-rendu, preuve WhatsApp réelle, suppression a posteriori
+  d'une entrée de journal/réserve/compte-rendu — voir `docs/ROADMAP.md`.
 
 **Arrêt ici, comme pour toute étape non explicitement validée.**
 
@@ -202,10 +205,9 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 - Marketplace : annuaire BTP, bibliothèque de documents premium, crédits, abonnements facturés,
   intégration Odoo réelle du module (Phases B-E, voir `docs/ROADMAP.md`) ; édition du
   catalogue/tarifs via UI.
-- Tranches A-D : export PDF du compte-rendu, preuve WhatsApp réelle pour les relances,
-  rapprochement automatique avancement/HT facturé, édition a posteriori d'une entrée de
-  journal/réserve/compte-rendu, formulaire de configuration du délai de relance interne par
-  chantier — voir `docs/ROADMAP.md`.
+- Tranches A-D : export PDF du compte-rendu, preuve WhatsApp réelle pour les relances, suppression
+  a posteriori d'une entrée de journal/réserve/compte-rendu (l'édition est faite) — voir
+  `docs/ROADMAP.md`.
 
 ## Structure du dépôt
 

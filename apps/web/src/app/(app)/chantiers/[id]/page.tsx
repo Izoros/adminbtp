@@ -47,11 +47,15 @@ import {
   reviewPlanSubmission,
   createReserveItem,
   updateReserveStatus,
+  updateReserveItem,
   createSiteLogEntry,
+  updateSiteLogEntry,
   createMeetingNote,
+  updateMeetingNote,
   recordLotProgress,
 } from "@/lib/actions/execution";
 import { sendReminder, runInternalReminderCheck } from "@/lib/actions/reminders";
+import { updateInternalReminderDays } from "@/lib/actions/sites";
 import {
   SITE_STATUS_LABELS,
   MISSION_ROLE_LABELS,
@@ -214,6 +218,23 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
   );
   const pendingPlanSubmissions = planSubmissions.filter((p) => p.status === "DEPOSE");
   const openReserves = reserveItems.filter((r) => r.status === "OUVERTE");
+
+  /**
+   * Rapprochement avancement déclaré / HT facturé : compare le dernier pourcentage déclaré sur
+   * le lot à son équivalent en HT facturé (situations ACCEPTE/PAYE de ce lot) rapporté au montant
+   * du lot. Simple signal d'écart affiché — aucun rapprochement périodique automatique, aucune
+   * écriture déclenchée (voir docs/ROADMAP.md).
+   */
+  const latestProgressByLot = new Map<string, (typeof lotProgress)[number]>();
+  for (const lp of lotProgress) {
+    const current = latestProgressByLot.get(lp.lotId);
+    if (!current || lp.recordDate > current.recordDate) latestProgressByLot.set(lp.lotId, lp);
+  }
+  const billedHtByLot = new Map<string, number>();
+  for (const s of situations) {
+    if (!s.lotId || (s.status !== "ACCEPTE" && s.status !== "PAYE")) continue;
+    billedHtByLot.set(s.lotId, (billedHtByLot.get(s.lotId) ?? 0) + s.amountHt);
+  }
 
   return (
     <div className="space-y-6">
@@ -961,10 +982,23 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                         due non transmise, pièce d&apos;agrément manquante) — paramètre de ce chantier.
                       </p>
                     </div>
-                    <form action={runInternalReminderCheck}>
-                      <input type="hidden" name="siteId" value={site.id} />
-                      <Button type="submit" size="sm" variant="secondary">Vérifier les relances</Button>
-                    </form>
+                    <div className="flex items-center gap-2">
+                      <form action={updateInternalReminderDays} className="flex items-center gap-1">
+                        <input type="hidden" name="siteId" value={site.id} />
+                        <Input
+                          name="internalReminderDays"
+                          type="number"
+                          min="1"
+                          defaultValue={site.internalReminderDays}
+                          className="h-8 w-16 text-xs"
+                        />
+                        <Button type="submit" size="sm" variant="secondary">Enregistrer</Button>
+                      </form>
+                      <form action={runInternalReminderCheck}>
+                        <input type="hidden" name="siteId" value={site.id} />
+                        <Button type="submit" size="sm" variant="secondary">Vérifier les relances</Button>
+                      </form>
+                    </div>
                   </div>
                 </Card>
 
@@ -1039,20 +1073,50 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                   ) : (
                     <div className="space-y-2">
                       {openReserves.map((r) => (
-                        <Card key={r.id} className="flex items-center justify-between gap-4 p-4">
-                          <div>
-                            <p className="font-medium text-graphite-900">{r.description}</p>
-                            <p className="text-xs text-graphite-500">
-                              {r.location ?? "—"} · {RESERVE_SEVERITY_LABELS[r.severity]}
-                              {r.dueDate ? ` · échéance ${r.dueDate}` : ""}
-                            </p>
+                        <Card key={r.id} className="space-y-2 p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="font-medium text-graphite-900">{r.description}</p>
+                              <p className="text-xs text-graphite-500">
+                                {r.location ?? "—"} · {RESERVE_SEVERITY_LABELS[r.severity]}
+                                {r.dueDate ? ` · échéance ${r.dueDate}` : ""}
+                              </p>
+                            </div>
+                            <form action={updateReserveStatus} className="flex gap-1">
+                              <input type="hidden" name="siteId" value={site.id} />
+                              <input type="hidden" name="reserveId" value={r.id} />
+                              <Button type="submit" name="status" value="LEVEE" size="sm" variant="accent">Levée</Button>
+                              <Button type="submit" name="status" value="CONTESTEE" size="sm" variant="secondary">Contestée</Button>
+                            </form>
                           </div>
-                          <form action={updateReserveStatus} className="flex gap-1">
-                            <input type="hidden" name="siteId" value={site.id} />
-                            <input type="hidden" name="reserveId" value={r.id} />
-                            <Button type="submit" name="status" value="LEVEE" size="sm" variant="accent">Levée</Button>
-                            <Button type="submit" name="status" value="CONTESTEE" size="sm" variant="secondary">Contestée</Button>
-                          </form>
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-graphite-500">Corriger</summary>
+                            <form action={updateReserveItem} className="mt-2 flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="siteId" value={site.id} />
+                              <input type="hidden" name="reserveId" value={r.id} />
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Local</label>
+                                <Input name="location" defaultValue={r.location ?? ""} className="h-8 w-28 text-xs" />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Description *</label>
+                                <Input name="description" defaultValue={r.description} className="h-8 w-48 text-xs" required />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Gravité *</label>
+                                <Select name="severity" defaultValue={r.severity} className="h-8 w-28 text-xs" required>
+                                  {ReserveSeverity.options.map((s) => (
+                                    <option key={s} value={s}>{RESERVE_SEVERITY_LABELS[s]}</option>
+                                  ))}
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Échéance</label>
+                                <Input name="dueDate" type="date" defaultValue={r.dueDate ?? ""} className="h-8 w-32 text-xs" />
+                              </div>
+                              <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
+                            </form>
+                          </details>
                         </Card>
                       ))}
                     </div>
@@ -1100,10 +1164,33 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                   ) : (
                     <div className="space-y-1">
                       {logEntries.map((l) => (
-                        <p key={l.id} className="text-sm text-graphite-700">
-                          <span className="text-graphite-500">{l.entryDate}</span> —{" "}
-                          <Badge tone="neutral">{SITE_LOG_ENTRY_KIND_LABELS[l.kind]}</Badge> {l.description}
-                        </p>
+                        <details key={l.id} className="text-sm">
+                          <summary className="cursor-pointer list-none text-graphite-700">
+                            <span className="text-graphite-500">{l.entryDate}</span> —{" "}
+                            <Badge tone="neutral">{SITE_LOG_ENTRY_KIND_LABELS[l.kind]}</Badge> {l.description}
+                          </summary>
+                          <form action={updateSiteLogEntry} className="mt-2 flex flex-wrap items-end gap-2">
+                            <input type="hidden" name="siteId" value={site.id} />
+                            <input type="hidden" name="entryId" value={l.id} />
+                            <div>
+                              <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                              <Input name="entryDate" type="date" defaultValue={l.entryDate} className="h-8 w-36 text-xs" required />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs text-graphite-500">Nature *</label>
+                              <Select name="kind" defaultValue={l.kind} className="h-8 w-32 text-xs" required>
+                                {SiteLogEntryKind.options.map((k) => (
+                                  <option key={k} value={k}>{SITE_LOG_ENTRY_KIND_LABELS[k]}</option>
+                                ))}
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs text-graphite-500">Description *</label>
+                              <Input name="description" defaultValue={l.description} className="h-8 w-56 text-xs" required />
+                            </div>
+                            <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
+                          </form>
+                        </details>
                       ))}
                     </div>
                   )}
@@ -1139,7 +1226,7 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                   ) : (
                     <div className="space-y-2">
                       {meetingNotes.map((m) => (
-                        <Card key={m.id} className="p-4">
+                        <Card key={m.id} className="space-y-2 p-4">
                           <p className="font-medium text-graphite-900">Réunion du {m.meetingDate}</p>
                           {(meetingAttendeesByMeeting.get(m.id) ?? []).length > 0 && (
                             <p className="text-xs text-graphite-500">
@@ -1154,6 +1241,18 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               ))}
                             </ul>
                           )}
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-graphite-500">Corriger la date</summary>
+                            <form action={updateMeetingNote} className="mt-2 flex items-end gap-2">
+                              <input type="hidden" name="siteId" value={site.id} />
+                              <input type="hidden" name="meetingId" value={m.id} />
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                                <Input name="meetingDate" type="date" defaultValue={m.meetingDate} className="h-8 w-36 text-xs" required />
+                              </div>
+                              <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
+                            </form>
+                          </details>
                         </Card>
                       ))}
                     </div>
@@ -1194,6 +1293,36 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                         );
                       })}
                     </div>
+                    {lots.some((lot) => latestProgressByLot.has(lot.id)) && (
+                      <div className="mt-3 space-y-1 border-t border-surface-border pt-3">
+                        <p className="text-xs font-medium text-graphite-500">
+                          Avancement déclaré vs HT facturé (accepté/payé)
+                        </p>
+                        {lots
+                          .filter((lot) => latestProgressByLot.has(lot.id))
+                          .map((lot) => {
+                            const progress = latestProgressByLot.get(lot.id)!;
+                            const billedHt = billedHtByLot.get(lot.id) ?? 0;
+                            const expectedHt = lot.amountHt != null ? (lot.amountHt * progress.declaredPercent) / 100 : null;
+                            const gapPercent = expectedHt != null && expectedHt > 0
+                              ? Math.round(((billedHt - expectedHt) / expectedHt) * 100)
+                              : null;
+                            const isLargeGap = gapPercent != null && Math.abs(gapPercent) >= 10;
+                            return (
+                              <p key={lot.id} className="text-sm text-graphite-700">
+                                {lot.number} — déclaré {progress.declaredPercent}%
+                                {expectedHt != null ? ` (≈ ${formatEuro(expectedHt)} HT attendu)` : ""} vs{" "}
+                                {formatEuro(billedHt)} HT facturé
+                                {gapPercent != null && (
+                                  <Badge tone={isLargeGap ? "warning" : "neutral"} className="ml-2">
+                                    écart {gapPercent > 0 ? "+" : ""}{gapPercent}%
+                                  </Badge>
+                                )}
+                              </p>
+                            );
+                          })}
+                      </div>
+                    )}
                     <form action={recordLotProgress} className="mt-2 flex flex-wrap items-end gap-2">
                       <input type="hidden" name="siteId" value={site.id} />
                       <div>
