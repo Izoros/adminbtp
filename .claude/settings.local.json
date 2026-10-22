@@ -34,7 +34,14 @@
       "Bash(python3 -c ' *)",
       "Bash(pnpm --filter @adminbtp/types typecheck)",
       "Bash(pnpm -r lint)",
-      "Bash(pnpm --filter @adminbtp/web build)"
+      "Bash(pnpm --filter @adminbtp/web build)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(env)",
+      "Bash(git fetch *)",
+      "Bash(git ls-remote *)"
     ]
   }
 }
