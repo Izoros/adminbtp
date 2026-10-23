@@ -20,6 +20,9 @@ export const MissionRole = z.enum([
   "PROMOTEUR",
   "BAILLEUR_SOCIAL",
   "COLLECTIVITE",
+  "CT", // Contrôleur technique
+  "SPS", // Coordonnateur sécurité et protection de la santé
+  "CSSI", // Coordonnateur SSI
 ]);
 export type MissionRole = z.infer<typeof MissionRole>;
 
@@ -36,6 +39,9 @@ export const MISSION_ROLE_LABELS: Record<MissionRole, string> = {
   PROMOTEUR: "Promoteur",
   BAILLEUR_SOCIAL: "Bailleur social",
   COLLECTIVITE: "Collectivité",
+  CT: "Contrôleur technique",
+  SPS: "Coordonnateur SPS",
+  CSSI: "Coordonnateur SSI",
 };
 
 /**

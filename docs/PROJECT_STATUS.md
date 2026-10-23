@@ -1,11 +1,11 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Tranches A-D du moteur de chantier (pièces d'entreprise, avenants/retenue/
-avance/DGD, exécution, quotidien) — en cours, non terminées et non validées par l'utilisateur
-(livrées 2026-10-22, s'ajoutent au Module Moteur de chantier avancé du même jour).** Module
-Marketplace & Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP)
-terminée** le 2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md`
-pour le détail des cases cochées/restantes.
+**Phase actuelle : Tranche E du moteur de chantier (bureaux de mission OPC, CT, SPS, BET) — en
+cours, non terminée et non validée par l'utilisateur (livrée 2026-10-23, sur la branche
+`claude/suite-moteur-chantier`, à la suite des Tranches A-D du 2026-10-22).** Module Marketplace &
+Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP) terminée** le
+2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md` pour le
+détail des cases cochées/restantes.
 
 ## Module Marketplace & Entitlements — Phase B : annuaire professionnel BTP (2026-10-22)
 
@@ -30,6 +30,33 @@ Phase A. Voir `docs/ROADMAP.md` (section Phase B) pour le détail complet et
 - Non fait : import XLSX, édition individuelle de fiche/contact, export — voir `docs/ROADMAP.md`.
 
 **Arrêt ici comme demandé — Phase C (bibliothèque de documents premium) non démarrée.**
+
+## Tranche E — Bureaux de mission OPC, CT, SPS, BET (en cours, 2026-10-23)
+
+**Non terminé, ne pas considérer cette étape comme close.** Livré à la suite des Tranches A-D sur
+la branche `claude/suite-moteur-chantier` — même moteur unique, aucune application séparée pour
+l'OPC/CT/SPS. Détail complet, y compris ce qui reste explicitement non fait, dans
+`docs/ROADMAP.md` (section "Tranche E").
+
+- Nouveaux rôles chantier `CT`/`SPS`/`CSSI`, jamais fusionnés avec `MOE`/`OPC`.
+- Réunions généralisées (`meeting_notes` étendu : nature, numéro, statut Brouillon/Validé,
+  présences avec statut) réservées aux organisations OPC/MOE actives sur le chantier ; décisions
+  assignées à une organisation du chantier avec échéance ; décisions précédentes toujours ouvertes
+  rechargées au-dessus du formulaire.
+- Notes de coordination OPC par lot (`lot_schedule_notes`), sans moteur de planning.
+- Avis techniques CT/SPS/BET/CSSI (`technical_opinions`) : un avis CT suspendu/défavorable
+  s'affiche sur l'écran de visa MOE sans jamais le bloquer — vérifié en navigateur avec un cas réel.
+- Nouvel onglet "Bureaux" sur `/chantiers/[id]`, masqué section par section selon le rôle actif de
+  l'organisation courante.
+- Vérifié : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web build` verts ; parcours
+  complet vérifié en navigateur avec changement d'organisation active (création de réunion,
+  validation du CR, note de coordination, avis CT et mention sur l'écran de visa) ; données et
+  participations de test nettoyées après vérification.
+- Non fait : accusé de réception et diffusion réelle du CR aux titulaires de lot, sélecteurs
+  tâche/document pour un point d'ordre du jour, assignation/échéance ligne par ligne des
+  décisions, application mobile OPC dédiée — voir `docs/ROADMAP.md`.
+
+**Arrêt ici, comme pour toute étape non explicitement validée.**
 
 ## Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien (en cours, 2026-10-22)
 
@@ -208,6 +235,9 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 - Tranches A-D : export PDF du compte-rendu, preuve WhatsApp réelle pour les relances, suppression
   a posteriori d'une entrée de journal/réserve/compte-rendu (l'édition est faite) — voir
   `docs/ROADMAP.md`.
+- Tranche E : accusé de réception et diffusion réelle du CR aux titulaires de lot, sélecteurs
+  tâche/document pour un point d'ordre du jour, assignation/échéance ligne par ligne des
+  décisions, application mobile OPC dédiée — voir `docs/ROADMAP.md`.
 
 ## Structure du dépôt
 

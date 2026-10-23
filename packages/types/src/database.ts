@@ -901,6 +901,58 @@ export type Database = {
           },
         ]
       }
+      lot_schedule_notes: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          id: string
+          lot_id: string
+          needs_lot_id: string | null
+          note: string
+          week: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          lot_id: string
+          needs_lot_id?: string | null
+          note: string
+          week: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          lot_id?: string
+          needs_lot_id?: string | null
+          note?: string
+          week?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_schedule_notes_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_schedule_notes_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_schedule_notes_needs_lot_id_fkey"
+            columns: ["needs_lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lots: {
         Row: {
           amount_ht: number | null
@@ -1187,24 +1239,86 @@ export type Database = {
           },
         ]
       }
+      meeting_agenda_items: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          id: string
+          meeting_id: string
+          source_log_entry_id: string | null
+          task_id: string | null
+          text: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          meeting_id: string
+          source_log_entry_id?: string | null
+          task_id?: string | null
+          text?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          meeting_id?: string
+          source_log_entry_id?: string | null
+          task_id?: string | null
+          text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_agenda_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_agenda_items_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_agenda_items_source_log_entry_id_fkey"
+            columns: ["source_log_entry_id"]
+            isOneToOne: false
+            referencedRelation: "site_log_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_agenda_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_attendees: {
         Row: {
           id: string
           meeting_id: string
           name: string
           organization_id: string
+          status: Database["public"]["Enums"]["attendee_status"]
         }
         Insert: {
           id?: string
           meeting_id: string
           name: string
           organization_id: string
+          status?: Database["public"]["Enums"]["attendee_status"]
         }
         Update: {
           id?: string
           meeting_id?: string
           name?: string
           organization_id?: string
+          status?: Database["public"]["Enums"]["attendee_status"]
         }
         Relationships: [
           {
@@ -1271,30 +1385,55 @@ export type Database = {
       }
       meeting_notes: {
         Row: {
+          author_organization_id: string | null
           created_at: string
           created_by_user_id: string
           document_id: string | null
           id: string
+          kind: Database["public"]["Enums"]["meeting_kind"]
           meeting_date: string
+          number: number | null
           site_id: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          validated_at: string | null
+          validated_by_user_id: string | null
         }
         Insert: {
+          author_organization_id?: string | null
           created_at?: string
           created_by_user_id: string
           document_id?: string | null
           id?: string
+          kind?: Database["public"]["Enums"]["meeting_kind"]
           meeting_date: string
+          number?: number | null
           site_id: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          validated_at?: string | null
+          validated_by_user_id?: string | null
         }
         Update: {
+          author_organization_id?: string | null
           created_at?: string
           created_by_user_id?: string
           document_id?: string | null
           id?: string
+          kind?: Database["public"]["Enums"]["meeting_kind"]
           meeting_date?: string
+          number?: number | null
           site_id?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          validated_at?: string | null
+          validated_by_user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "meeting_notes_author_organization_id_fkey"
+            columns: ["author_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meeting_notes_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
@@ -1314,6 +1453,13 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notes_validated_by_user_id_fkey"
+            columns: ["validated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2759,6 +2905,93 @@ export type Database = {
           },
         ]
       }
+      technical_opinions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          document_id: string | null
+          id: string
+          issuer_organization_id: string
+          issuer_role: Database["public"]["Enums"]["technical_opinion_issuer_role"]
+          kind: Database["public"]["Enums"]["technical_opinion_kind"]
+          lot_id: string | null
+          site_id: string
+          status: Database["public"]["Enums"]["technical_opinion_status"]
+          text: string
+          verdict:
+            | Database["public"]["Enums"]["technical_opinion_verdict"]
+            | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          document_id?: string | null
+          id?: string
+          issuer_organization_id: string
+          issuer_role: Database["public"]["Enums"]["technical_opinion_issuer_role"]
+          kind: Database["public"]["Enums"]["technical_opinion_kind"]
+          lot_id?: string | null
+          site_id: string
+          status?: Database["public"]["Enums"]["technical_opinion_status"]
+          text: string
+          verdict?:
+            | Database["public"]["Enums"]["technical_opinion_verdict"]
+            | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          document_id?: string | null
+          id?: string
+          issuer_organization_id?: string
+          issuer_role?: Database["public"]["Enums"]["technical_opinion_issuer_role"]
+          kind?: Database["public"]["Enums"]["technical_opinion_kind"]
+          lot_id?: string | null
+          site_id?: string
+          status?: Database["public"]["Enums"]["technical_opinion_status"]
+          text?: string
+          verdict?:
+            | Database["public"]["Enums"]["technical_opinion_verdict"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_opinions_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_opinions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_opinions_issuer_organization_id_fkey"
+            columns: ["issuer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_opinions_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_opinions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_codes: {
         Row: {
           code: string
@@ -3073,6 +3306,7 @@ export type Database = {
       access_request_status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
       amendment_status: "BROUILLON" | "VALIDE" | "REFUSE"
       approval_decision: "APPROUVE" | "REFUSE" | "MODIFICATION_DEMANDEE"
+      attendee_status: "PRESENT" | "EXCUSE" | "ABSENT"
       audit_actor_type: "USER" | "AUTOMATION" | "AI"
       billing_period: "MONTHLY" | "ANNUAL" | "ONE_TIME"
       credential_kind:
@@ -3163,6 +3397,8 @@ export type Database = {
         | "AVANCE"
         | "AUTRE"
       market_contract_type: "PRIVE" | "PUBLIC"
+      meeting_kind: "OPC" | "SYNTHESE" | "RECEPTION"
+      meeting_status: "BROUILLON" | "VALIDE"
       mission_role:
         | "MOA"
         | "MOE"
@@ -3176,6 +3412,9 @@ export type Database = {
         | "PROMOTEUR"
         | "BAILLEUR_SOCIAL"
         | "COLLECTIVITE"
+        | "CT"
+        | "SPS"
+        | "CSSI"
       organization_size_band: "TPE" | "PME" | "ETI"
       payment_status:
         | "A_ETABLIR"
@@ -3247,6 +3486,14 @@ export type Database = {
         | "AUTOMATISATION"
         | "MEETING"
       task_status: "A_FAIRE" | "EN_COURS" | "EN_ATTENTE" | "FAIT" | "ANNULE"
+      technical_opinion_issuer_role: "CT" | "SPS" | "BET" | "CSSI"
+      technical_opinion_kind: "AVIS" | "VISITE" | "OBSERVATION"
+      technical_opinion_status: "BROUILLON" | "EMIS"
+      technical_opinion_verdict:
+        | "FAVORABLE"
+        | "FAVORABLE_AVEC_OBSERVATIONS"
+        | "SUSPENDU"
+        | "DEFAVORABLE"
       trade_family:
         | "STRUCTURE_VRD"
         | "TECHNIQUE"
@@ -3400,6 +3647,7 @@ export const Constants = {
       access_request_status: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
       amendment_status: ["BROUILLON", "VALIDE", "REFUSE"],
       approval_decision: ["APPROUVE", "REFUSE", "MODIFICATION_DEMANDEE"],
+      attendee_status: ["PRESENT", "EXCUSE", "ABSENT"],
       audit_actor_type: ["USER", "AUTOMATION", "AI"],
       billing_period: ["MONTHLY", "ANNUAL", "ONE_TIME"],
       credential_kind: [
@@ -3499,6 +3747,8 @@ export const Constants = {
         "AUTRE",
       ],
       market_contract_type: ["PRIVE", "PUBLIC"],
+      meeting_kind: ["OPC", "SYNTHESE", "RECEPTION"],
+      meeting_status: ["BROUILLON", "VALIDE"],
       mission_role: [
         "MOA",
         "MOE",
@@ -3512,6 +3762,9 @@ export const Constants = {
         "PROMOTEUR",
         "BAILLEUR_SOCIAL",
         "COLLECTIVITE",
+        "CT",
+        "SPS",
+        "CSSI",
       ],
       organization_size_band: ["TPE", "PME", "ETI"],
       payment_status: [
@@ -3592,6 +3845,15 @@ export const Constants = {
         "MEETING",
       ],
       task_status: ["A_FAIRE", "EN_COURS", "EN_ATTENTE", "FAIT", "ANNULE"],
+      technical_opinion_issuer_role: ["CT", "SPS", "BET", "CSSI"],
+      technical_opinion_kind: ["AVIS", "VISITE", "OBSERVATION"],
+      technical_opinion_status: ["BROUILLON", "EMIS"],
+      technical_opinion_verdict: [
+        "FAVORABLE",
+        "FAVORABLE_AVEC_OBSERVATIONS",
+        "SUSPENDU",
+        "DEFAVORABLE",
+      ],
       trade_family: [
         "STRUCTURE_VRD",
         "TECHNIQUE",

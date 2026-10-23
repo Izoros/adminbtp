@@ -6,6 +6,7 @@ import type {
   MeetingNote,
   MeetingAttendee,
   MeetingDecision,
+  MeetingAgendaItem,
   LotProgress,
 } from "@adminbtp/types";
 import type { Database } from "@adminbtp/types";
@@ -16,6 +17,7 @@ type SiteLogEntryRow = Database["public"]["Tables"]["site_log_entries"]["Row"];
 type MeetingNoteRow = Database["public"]["Tables"]["meeting_notes"]["Row"];
 type MeetingAttendeeRow = Database["public"]["Tables"]["meeting_attendees"]["Row"];
 type MeetingDecisionRow = Database["public"]["Tables"]["meeting_decisions"]["Row"];
+type MeetingAgendaItemRow = Database["public"]["Tables"]["meeting_agenda_items"]["Row"];
 type LotProgressRow = Database["public"]["Tables"]["lot_progress"]["Row"];
 
 function mapPlanSubmission(row: PlanSubmissionRow): PlanSubmission {
@@ -66,15 +68,27 @@ function mapMeetingNote(row: MeetingNoteRow): MeetingNote {
   return {
     id: row.id,
     siteId: row.site_id,
+    kind: row.kind,
+    number: row.number ?? undefined,
     meetingDate: row.meeting_date,
+    authorOrganizationId: row.author_organization_id ?? undefined,
+    status: row.status,
     createdByUserId: row.created_by_user_id,
     documentId: row.document_id ?? undefined,
+    validatedAt: row.validated_at ?? undefined,
+    validatedByUserId: row.validated_by_user_id ?? undefined,
     createdAt: row.created_at,
   };
 }
 
 function mapMeetingAttendee(row: MeetingAttendeeRow): MeetingAttendee {
-  return { id: row.id, meetingId: row.meeting_id, organizationId: row.organization_id, name: row.name };
+  return {
+    id: row.id,
+    meetingId: row.meeting_id,
+    organizationId: row.organization_id,
+    name: row.name,
+    status: row.status,
+  };
 }
 
 function mapMeetingDecision(row: MeetingDecisionRow): MeetingDecision {
@@ -84,6 +98,18 @@ function mapMeetingDecision(row: MeetingDecisionRow): MeetingDecision {
     lotId: row.lot_id ?? undefined,
     text: row.text,
     taskId: row.task_id ?? undefined,
+  };
+}
+
+function mapMeetingAgendaItem(row: MeetingAgendaItemRow): MeetingAgendaItem {
+  return {
+    id: row.id,
+    meetingId: row.meeting_id,
+    taskId: row.task_id ?? undefined,
+    documentId: row.document_id ?? undefined,
+    sourceLogEntryId: row.source_log_entry_id ?? undefined,
+    text: row.text ?? undefined,
+    createdAt: row.created_at,
   };
 }
 
@@ -156,6 +182,31 @@ export async function getMeetingDecisions(meetingIds: string[]): Promise<Meeting
   const { data, error } = await supabase.from("meeting_decisions").select("*").in("meeting_id", meetingIds);
   if (error) throw error;
   return (data ?? []).map(mapMeetingDecision);
+}
+
+export async function getMeetingAgendaItems(meetingIds: string[]): Promise<MeetingAgendaItem[]> {
+  if (meetingIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meeting_agenda_items")
+    .select("*")
+    .in("meeting_id", meetingIds)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(mapMeetingAgendaItem);
+}
+
+/** Tâches MEETING non closes des réunions précédentes — rechargées dans le formulaire de création. */
+export async function getOpenMeetingDecisionTasks(siteId: string): Promise<{ title: string; dueDate?: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("title, due_date")
+    .eq("site_id", siteId)
+    .eq("source_type", "MEETING")
+    .not("status", "in", "(FAIT,ANNULE)");
+  if (error) throw error;
+  return (data ?? []).map((t) => ({ title: t.title, dueDate: t.due_date ?? undefined }));
 }
 
 export async function getLotProgress(lotIds: string[]): Promise<LotProgress[]> {

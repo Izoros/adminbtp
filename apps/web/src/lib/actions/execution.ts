@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import type { ReserveSeverity, ReserveStatus, SiteLogEntryKind, PlanSubmissionStatus } from "@adminbtp/types";
+import type {
+  ReserveSeverity,
+  ReserveStatus,
+  SiteLogEntryKind,
+  PlanSubmissionStatus,
+  MeetingKind,
+  AttendeeStatus,
+} from "@adminbtp/types";
 
 // --- Visa ----------------------------------------------------------------
 
@@ -189,21 +196,50 @@ export async function updateSiteLogEntry(formData: FormData) {
 // --- Comptes-rendus ----------------------------------------------------------
 
 /**
- * Crée le compte-rendu, ses présences et ses décisions en une fois. Chaque décision crée
- * immédiatement une tâche existante (source_type MEETING) — le PDF COMPTE_RENDU reste un export
- * distinct, jamais généré automatiquement ici.
+ * Seuls les participants OPC et MOE créent une réunion ou la font passer à VALIDE — vérifié ici
+ * via site_participants, pas par une policy RLS (le rôle chantier n'est pas un axe d'isolation
+ * multi-tenant, même choix que pour les actes, voir acts.ts).
+ */
+async function assertOpcOrMoe(supabase: Awaited<ReturnType<typeof createClient>>, siteId: string, organizationId: string) {
+  const { data: participation } = await supabase
+    .from("site_participants")
+    .select("id")
+    .eq("site_id", siteId)
+    .eq("organization_id", organizationId)
+    .in("mission_role", ["OPC", "MOE"])
+    .is("left_at", null)
+    .maybeSingle();
+  if (!participation) {
+    throw new Error("Seule une organisation avec le rôle OPC ou MOE actif sur ce chantier peut créer ou valider une réunion.");
+  }
+}
+
+/**
+ * Crée le compte-rendu, ses présences (une ligne par organisation participante active, statut
+ * par défaut Présent) et ses décisions en une fois. Chaque décision crée immédiatement une tâche
+ * existante (source_type MEETING), assignée à l'organisation choisie — le PDF COMPTE_RENDU reste
+ * un export distinct, jamais généré automatiquement ici.
  */
 export async function createMeetingNote(formData: FormData) {
   const siteId = String(formData.get("siteId") ?? "").trim();
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  const kind = String(formData.get("kind") ?? "OPC").trim() as MeetingKind;
+  const numberRaw = String(formData.get("number") ?? "").trim();
   const meetingDate = String(formData.get("meetingDate") ?? "").trim();
   const decisionsText = String(formData.get("decisions") ?? "").trim();
-  if (!siteId || !meetingDate) throw new Error("Chantier et date sont obligatoires.");
+  const assignedOrganizationId = String(formData.get("assignedOrganizationId") ?? "").trim();
+  const decisionsDueDate = String(formData.get("decisionsDueDate") ?? "").trim();
+  if (!siteId || !organizationId || !meetingDate) {
+    throw new Error("Chantier, organisation et date sont obligatoires.");
+  }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Non authentifié");
+
+  await assertOpcOrMoe(supabase, siteId, organizationId);
 
   const { data: site, error: siteError } = await supabase
     .from("sites")
@@ -212,14 +248,41 @@ export async function createMeetingNote(formData: FormData) {
     .single();
   if (siteError) throw siteError;
 
+  const { data: participants, error: participantsError } = await supabase
+    .from("site_participants")
+    .select("organization_id")
+    .eq("site_id", siteId)
+    .is("left_at", null);
+  if (participantsError) throw participantsError;
+  const { data: organizations, error: organizationsError } = await supabase
+    .from("organizations")
+    .select("id, legal_name")
+    .in("id", (participants ?? []).map((p) => p.organization_id));
+  if (organizationsError) throw organizationsError;
+
   const meetingId = randomUUID();
   const { error: meetingError } = await supabase.from("meeting_notes").insert({
     id: meetingId,
     site_id: siteId,
+    kind,
+    number: numberRaw ? Number(numberRaw) : null,
     meeting_date: meetingDate,
+    author_organization_id: organizationId,
+    status: "BROUILLON",
     created_by_user_id: user.id,
   });
   if (meetingError) throw meetingError;
+
+  for (const org of organizations ?? []) {
+    const status = String(formData.get(`attendeeStatus:${org.id}`) ?? "PRESENT").trim() as AttendeeStatus;
+    const { error: attendeeError } = await supabase.from("meeting_attendees").insert({
+      meeting_id: meetingId,
+      organization_id: org.id,
+      name: org.legal_name,
+      status,
+    });
+    if (attendeeError) throw attendeeError;
+  }
 
   const decisionLines = decisionsText
     .split("\n")
@@ -230,11 +293,12 @@ export async function createMeetingNote(formData: FormData) {
     const taskId = randomUUID();
     const { error: taskError } = await supabase.from("tasks").insert({
       id: taskId,
-      organization_id: site.organization_id,
+      organization_id: assignedOrganizationId || site.organization_id,
       site_id: siteId,
       title: text,
       status: "A_FAIRE",
       priority: "NORMALE",
+      due_date: decisionsDueDate || null,
       source_type: "MEETING",
       source_id: meetingId,
     });
@@ -252,8 +316,24 @@ export async function createMeetingNote(formData: FormData) {
 }
 
 /**
- * Correction a posteriori de la date d'un compte-rendu déjà créé. Les décisions et les tâches
- * qu'elles ont engendrées ne sont pas modifiées ici — seule la date de la réunion l'est.
+ * Un compte-rendu VALIDE est figé — la policy RLS le garantit aussi (migration 0031), ce contrôle
+ * sert à renvoyer un message clair plutôt qu'une mise à jour silencieuse de zéro ligne.
+ */
+async function assertMeetingDraft(supabase: Awaited<ReturnType<typeof createClient>>, meetingId: string) {
+  const { data: meeting, error } = await supabase
+    .from("meeting_notes")
+    .select("status")
+    .eq("id", meetingId)
+    .single();
+  if (error) throw error;
+  if (meeting.status !== "BROUILLON") {
+    throw new Error("Ce compte-rendu est validé : il ne peut plus être modifié.");
+  }
+}
+
+/**
+ * Correction a posteriori de la date d'un compte-rendu encore en brouillon. Les décisions et les
+ * tâches qu'elles ont engendrées ne sont pas modifiées ici — seule la date de la réunion l'est.
  */
 export async function updateMeetingNote(formData: FormData) {
   const siteId = String(formData.get("siteId") ?? "").trim();
@@ -262,11 +342,66 @@ export async function updateMeetingNote(formData: FormData) {
   if (!meetingId || !meetingDate) throw new Error("Compte-rendu et date sont obligatoires.");
 
   const supabase = await createClient();
+  await assertMeetingDraft(supabase, meetingId);
   const { error } = await supabase
     .from("meeting_notes")
     .update({ meeting_date: meetingDate })
-    .eq("id", meetingId);
+    .eq("id", meetingId)
+    .eq("status", "BROUILLON");
   if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/** Point d'ordre du jour — référence une tâche, un document ou une entrée de journal, ou un texte libre. */
+export async function addMeetingAgendaItem(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const meetingId = String(formData.get("meetingId") ?? "").trim();
+  const taskId = String(formData.get("taskId") ?? "").trim() || null;
+  const documentId = String(formData.get("documentId") ?? "").trim() || null;
+  const sourceLogEntryId = String(formData.get("sourceLogEntryId") ?? "").trim() || null;
+  const text = String(formData.get("text") ?? "").trim() || null;
+  if (!meetingId || (!taskId && !documentId && !sourceLogEntryId && !text)) {
+    throw new Error("Réunion et au moins une référence ou un texte sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  await assertMeetingDraft(supabase, meetingId);
+  const { error } = await supabase.from("meeting_agenda_items").insert({
+    meeting_id: meetingId,
+    task_id: taskId,
+    document_id: documentId,
+    source_log_entry_id: sourceLogEntryId,
+    text,
+  });
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/** Fait passer un compte-rendu de BROUILLON à VALIDE — réservé OPC/MOE, comme la création. */
+export async function validateMeetingNote(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const meetingId = String(formData.get("meetingId") ?? "").trim();
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  if (!meetingId || !organizationId) throw new Error("Réunion et organisation sont obligatoires.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  await assertOpcOrMoe(supabase, siteId, organizationId);
+
+  const { data: validated, error } = await supabase
+    .from("meeting_notes")
+    .update({ status: "VALIDE", validated_at: new Date().toISOString(), validated_by_user_id: user.id })
+    .eq("id", meetingId)
+    .eq("status", "BROUILLON")
+    .select("id");
+  if (error) throw error;
+  if (!validated || validated.length === 0) throw new Error("Ce compte-rendu est déjà validé.");
 
   revalidatePath(`/chantiers/${siteId}`);
 }

@@ -33,8 +33,11 @@ import {
   getMeetingNotesBySite,
   getMeetingAttendees,
   getMeetingDecisions,
+  getMeetingAgendaItems,
+  getOpenMeetingDecisionTasks,
   getLotProgress,
 } from "@/lib/data/execution";
+import { getLotScheduleNotes, getTechnicalOpinionsBySite } from "@/lib/data/opc";
 import { emitAct } from "@/lib/actions/acts";
 import { createMarketContract, createPriceLine } from "@/lib/actions/market";
 import { createSituation, addSituationLine, addSituationAllocation } from "@/lib/actions/finance";
@@ -52,8 +55,11 @@ import {
   updateSiteLogEntry,
   createMeetingNote,
   updateMeetingNote,
+  addMeetingAgendaItem,
+  validateMeetingNote,
   recordLotProgress,
 } from "@/lib/actions/execution";
+import { createLotScheduleNote, createTechnicalOpinion } from "@/lib/actions/opc";
 import { sendReminder, runInternalReminderCheck } from "@/lib/actions/reminders";
 import { updateInternalReminderDays } from "@/lib/actions/sites";
 import {
@@ -76,6 +82,18 @@ import {
   RESERVE_SEVERITY_LABELS,
   SiteLogEntryKind,
   SITE_LOG_ENTRY_KIND_LABELS,
+  MeetingKind,
+  MEETING_KIND_LABELS,
+  MEETING_STATUS_LABELS,
+  AttendeeStatus,
+  ATTENDEE_STATUS_LABELS,
+  TechnicalOpinionIssuerRole,
+  TECHNICAL_OPINION_ISSUER_ROLE_LABELS,
+  TechnicalOpinionKind,
+  TECHNICAL_OPINION_KIND_LABELS,
+  TechnicalOpinionVerdict,
+  TECHNICAL_OPINION_VERDICT_LABELS,
+  TECHNICAL_OPINION_STATUS_LABELS,
 } from "@adminbtp/types";
 import { FileText, Mail as MailIcon, CheckSquare, ClipboardList } from "lucide-react";
 
@@ -156,10 +174,22 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
     getMeetingNotesBySite(site.id),
   ]);
 
-  const [meetingAttendees, meetingDecisions, lotProgress] = await Promise.all([
+  const [
+    meetingAttendees,
+    meetingDecisions,
+    meetingAgendaItems,
+    openMeetingTasks,
+    lotProgress,
+    lotScheduleNotes,
+    technicalOpinions,
+  ] = await Promise.all([
     getMeetingAttendees(meetingNotes.map((m) => m.id)),
     getMeetingDecisions(meetingNotes.map((m) => m.id)),
+    getMeetingAgendaItems(meetingNotes.map((m) => m.id)),
+    getOpenMeetingDecisionTasks(site.id),
     getLotProgress(lots.map((l) => l.id)),
+    getLotScheduleNotes(lots.map((l) => l.id)),
+    getTechnicalOpinionsBySite(site.id),
   ]);
 
   // Statut courant d'un acte = dernier document émis pour ce code (ENVOYE prioritaire sur les
@@ -176,7 +206,7 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
       .map((d) => [d.actCode!, d])
   );
   const activeOrgMissionRoles = new Set(
-    participants.filter((p) => p.organizationId === activeOrg?.id).map((p) => p.missionRole)
+    participants.filter((p) => p.organizationId === activeOrg?.id && !p.leftAt).map((p) => p.missionRole)
   );
 
   const lotsById = new Map(lots.map((l) => [l.id, l]));
@@ -211,6 +241,32 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
     siblings.push(d);
     meetingDecisionsByMeeting.set(d.meetingId, siblings);
   }
+  const meetingAgendaItemsByMeeting = new Map<string, typeof meetingAgendaItems>();
+  for (const a of meetingAgendaItems) {
+    const siblings = meetingAgendaItemsByMeeting.get(a.meetingId) ?? [];
+    siblings.push(a);
+    meetingAgendaItemsByMeeting.set(a.meetingId, siblings);
+  }
+  const lotScheduleNotesByLot = new Map<string, typeof lotScheduleNotes>();
+  for (const n of lotScheduleNotes) {
+    const siblings = lotScheduleNotesByLot.get(n.lotId) ?? [];
+    siblings.push(n);
+    lotScheduleNotesByLot.set(n.lotId, siblings);
+  }
+  // Rôle OPC/MOE : bureau de coordination (réunions, notes de planning). CT/BET et SPS : avis
+  // techniques. Masqué si l'organisation active ne porte pas (plus) ce rôle sur ce chantier.
+  const showOpcBureau = activeOrgMissionRoles.has("OPC") || activeOrgMissionRoles.has("MOE");
+  const showCtBetBureau = activeOrgMissionRoles.has("CT") || activeOrgMissionRoles.has("BET");
+  const showSpsBureau = activeOrgMissionRoles.has("SPS");
+  const ppspsDocuments = documents.filter((d) => d.category === "PPSPS");
+  const activeParticipantOrgIds = Array.from(
+    new Set(participants.filter((p) => !p.leftAt).map((p) => p.organizationId))
+  );
+  const siteOrganizations = activeParticipantOrgIds
+    .map((orgId) => organizations.find((o) => o.id === orgId))
+    .filter((o): o is NonNullable<typeof o> => Boolean(o));
+  const ctBetOpinions = technicalOpinions.filter((o) => o.issuerRole === "CT" || o.issuerRole === "BET");
+  const spsOpinions = technicalOpinions.filter((o) => o.issuerRole === "SPS");
   // L'actualisation d'une situation n'est affichée que si une clause ACTUALISATION VALIDE existe
   // pour le contrat du chantier/lot correspondant — jamais une formule par défaut.
   const hasValidatedActualizationClause = marketContracts.some((contract) =>
@@ -1012,6 +1068,9 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                     <div className="space-y-2">
                       {pendingPlanSubmissions.map((p) => {
                         const doc = documents.find((d) => d.id === p.documentId);
+                        const opinions = technicalOpinions.filter(
+                          (o) => o.documentId === p.documentId && o.status === "EMIS"
+                        );
                         return (
                           <Card key={p.id} className="flex items-center justify-between gap-4 p-4">
                             <div>
@@ -1019,6 +1078,19 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               <p className="text-xs text-graphite-500">
                                 Déposé le {new Date(p.createdAt).toLocaleDateString("fr-FR")}
                               </p>
+                              {opinions.map((o) => (
+                                <p key={o.id} className="text-xs text-graphite-500">
+                                  Avis {TECHNICAL_OPINION_ISSUER_ROLE_LABELS[o.issuerRole]}
+                                  {o.verdict && (
+                                    <Badge
+                                      tone={o.verdict === "FAVORABLE" ? "success" : o.verdict === "FAVORABLE_AVEC_OBSERVATIONS" ? "neutral" : "danger"}
+                                      className="ml-1"
+                                    >
+                                      {TECHNICAL_OPINION_VERDICT_LABELS[o.verdict]}
+                                    </Badge>
+                                  )}{" "}— la mention reste affichée, elle ne bloque pas le visa.
+                                </p>
+                              ))}
                             </div>
                             <form action={reviewPlanSubmission} className="flex gap-1">
                               <input type="hidden" name="siteId" value={site.id} />
@@ -1221,18 +1293,36 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                   <h2 className="mb-2 text-sm font-semibold text-graphite-900">
                     Comptes-rendus ({meetingNotes.length})
                   </h2>
+                  <p className="mb-2 text-xs text-graphite-500">
+                    Création depuis le bureau OPC (onglet Bureaux), réservée aux organisations OPC/MOE.
+                  </p>
                   {meetingNotes.length === 0 ? (
                     <p className="text-sm text-graphite-500">Aucun compte-rendu.</p>
                   ) : (
                     <div className="space-y-2">
                       {meetingNotes.map((m) => (
                         <Card key={m.id} className="space-y-2 p-4">
-                          <p className="font-medium text-graphite-900">Réunion du {m.meetingDate}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-graphite-900">
+                              {MEETING_KIND_LABELS[m.kind]}{m.number ? ` n°${m.number}` : ""} — {m.meetingDate}
+                            </p>
+                            <Badge tone={m.status === "VALIDE" ? "success" : "neutral"}>
+                              {MEETING_STATUS_LABELS[m.status]}
+                            </Badge>
+                          </div>
                           {(meetingAttendeesByMeeting.get(m.id) ?? []).length > 0 && (
                             <p className="text-xs text-graphite-500">
-                              Présents :{" "}
-                              {(meetingAttendeesByMeeting.get(m.id) ?? []).map((a) => a.name).join(", ")}
+                              {(meetingAttendeesByMeeting.get(m.id) ?? [])
+                                .map((a) => `${a.name} (${ATTENDEE_STATUS_LABELS[a.status]})`)
+                                .join(", ")}
                             </p>
+                          )}
+                          {(meetingAgendaItemsByMeeting.get(m.id) ?? []).length > 0 && (
+                            <ul className="space-y-0.5 text-xs text-graphite-500">
+                              {(meetingAgendaItemsByMeeting.get(m.id) ?? []).map((a) => (
+                                <li key={a.id}>· {a.text ?? "Référence (tâche/document/journal)"}</li>
+                              ))}
+                            </ul>
                           )}
                           {(meetingDecisionsByMeeting.get(m.id) ?? []).length > 0 && (
                             <ul className="mt-1 space-y-0.5 text-sm text-graphite-700">
@@ -1241,43 +1331,24 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               ))}
                             </ul>
                           )}
-                          <details className="text-xs">
-                            <summary className="cursor-pointer text-graphite-500">Corriger la date</summary>
-                            <form action={updateMeetingNote} className="mt-2 flex items-end gap-2">
-                              <input type="hidden" name="siteId" value={site.id} />
-                              <input type="hidden" name="meetingId" value={m.id} />
-                              <div>
-                                <label className="mb-1 block text-xs text-graphite-500">Date *</label>
-                                <Input name="meetingDate" type="date" defaultValue={m.meetingDate} className="h-8 w-36 text-xs" required />
-                              </div>
-                              <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
-                            </form>
-                          </details>
+                          {m.status === "BROUILLON" && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-graphite-500">Corriger la date</summary>
+                              <form action={updateMeetingNote} className="mt-2 flex items-end gap-2">
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="meetingId" value={m.id} />
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                                  <Input name="meetingDate" type="date" defaultValue={m.meetingDate} className="h-8 w-36 text-xs" required />
+                                </div>
+                                <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
+                              </form>
+                            </details>
+                          )}
                         </Card>
                       ))}
                     </div>
                   )}
-                  <form action={createMeetingNote} className="mt-2 space-y-2">
-                    <input type="hidden" name="siteId" value={site.id} />
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div>
-                        <label className="mb-1 block text-xs text-graphite-500">Date *</label>
-                        <Input name="meetingDate" type="date" className="h-8 w-36 text-xs" required />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-graphite-500">
-                        Décisions (une par ligne — chacune crée une tâche)
-                      </label>
-                      <textarea
-                        name="decisions"
-                        rows={3}
-                        className="w-full rounded-md border border-surface-border bg-surface-white p-2 text-xs text-graphite-900"
-                        placeholder={"Relancer le BET structure\nValider le plan d'exécution lot 02"}
-                      />
-                    </div>
-                    <Button type="submit" size="sm" variant="secondary">Créer le compte-rendu</Button>
-                  </form>
                 </div>
 
                 {lots.length > 0 && (
@@ -1344,6 +1415,367 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                       </div>
                       <Button type="submit" size="sm" variant="secondary">Enregistrer</Button>
                     </form>
+                  </div>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: "bureaux",
+            label: "Bureaux",
+            content: (
+              <div className="space-y-6">
+                {!showOpcBureau && !showCtBetBureau && !showSpsBureau && (
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="Aucun bureau pour l'organisation active"
+                    description="OPC, MOE, CT, BET ou SPS actif sur ce chantier pour voir un bureau."
+                  />
+                )}
+
+                {showOpcBureau && (
+                  <div className="space-y-4">
+                    <h2 className="text-sm font-semibold text-graphite-900">Bureau OPC</h2>
+
+                    {openMeetingTasks.length > 0 && (
+                      <Card className="p-4">
+                        <p className="mb-2 text-xs font-medium text-graphite-500">
+                          Décisions précédentes toujours ouvertes
+                        </p>
+                        <ul className="space-y-0.5 text-sm text-graphite-700">
+                          {openMeetingTasks.map((t, i) => (
+                            <li key={i}>— {t.title}{t.dueDate ? ` (échéance ${t.dueDate})` : ""}</li>
+                          ))}
+                        </ul>
+                      </Card>
+                    )}
+
+                    <div className="space-y-2">
+                      {meetingNotes.map((m) => (
+                        <Card key={m.id} className="space-y-2 p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium text-graphite-900">
+                              {MEETING_KIND_LABELS[m.kind]}{m.number ? ` n°${m.number}` : ""} — {m.meetingDate}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Badge tone={m.status === "VALIDE" ? "success" : "neutral"}>
+                                {MEETING_STATUS_LABELS[m.status]}
+                              </Badge>
+                              {m.status === "BROUILLON" && (
+                                <form action={validateMeetingNote}>
+                                  <input type="hidden" name="siteId" value={site.id} />
+                                  <input type="hidden" name="meetingId" value={m.id} />
+                                  <input type="hidden" name="organizationId" value={activeOrg?.id ?? ""} />
+                                  <Button type="submit" size="sm" variant="accent">Valider le CR</Button>
+                                </form>
+                              )}
+                            </div>
+                          </div>
+                          {(meetingAgendaItemsByMeeting.get(m.id) ?? []).length > 0 && (
+                            <ul className="space-y-0.5 text-xs text-graphite-500">
+                              {(meetingAgendaItemsByMeeting.get(m.id) ?? []).map((a) => (
+                                <li key={a.id}>· {a.text ?? "Référence (tâche/document/journal)"}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {m.status === "BROUILLON" && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-graphite-500">Ajouter un point d&apos;ordre du jour</summary>
+                              <form action={addMeetingAgendaItem} className="mt-2 flex flex-wrap items-end gap-2">
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="meetingId" value={m.id} />
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Texte</label>
+                                  <Input name="text" className="h-8 w-56 text-xs" />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Entrée de journal liée</label>
+                                  <Select name="sourceLogEntryId" className="h-8 w-40 text-xs" defaultValue="">
+                                    <option value="">Aucune</option>
+                                    {logEntries.map((l) => (
+                                      <option key={l.id} value={l.id}>{l.entryDate} — {l.description.slice(0, 24)}</option>
+                                    ))}
+                                  </Select>
+                                </div>
+                                <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                              </form>
+                            </details>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+
+                    <Card className="p-4">
+                      <p className="mb-2 text-sm font-medium text-graphite-900">Nouvelle réunion</p>
+                      <form action={createMeetingNote} className="space-y-3">
+                        <input type="hidden" name="siteId" value={site.id} />
+                        <input type="hidden" name="organizationId" value={activeOrg?.id ?? ""} />
+                        <div className="flex flex-wrap items-end gap-2">
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Nature *</label>
+                            <Select name="kind" className="h-8 w-44 text-xs" required defaultValue="OPC">
+                              {MeetingKind.options.map((k) => (
+                                <option key={k} value={k}>{MEETING_KIND_LABELS[k]}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Numéro</label>
+                            <Input name="number" type="number" min="1" className="h-8 w-20 text-xs" />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                            <Input name="meetingDate" type="date" className="h-8 w-36 text-xs" required />
+                          </div>
+                        </div>
+                        {siteOrganizations.length > 0 && (
+                          <div>
+                            <p className="mb-1 text-xs text-graphite-500">Présences</p>
+                            <div className="flex flex-wrap gap-2">
+                              {siteOrganizations.map((o) => (
+                                <div key={o.id} className="flex items-center gap-1">
+                                  <span className="text-xs text-graphite-700">{o.legalName}</span>
+                                  <Select name={`attendeeStatus:${o.id}`} className="h-8 w-28 text-xs" defaultValue="PRESENT">
+                                    {AttendeeStatus.options.map((s) => (
+                                      <option key={s} value={s}>{ATTENDEE_STATUS_LABELS[s]}</option>
+                                    ))}
+                                  </Select>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">
+                            Décisions (une par ligne — chacune crée une tâche)
+                          </label>
+                          <textarea
+                            name="decisions"
+                            rows={3}
+                            className="w-full rounded-md border border-surface-border bg-surface-white p-2 text-xs text-graphite-900"
+                            placeholder={"Relancer le BET structure\nValider le plan d'exécution lot 02"}
+                          />
+                        </div>
+                        <div className="flex flex-wrap items-end gap-2">
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Assigner les décisions à</label>
+                            <Select name="assignedOrganizationId" className="h-8 w-48 text-xs" defaultValue="">
+                              <option value="">Organisation du chantier (défaut)</option>
+                              {siteOrganizations.map((o) => (
+                                <option key={o.id} value={o.id}>{o.legalName}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Échéance des décisions</label>
+                            <Input name="decisionsDueDate" type="date" className="h-8 w-36 text-xs" />
+                          </div>
+                        </div>
+                        <Button type="submit" size="sm" variant="accent">Créer la réunion</Button>
+                      </form>
+                    </Card>
+
+                    {lots.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-semibold text-graphite-900">Notes de coordination par lot</h3>
+                        <div className="space-y-1">
+                          {lots.map((lot) =>
+                            (lotScheduleNotesByLot.get(lot.id) ?? []).map((n) => (
+                              <p key={n.id} className="text-sm text-graphite-700">
+                                {lot.number} — semaine du {n.week} : {n.note}
+                                {n.needsLotId && ` (besoin : ${lotsById.get(n.needsLotId)?.number ?? n.needsLotId})`}
+                              </p>
+                            ))
+                          )}
+                        </div>
+                        <form action={createLotScheduleNote} className="mt-2 flex flex-wrap items-end gap-2">
+                          <input type="hidden" name="siteId" value={site.id} />
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Lot *</label>
+                            <Select name="lotId" className="h-8 w-28 text-xs" required defaultValue="">
+                              <option value="" disabled>Choisir…</option>
+                              {lots.map((lot) => (
+                                <option key={lot.id} value={lot.id}>{lot.number}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Semaine du *</label>
+                            <Input name="week" type="date" className="h-8 w-36 text-xs" required />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Consigne *</label>
+                            <Input name="note" className="h-8 w-56 text-xs" required />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Besoin d&apos;un autre lot</label>
+                            <Select name="needsLotId" className="h-8 w-28 text-xs" defaultValue="">
+                              <option value="">Aucun</option>
+                              {lots.map((lot) => (
+                                <option key={lot.id} value={lot.id}>{lot.number}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {showCtBetBureau && (
+                  <div className="space-y-3 border-t border-surface-border pt-6">
+                    <h2 className="text-sm font-semibold text-graphite-900">Bureau CT / BET</h2>
+                    <div className="space-y-2">
+                      {ctBetOpinions.length === 0 ? (
+                        <p className="text-sm text-graphite-500">Aucun avis déposé.</p>
+                      ) : (
+                        ctBetOpinions.map((o) => (
+                          <Card key={o.id} className="p-4">
+                            <div className="flex items-center gap-2">
+                              <Badge tone="neutral">{TECHNICAL_OPINION_ISSUER_ROLE_LABELS[o.issuerRole]}</Badge>
+                              <Badge tone="neutral">{TECHNICAL_OPINION_KIND_LABELS[o.kind]}</Badge>
+                              {o.verdict && <Badge tone={o.verdict === "FAVORABLE" ? "success" : "danger"}>{TECHNICAL_OPINION_VERDICT_LABELS[o.verdict]}</Badge>}
+                              <Badge tone={o.status === "EMIS" ? "success" : "neutral"}>{TECHNICAL_OPINION_STATUS_LABELS[o.status]}</Badge>
+                              {o.lotId && <span className="text-xs text-graphite-500">{lotsById.get(o.lotId)?.number}</span>}
+                            </div>
+                            <p className="mt-1 text-sm text-graphite-700">{o.text}</p>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                    <form action={createTechnicalOpinion} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <input type="hidden" name="issuerOrganizationId" value={activeOrg?.id ?? ""} />
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Rôle *</label>
+                        <Select name="issuerRole" className="h-8 w-24 text-xs" required defaultValue="">
+                          <option value="" disabled>Choisir…</option>
+                          {TechnicalOpinionIssuerRole.options
+                            .filter((r) => (r === "CT" || r === "BET") && activeOrgMissionRoles.has(r))
+                            .map((r) => (
+                              <option key={r} value={r}>{TECHNICAL_OPINION_ISSUER_ROLE_LABELS[r]}</option>
+                            ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Lot</label>
+                        <Select name="lotId" className="h-8 w-24 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {lots.map((lot) => (
+                            <option key={lot.id} value={lot.id}>{lot.number}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Document</label>
+                        <Select name="documentId" className="h-8 w-40 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {documents.map((d) => (
+                            <option key={d.id} value={d.id}>{d.title}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Nature *</label>
+                        <Select name="kind" className="h-8 w-28 text-xs" required defaultValue="">
+                          <option value="" disabled>Choisir…</option>
+                          {TechnicalOpinionKind.options.map((k) => (
+                            <option key={k} value={k}>{TECHNICAL_OPINION_KIND_LABELS[k]}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Verdict</label>
+                        <Select name="verdict" className="h-8 w-44 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {TechnicalOpinionVerdict.options.map((v) => (
+                            <option key={v} value={v}>{TECHNICAL_OPINION_VERDICT_LABELS[v]}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Texte *</label>
+                        <Input name="text" className="h-8 w-56 text-xs" required />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Statut</label>
+                        <Select name="status" className="h-8 w-28 text-xs" defaultValue="EMIS">
+                          <option value="BROUILLON">Brouillon</option>
+                          <option value="EMIS">Émis</option>
+                        </Select>
+                      </div>
+                      <Button type="submit" size="sm" variant="secondary">Déposer l&apos;avis</Button>
+                    </form>
+                  </div>
+                )}
+
+                {showSpsBureau && (
+                  <div className="space-y-3 border-t border-surface-border pt-6">
+                    <h2 className="text-sm font-semibold text-graphite-900">Bureau SPS</h2>
+                    <div className="space-y-2">
+                      {spsOpinions.length === 0 ? (
+                        <p className="text-sm text-graphite-500">Aucune visite ou observation déposée.</p>
+                      ) : (
+                        spsOpinions.map((o) => (
+                          <Card key={o.id} className="p-4">
+                            <div className="flex items-center gap-2">
+                              <Badge tone="neutral">{TECHNICAL_OPINION_KIND_LABELS[o.kind]}</Badge>
+                              <Badge tone={o.status === "EMIS" ? "success" : "neutral"}>{TECHNICAL_OPINION_STATUS_LABELS[o.status]}</Badge>
+                              {o.lotId && <span className="text-xs text-graphite-500">{lotsById.get(o.lotId)?.number}</span>}
+                            </div>
+                            <p className="mt-1 text-sm text-graphite-700">{o.text}</p>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                    <form action={createTechnicalOpinion} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="siteId" value={site.id} />
+                      <input type="hidden" name="issuerOrganizationId" value={activeOrg?.id ?? ""} />
+                      <input type="hidden" name="issuerRole" value="SPS" />
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Lot</label>
+                        <Select name="lotId" className="h-8 w-24 text-xs" defaultValue="">
+                          <option value="">Aucun</option>
+                          {lots.map((lot) => (
+                            <option key={lot.id} value={lot.id}>{lot.number}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Nature *</label>
+                        <Select name="kind" className="h-8 w-28 text-xs" required defaultValue="VISITE">
+                          {TechnicalOpinionKind.options.map((k) => (
+                            <option key={k} value={k}>{TECHNICAL_OPINION_KIND_LABELS[k]}</option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Texte *</label>
+                        <Input name="text" className="h-8 w-56 text-xs" required />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-graphite-500">Statut</label>
+                        <Select name="status" className="h-8 w-28 text-xs" defaultValue="EMIS">
+                          <option value="BROUILLON">Brouillon</option>
+                          <option value="EMIS">Émis</option>
+                        </Select>
+                      </div>
+                      <Button type="submit" size="sm" variant="secondary">Déposer</Button>
+                    </form>
+
+                    {ppspsDocuments.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-xs font-medium text-graphite-500">PPSPS (lecture seule)</p>
+                        <ul className="space-y-0.5 text-sm text-graphite-700">
+                          {ppspsDocuments.map((d) => (
+                            <li key={d.id}>
+                              {d.title} — <Badge tone="neutral">{DOCUMENT_STATUS_LABELS[d.status]}</Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
