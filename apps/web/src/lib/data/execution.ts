@@ -170,7 +170,12 @@ export async function getMeetingNotesBySite(siteId: string): Promise<MeetingNote
 
 export async function getMeetingNote(id: string): Promise<MeetingNote | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("meeting_notes").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("meeting_notes")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (error) throw error;
   return data ? mapMeetingNote(data) : null;
 }
