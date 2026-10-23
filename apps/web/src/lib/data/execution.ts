@@ -142,6 +142,13 @@ export async function getMeetingNotesBySite(siteId: string): Promise<MeetingNote
   return (data ?? []).map(mapMeetingNote);
 }
 
+export async function getMeetingNote(id: string): Promise<MeetingNote | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("meeting_notes").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? mapMeetingNote(data) : null;
+}
+
 export async function getMeetingAttendees(meetingIds: string[]): Promise<MeetingAttendee[]> {
   if (meetingIds.length === 0) return [];
   const supabase = await createClient();

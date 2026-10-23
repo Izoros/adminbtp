@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Circle, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, FileDown, Lock, Unlock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1227,7 +1227,16 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                     <div className="space-y-2">
                       {meetingNotes.map((m) => (
                         <Card key={m.id} className="space-y-2 p-4">
-                          <p className="font-medium text-graphite-900">Réunion du {m.meetingDate}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium text-graphite-900">Réunion du {m.meetingDate}</p>
+                            <a
+                              href={`/chantiers/${site.id}/comptes-rendus/${m.id}/pdf`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-graphite-500 hover:text-graphite-900"
+                            >
+                              <FileDown className="h-3.5 w-3.5" />
+                              Télécharger le PDF
+                            </a>
+                          </div>
                           {(meetingAttendeesByMeeting.get(m.id) ?? []).length > 0 && (
                             <p className="text-xs text-graphite-500">
                               Présents :{" "}

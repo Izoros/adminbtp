@@ -364,9 +364,15 @@ task,execution}.ts` et `database/migrations/0021` à `0027`.
 
 **Toujours explicitement non fait, cases volontairement non cochées :**
 
-- [ ] Export PDF du compte-rendu à partir des décisions enregistrées (les décisions existent et
-      deviennent des tâches, mais aucun rendu PDF n'est généré — nécessite un moteur de génération
-      de fichiers et un stockage réel, hors périmètre tant que la Phase 3 n'est pas démarrée).
+- [x] Export PDF du compte-rendu à partir des décisions enregistrées (2026-10-23) : bouton
+      "Télécharger le PDF" sur chaque compte-rendu de l'onglet Exécution, servi par
+      `/chantiers/[id]/comptes-rendus/[meetingId]/pdf` (route handler, lecture via le client
+      Supabase de l'utilisateur, donc RLS `can_access_site()` fait foi). Rendu `pdf-lib`
+      (`apps/web/src/lib/pdf/meeting-report.ts`) : chantier, date, présents avec leur organisation,
+      décisions groupées par lot avec la mention des tâches créées, pagination. Généré **à la volée**
+      à chaque téléchargement, rien n'est stocké ni rattaché à `meeting_notes.document_id` — le
+      stockage réel et l'archivage du PDF restent liés à la Phase 3. Ordre du jour et statut
+      BROUILLON/VALIDE non inclus : ils n'existent pas encore sur `main` (travail "Bureaux").
 - [ ] Capture de preuve WhatsApp réelle pour les relances (`WHATSAPP` reste une trace déclarative
       dans `reminder_logs`, aucun fournisseur réel branché — frontière délibérée avec la Phase 4,
       jamais comblée par un adaptateur `Demo*` qui simulerait un vrai échange).
