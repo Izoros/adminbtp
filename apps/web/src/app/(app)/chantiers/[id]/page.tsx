@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Circle, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, FileDown, Lock, Unlock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1329,13 +1329,20 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                     <div className="space-y-2">
                       {meetingNotes.map((m) => (
                         <Card key={m.id} className="space-y-2 p-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium text-graphite-900">
                               {MEETING_KIND_LABELS[m.kind]}{m.number ? ` n°${m.number}` : ""} — {m.meetingDate}
                             </p>
                             <Badge tone={m.status === "VALIDE" ? "success" : "neutral"}>
                               {MEETING_STATUS_LABELS[m.status]}
                             </Badge>
+                            <a
+                              href={`/chantiers/${site.id}/comptes-rendus/${m.id}/pdf`}
+                              className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-graphite-500 hover:text-graphite-900"
+                            >
+                              <FileDown className="h-3.5 w-3.5" />
+                              Télécharger le PDF
+                            </a>
                           </div>
                           {(meetingAttendeesByMeeting.get(m.id) ?? []).length > 0 && (
                             <p className="text-xs text-graphite-500">
@@ -1496,6 +1503,13 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                                   <Button type="submit" size="sm" variant="accent">Valider le CR</Button>
                                 </form>
                               )}
+                              <a
+                                href={`/chantiers/${site.id}/comptes-rendus/${m.id}/pdf`}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-graphite-500 hover:text-graphite-900"
+                              >
+                                <FileDown className="h-3.5 w-3.5" />
+                                PDF
+                              </a>
                             </div>
                           </div>
                           {(meetingAgendaItemsByMeeting.get(m.id) ?? []).length > 0 && (
