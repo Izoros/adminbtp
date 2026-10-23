@@ -59,3 +59,11 @@ export async function getPortfolio(): Promise<PortfolioEntry[]> {
     organizationIds: grantsByUser.get(user.id) ?? [],
   }));
 }
+
+/** Nom d'un utilisateur, ou `undefined` si la RLS de `users` le masque au lecteur. */
+export async function getUserFullName(userId: string): Promise<string | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("users").select("full_name").eq("id", userId).maybeSingle();
+  if (error) throw error;
+  return data?.full_name ?? undefined;
+}

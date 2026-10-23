@@ -2,16 +2,34 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 
 /**
  * Export PDF d'un compte-rendu de réunion de chantier, généré à la volée à partir des lignes
- * `meeting_notes` / `meeting_attendees` / `meeting_decisions` (jamais l'inverse) — rien n'est
+ * `meeting_notes` / `meeting_attendees` / `meeting_agenda_items` / `meeting_decisions` (jamais
+ * l'inverse) — rien n'est
  * stocké : le fichier est reconstruit à chaque téléchargement.
  */
 export interface MeetingReportInput {
   site: { name: string; reference: string; address: string; city: string; postalCode?: string };
-  meetingDate: string;
-  attendees: { name: string; organizationName?: string }[];
+  meeting: {
+    kindLabel: string;
+    number?: number;
+    date: string;
+    status: "BROUILLON" | "VALIDE";
+    authorOrganizationName?: string;
+    validatedAt?: string;
+    validatedByName?: string;
+  };
+  attendees: { name: string; organizationName?: string; status: AttendeeStatus }[];
+  agenda: string[];
   decisions: { text: string; lotLabel?: string; taskCreated: boolean }[];
   generatedAt: Date;
 }
+
+type AttendeeStatus = "PRESENT" | "EXCUSE" | "ABSENT";
+
+const ATTENDANCE_SECTIONS: { status: AttendeeStatus; label: string }[] = [
+  { status: "PRESENT", label: "Présents" },
+  { status: "EXCUSE", label: "Excusés" },
+  { status: "ABSENT", label: "Absents" },
+];
 
 export const GENERAL_SECTION_LABEL = "Points généraux";
 
@@ -30,6 +48,35 @@ export function groupDecisionsByLot(
   return [...groups.entries()]
     .filter(([, items]) => items.length > 0)
     .map(([label, items]) => ({ label, items }));
+}
+
+/** Titre du CR : "Réunion de chantier (OPC) n°4 du 22/10/2026". */
+export function meetingTitle(meeting: MeetingReportInput["meeting"]): string {
+  return `${meeting.kindLabel}${meeting.number ? ` n°${meeting.number}` : ""} du ${formatIsoDateFr(meeting.date)}`;
+}
+
+/**
+ * Libellé d'un point d'ordre du jour : texte libre, référence (tâche, document, journal) ou les
+ * deux. Une référence illisible (supprimée ou hors RLS) reste signalée plutôt qu'omise.
+ */
+export function agendaItemLabel(item: {
+  text?: string;
+  taskTitle?: string | null;
+  documentTitle?: string | null;
+  logEntry?: { date: string; description: string } | null;
+}): string {
+  const refs: string[] = [];
+  if (item.taskTitle !== undefined) refs.push(`Tâche : ${item.taskTitle ?? "introuvable"}`);
+  if (item.documentTitle !== undefined) refs.push(`Document : ${item.documentTitle ?? "introuvable"}`);
+  if (item.logEntry !== undefined) {
+    refs.push(
+      item.logEntry
+        ? `Journal du ${formatIsoDateFr(item.logEntry.date)} : ${item.logEntry.description}`
+        : "Journal : entrée introuvable",
+    );
+  }
+  if (!item.text) return refs.join(" · ") || "Point sans libellé";
+  return refs.length ? `${item.text} (${refs.join(" · ")})` : item.text;
 }
 
 /** "2026-10-22" → "22/10/2026", sans passer par `Date` pour éviter tout décalage de fuseau. */
@@ -88,6 +135,8 @@ const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 const INK = rgb(0.13, 0.15, 0.18);
 const MUTED = rgb(0.42, 0.45, 0.5);
 const RULE = rgb(0.82, 0.84, 0.87);
+const DRAFT = rgb(0.72, 0.4, 0.05);
+const VALIDATED = rgb(0.1, 0.5, 0.3);
 
 class Writer {
   page: PDFPage;
@@ -167,9 +216,10 @@ export async function renderMeetingReportPdf(input: MeetingReportInput): Promise
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const charset = new Set(regular.getCharacterSet());
-  const meetingDateFr = formatIsoDateFr(input.meetingDate);
+  const meetingDateFr = formatIsoDateFr(input.meeting.date);
+  const isDraft = input.meeting.status === "BROUILLON";
 
-  doc.setTitle(`Compte-rendu du ${meetingDateFr} — ${input.site.name}`);
+  doc.setTitle(`${meetingTitle(input.meeting)} — ${input.site.name}`);
   doc.setSubject("Compte-rendu de réunion de chantier");
   doc.setProducer("AdminBTP");
   doc.setCreator("AdminBTP");
@@ -188,16 +238,41 @@ export async function renderMeetingReportPdf(input: MeetingReportInput): Promise
     { size: 10, color: MUTED },
   );
   w.gap(6);
-  w.text(`Réunion du ${meetingDateFr}`, { size: 12, bold: true });
+  w.text(meetingTitle(input.meeting), { size: 12, bold: true });
+  if (input.meeting.authorOrganizationName) {
+    w.text(`Rédigé par ${input.meeting.authorOrganizationName}`, { size: 10, color: MUTED });
+  }
+  if (isDraft) {
+    w.text("BROUILLON — compte-rendu non validé, susceptible d'être modifié", { size: 10, bold: true, color: DRAFT });
+  } else {
+    const validatedOn = input.meeting.validatedAt
+      ? ` le ${new Date(input.meeting.validatedAt).toLocaleDateString("fr-FR")}`
+      : "";
+    const validatedBy = input.meeting.validatedByName ? ` par ${input.meeting.validatedByName}` : "";
+    w.text(`Validé${validatedOn}${validatedBy}`, { size: 10, bold: true, color: VALIDATED });
+  }
   w.rule();
 
-  w.heading(`Présents (${input.attendees.length})`);
+  w.heading("Participants");
   if (input.attendees.length === 0) {
-    w.text("Aucun présent enregistré.", { color: MUTED });
+    w.text("Aucun participant enregistré.", { color: MUTED });
   } else {
-    for (const a of input.attendees) {
-      w.text(a.organizationName ? `${a.name} (${a.organizationName})` : a.name, { prefix: "•  " });
+    for (const section of ATTENDANCE_SECTIONS) {
+      const people = input.attendees.filter((a) => a.status === section.status);
+      if (people.length === 0) continue;
+      w.gap(4);
+      w.text(`${section.label} (${people.length})`, { bold: true });
+      for (const a of people) {
+        w.text(a.organizationName ? `${a.name} (${a.organizationName})` : a.name, { prefix: "•  ", indent: 8 });
+      }
     }
+  }
+
+  w.heading(`Ordre du jour (${input.agenda.length})`);
+  if (input.agenda.length === 0) {
+    w.text("Aucun point d'ordre du jour.", { color: MUTED });
+  } else {
+    input.agenda.forEach((item, i) => w.text(item, { prefix: `${i + 1}.  ` }));
   }
 
   w.heading(`Décisions (${input.decisions.length})`);
@@ -215,7 +290,7 @@ export async function renderMeetingReportPdf(input: MeetingReportInput): Promise
 
   const pages = doc.getPages();
   const footer = sanitizeForCharset(
-    `Compte-rendu du ${meetingDateFr} — généré par AdminBTP le ${input.generatedAt.toLocaleDateString("fr-FR")}`,
+    `${isDraft ? "BROUILLON — " : ""}Compte-rendu du ${meetingDateFr} — généré par AdminBTP le ${input.generatedAt.toLocaleDateString("fr-FR")}`,
     charset,
   );
   pages.forEach((page, i) => {

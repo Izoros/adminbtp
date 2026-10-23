@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import {
   GENERAL_SECTION_LABEL,
+  agendaItemLabel,
   formatIsoDateFr,
   groupDecisionsByLot,
+  meetingTitle,
   renderMeetingReportPdf,
   sanitizeForCharset,
   wrapText,
@@ -28,6 +30,34 @@ describe("groupDecisionsByLot", () => {
     expect(groupDecisionsByLot([{ text: "a", lotLabel: "Lot 01", taskCreated: false }]).map((g) => g.label)).toEqual([
       "Lot 01",
     ]);
+  });
+});
+
+describe("agendaItemLabel", () => {
+  it("uses the free text alone when there is no reference", () => {
+    expect(agendaItemLabel({ text: "Planning des menuiseries" })).toBe("Planning des menuiseries");
+  });
+
+  it("describes references and appends them to the text", () => {
+    expect(
+      agendaItemLabel({
+        text: "Infiltrations",
+        logEntry: { date: "2026-10-20", description: "Pluie, arrêt façade" },
+        documentTitle: "Plan EXE toiture",
+      }),
+    ).toBe("Infiltrations (Document : Plan EXE toiture · Journal du 20/10/2026 : Pluie, arrêt façade)");
+  });
+
+  it("flags references the reader cannot resolve instead of dropping them", () => {
+    expect(agendaItemLabel({ taskTitle: null })).toBe("Tâche : introuvable");
+  });
+});
+
+describe("meetingTitle", () => {
+  it("includes the kind, number and date", () => {
+    expect(
+      meetingTitle({ kindLabel: "Réunion de chantier (OPC)", number: 4, date: "2026-10-22", status: "VALIDE" }),
+    ).toBe("Réunion de chantier (OPC) n°4 du 22/10/2026");
   });
 });
 
@@ -64,8 +94,19 @@ describe("renderMeetingReportPdf", () => {
   it("produces a valid PDF that paginates long reports and tolerates unsupported characters", async () => {
     const bytes = await renderMeetingReportPdf({
       site: { name: "Résidence Les Badamiers", reference: "CH-2026-001", address: "Rue du Port", city: "Dzaoudzi" },
-      meetingDate: "2026-10-22",
-      attendees: [{ name: "Ahmed Saïd", organizationName: "MAWU" }, { name: "Léa Martin" }],
+      meeting: {
+        kindLabel: "Réunion de chantier (OPC)",
+        number: 4,
+        date: "2026-10-22",
+        status: "VALIDE",
+        validatedAt: "2026-10-22T15:00:00Z",
+        validatedByName: "Léa Martin",
+      },
+      attendees: [
+        { name: "Ahmed Saïd", organizationName: "MAWU", status: "PRESENT" },
+        { name: "Léa Martin", status: "EXCUSE" },
+      ],
+      agenda: ["Planning 🗓️ des menuiseries", "Infiltrations (Journal du 20/10/2026 : pluie)"],
       decisions: Array.from({ length: 80 }, (_, i) => ({
         text: `Décision n°${i + 1} — reprise de l'étanchéité ✅ ${"texte long ".repeat(10)}`,
         lotLabel: i % 2 ? "Lot 02 — Gros œuvre" : undefined,
@@ -76,6 +117,6 @@ describe("renderMeetingReportPdf", () => {
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
     const doc = await PDFDocument.load(bytes);
     expect(doc.getPageCount()).toBeGreaterThan(1);
-    expect(doc.getTitle()).toBe("Compte-rendu du 22/10/2026 — Résidence Les Badamiers");
+    expect(doc.getTitle()).toBe("Réunion de chantier (OPC) n°4 du 22/10/2026 — Résidence Les Badamiers");
   });
 });

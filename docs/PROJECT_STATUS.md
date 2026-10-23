@@ -90,7 +90,8 @@ fait, dans `docs/ROADMAP.md` (section "Tranches A-D").
   déclaré/HT facturé affiché par lot (badge d'écart) ; édition a posteriori d'une entrée de
   journal, d'une réserve et de la date d'un compte-rendu ; formulaire de configuration du délai de
   relance interne par chantier. Vérifié en navigateur, données de test nettoyées.
-- Toujours non fait : export PDF du compte-rendu, preuve WhatsApp réelle, suppression a posteriori
+- Export PDF du compte-rendu fait le 2026-10-23 (généré à la volée, non stocké).
+- Toujours non fait : preuve WhatsApp réelle, suppression a posteriori
   d'une entrée de journal/réserve/compte-rendu — voir `docs/ROADMAP.md`.
 
 **Arrêt ici, comme pour toute étape non explicitement validée.**
@@ -232,7 +233,7 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 - Marketplace : annuaire BTP, bibliothèque de documents premium, crédits, abonnements facturés,
   intégration Odoo réelle du module (Phases B-E, voir `docs/ROADMAP.md`) ; édition du
   catalogue/tarifs via UI.
-- Tranches A-D : export PDF du compte-rendu, preuve WhatsApp réelle pour les relances, suppression
+- Tranches A-D : preuve WhatsApp réelle pour les relances, suppression
   a posteriori d'une entrée de journal/réserve/compte-rendu (l'édition est faite) — voir
   `docs/ROADMAP.md`.
 - Tranche E : accusé de réception et diffusion réelle du CR aux titulaires de lot, sélecteurs
@@ -264,5 +265,5 @@ garantir que seul un Super Administrateur peut accorder un accès premium.
 
 Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase C du module
 Marketplace (bibliothèque de documents premium), Phase 3 (génération de documents réelle), ou
-combler l'une des cases non faites des Tranches A-D (export PDF du compte-rendu, formulaire de
+combler l'une des cases non faites des Tranches A-D (formulaire de
 configuration du délai de relance interne...).
