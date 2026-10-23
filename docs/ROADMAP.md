@@ -370,8 +370,16 @@ task,execution}.ts` et `database/migrations/0021` à `0027`.
 - [ ] Capture de preuve WhatsApp réelle pour les relances (`WHATSAPP` reste une trace déclarative
       dans `reminder_logs`, aucun fournisseur réel branché — frontière délibérée avec la Phase 4,
       jamais comblée par un adaptateur `Demo*` qui simulerait un vrai échange).
-- [ ] Suppression a posteriori d'une entrée de journal, d'une réserve ou d'un compte-rendu déjà
-      créés — seule l'édition a été ajoutée (voir ci-dessus).
+- [x] Suppression a posteriori d'une entrée de journal, d'une réserve ou d'un compte-rendu
+      (2026-10-23, migration `0032`) : **suppression douce** — `deleted_at`, `deleted_by_user_id`
+      et motif obligatoire, ligne masquée des écrans mais conservée comme preuve, trace
+      `audit_log`. Passe par trois RPC `SECURITY DEFINER` (`soft_delete_site_log_entry`,
+      `soft_delete_reserve_item`, `soft_delete_meeting_note`) ; un trigger interdit de poser ou
+      retirer ces colonnes par un UPDATE direct, et de modifier une ligne supprimée. Une entrée de
+      journal citée par un document, un avenant ou un CR non supprimé ne peut pas être supprimée.
+      Un CR (brouillon ou validé) ne se supprime que par une organisation OPC/MOE active ; ses
+      tâches encore ouvertes (`A_FAIRE`, `EN_COURS`, `EN_ATTENTE`) passent en `ANNULE`, les tâches
+      faites restent. Pas de restauration depuis l'UI (possible en base si besoin).
 
 ### Tranche E — Bureaux de mission (OPC, CT, SPS, BET) (en cours, non validé, 2026-10-23)
 

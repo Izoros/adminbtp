@@ -51,12 +51,15 @@ import {
   createReserveItem,
   updateReserveStatus,
   updateReserveItem,
+  deleteReserveItem,
   createSiteLogEntry,
   updateSiteLogEntry,
+  deleteSiteLogEntry,
   createMeetingNote,
   updateMeetingNote,
   addMeetingAgendaItem,
   validateMeetingNote,
+  deleteMeetingNote,
   recordLotProgress,
 } from "@/lib/actions/execution";
 import { createLotScheduleNote, createTechnicalOpinion } from "@/lib/actions/opc";
@@ -1189,6 +1192,18 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
                             </form>
                           </details>
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-graphite-500">Supprimer</summary>
+                            <form action={deleteReserveItem} className="mt-2 flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="siteId" value={site.id} />
+                              <input type="hidden" name="reserveId" value={r.id} />
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Motif *</label>
+                                <Input name="reason" className="h-8 w-56 text-xs" required />
+                              </div>
+                              <Button type="submit" size="sm" variant="danger">Supprimer la réserve</Button>
+                            </form>
+                          </details>
                         </Card>
                       ))}
                     </div>
@@ -1261,6 +1276,18 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               <Input name="description" defaultValue={l.description} className="h-8 w-56 text-xs" required />
                             </div>
                             <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
+                          </form>
+                          <form action={deleteSiteLogEntry} className="mt-2 flex flex-wrap items-end gap-2">
+                            <input type="hidden" name="siteId" value={site.id} />
+                            <input type="hidden" name="entryId" value={l.id} />
+                            <div>
+                              <label className="mb-1 block text-xs text-graphite-500">Motif de suppression *</label>
+                              <Input name="reason" className="h-8 w-56 text-xs" required />
+                            </div>
+                            <Button type="submit" size="sm" variant="danger">Supprimer l&apos;entrée</Button>
+                            <span className="text-xs text-graphite-500">
+                              Impossible si l&apos;entrée est citée par un document, un avenant ou un CR.
+                            </span>
                           </form>
                         </details>
                       ))}
@@ -1501,6 +1528,22 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               </form>
                             </details>
                           )}
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-graphite-500">Supprimer le CR</summary>
+                            <form action={deleteMeetingNote} className="mt-2 flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="siteId" value={site.id} />
+                              <input type="hidden" name="meetingId" value={m.id} />
+                              <input type="hidden" name="organizationId" value={activeOrg?.id ?? ""} />
+                              <div>
+                                <label className="mb-1 block text-xs text-graphite-500">Motif *</label>
+                                <Input name="reason" className="h-8 w-56 text-xs" required />
+                              </div>
+                              <Button type="submit" size="sm" variant="danger">Supprimer</Button>
+                              <span className="text-xs text-graphite-500">
+                                Les tâches encore ouvertes nées de ses décisions seront annulées.
+                              </span>
+                            </form>
+                          </details>
                         </Card>
                       ))}
                     </div>
