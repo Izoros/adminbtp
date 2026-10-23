@@ -170,6 +170,34 @@ export const MeetingAgendaItem = z.object({
 });
 export type MeetingAgendaItem = z.infer<typeof MeetingAgendaItem>;
 
+export const MeetingNoteDistributionChannel = z.enum(["EMAIL"]);
+export type MeetingNoteDistributionChannel = z.infer<typeof MeetingNoteDistributionChannel>;
+
+/**
+ * Trace d'un envoi de compte-rendu validé à une organisation destinataire (présente ou titulaire
+ * d'un lot cité dans une décision) — un envoi par organisation, via IEmailProvider (Demo* en
+ * l'absence de fournisseur réel branché).
+ */
+export const MeetingNoteDistribution = z.object({
+  id: z.string().uuid(),
+  meetingId: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  channel: MeetingNoteDistributionChannel,
+  sentAt: z.string().datetime(),
+  sentByUserId: z.string().uuid(),
+});
+export type MeetingNoteDistribution = z.infer<typeof MeetingNoteDistribution>;
+
+/** Accusé de réception d'un compte-rendu validé — une ligne par organisation, au plus une fois. */
+export const MeetingNoteAcknowledgment = z.object({
+  id: z.string().uuid(),
+  meetingId: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  acknowledgedAt: z.string().datetime(),
+  acknowledgedByUserId: z.string().uuid(),
+});
+export type MeetingNoteAcknowledgment = z.infer<typeof MeetingNoteAcknowledgment>;
+
 /** Avancement déclaré sur un lot — comparé au cumul HT facturé côté UI, pas un moteur de planning. */
 export const LotProgress = z.object({
   id: z.string().uuid(),

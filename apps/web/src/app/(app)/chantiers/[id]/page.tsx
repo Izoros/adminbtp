@@ -34,6 +34,8 @@ import {
   getMeetingAttendees,
   getMeetingDecisions,
   getMeetingAgendaItems,
+  getMeetingNoteDistributions,
+  getMeetingNoteAcknowledgments,
   getOpenMeetingDecisionTasks,
   getLotProgress,
 } from "@/lib/data/execution";
@@ -59,9 +61,12 @@ import {
   updateMeetingNote,
   addMeetingAgendaItem,
   validateMeetingNote,
+  distributeMeetingNote,
+  acknowledgeMeetingNote,
   deleteMeetingNote,
   recordLotProgress,
 } from "@/lib/actions/execution";
+import { DecisionRows } from "@/components/chantiers/decision-rows";
 import { createLotScheduleNote, createTechnicalOpinion } from "@/lib/actions/opc";
 import { sendReminder, runInternalReminderCheck } from "@/lib/actions/reminders";
 import { updateInternalReminderDays } from "@/lib/actions/sites";
@@ -181,6 +186,8 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
     meetingAttendees,
     meetingDecisions,
     meetingAgendaItems,
+    meetingNoteDistributions,
+    meetingNoteAcknowledgments,
     openMeetingTasks,
     lotProgress,
     lotScheduleNotes,
@@ -189,6 +196,8 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
     getMeetingAttendees(meetingNotes.map((m) => m.id)),
     getMeetingDecisions(meetingNotes.map((m) => m.id)),
     getMeetingAgendaItems(meetingNotes.map((m) => m.id)),
+    getMeetingNoteDistributions(meetingNotes.map((m) => m.id)),
+    getMeetingNoteAcknowledgments(meetingNotes.map((m) => m.id)),
     getOpenMeetingDecisionTasks(site.id),
     getLotProgress(lots.map((l) => l.id)),
     getLotScheduleNotes(lots.map((l) => l.id)),
@@ -243,6 +252,32 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
     const siblings = meetingDecisionsByMeeting.get(d.meetingId) ?? [];
     siblings.push(d);
     meetingDecisionsByMeeting.set(d.meetingId, siblings);
+  }
+  const meetingNoteDistributionsByMeeting = new Map<string, typeof meetingNoteDistributions>();
+  for (const dist of meetingNoteDistributions) {
+    const siblings = meetingNoteDistributionsByMeeting.get(dist.meetingId) ?? [];
+    siblings.push(dist);
+    meetingNoteDistributionsByMeeting.set(dist.meetingId, siblings);
+  }
+  const meetingNoteAcknowledgmentsByMeeting = new Map<string, typeof meetingNoteAcknowledgments>();
+  for (const ack of meetingNoteAcknowledgments) {
+    const siblings = meetingNoteAcknowledgmentsByMeeting.get(ack.meetingId) ?? [];
+    siblings.push(ack);
+    meetingNoteAcknowledgmentsByMeeting.set(ack.meetingId, siblings);
+  }
+  const organizationNameById = new Map(organizations.map((o) => [o.id, o.legalName]));
+  // Destinataires d'un CR : présents à la réunion, union titulaires des lots cités dans ses
+  // décisions — même règle que meetingNoteRecipientOrganizationIds côté Server Action.
+  const recipientOrganizationIdsByMeeting = new Map<string, Set<string>>();
+  for (const m of meetingNotes) {
+    const attendeeIds = (meetingAttendeesByMeeting.get(m.id) ?? []).map((a) => a.organizationId);
+    const citedLotIds = new Set(
+      (meetingDecisionsByMeeting.get(m.id) ?? []).map((d) => d.lotId).filter((id): id is string => !!id)
+    );
+    const titulaireIds = lotMembers
+      .filter((lm) => citedLotIds.has(lm.lotId) && lm.role === "TITULAIRE")
+      .map((lm) => lm.organizationId);
+    recipientOrganizationIdsByMeeting.set(m.id, new Set([...attendeeIds, ...titulaireIds]));
   }
   const meetingAgendaItemsByMeeting = new Map<string, typeof meetingAgendaItems>();
   for (const a of meetingAgendaItems) {
@@ -1361,10 +1396,29 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                           {(meetingDecisionsByMeeting.get(m.id) ?? []).length > 0 && (
                             <ul className="mt-1 space-y-0.5 text-sm text-graphite-700">
                               {(meetingDecisionsByMeeting.get(m.id) ?? []).map((d) => (
-                                <li key={d.id}>— {d.text} {d.taskId && <Badge tone="info" className="ml-1">Tâche créée</Badge>}</li>
+                                <li key={d.id}>
+                                  — {d.text} {d.lotId && <Badge tone="neutral" className="ml-1">Lot {lotsById.get(d.lotId)?.number ?? d.lotId}</Badge>}
+                                  {d.taskId && <Badge tone="info" className="ml-1">Tâche créée</Badge>}
+                                </li>
                               ))}
                             </ul>
                           )}
+                          {m.status === "VALIDE" && (() => {
+                            const recipients = recipientOrganizationIdsByMeeting.get(m.id) ?? new Set<string>();
+                            const eligible = !!activeOrg && recipients.has(activeOrg.id);
+                            const alreadyAcknowledged = !!activeOrg && (meetingNoteAcknowledgmentsByMeeting.get(m.id) ?? []).some(
+                              (a) => a.organizationId === activeOrg.id
+                            );
+                            if (!eligible || alreadyAcknowledged) return null;
+                            return (
+                              <form action={acknowledgeMeetingNote}>
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="meetingId" value={m.id} />
+                                <input type="hidden" name="organizationId" value={activeOrg!.id} />
+                                <Button type="submit" size="sm" variant="accent">Accuser réception</Button>
+                              </form>
+                            );
+                          })()}
                           {m.status === "BROUILLON" && (
                             <details className="text-xs">
                               <summary className="cursor-pointer text-graphite-500">Corriger la date</summary>
@@ -1503,6 +1557,16 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                                   <Button type="submit" size="sm" variant="accent">Valider le CR</Button>
                                 </form>
                               )}
+                              {m.status === "VALIDE" && (
+                                <form action={distributeMeetingNote}>
+                                  <input type="hidden" name="siteId" value={site.id} />
+                                  <input type="hidden" name="meetingId" value={m.id} />
+                                  <input type="hidden" name="organizationId" value={activeOrg?.id ?? ""} />
+                                  <Button type="submit" size="sm" variant="secondary">
+                                    {(meetingNoteDistributionsByMeeting.get(m.id) ?? []).length > 0 ? "Rediffuser" : "Diffuser"}
+                                  </Button>
+                                </form>
+                              )}
                               <a
                                 href={`/chantiers/${site.id}/comptes-rendus/${m.id}/pdf`}
                                 className="inline-flex items-center gap-1 text-xs font-medium text-graphite-500 hover:text-graphite-900"
@@ -1512,6 +1576,22 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               </a>
                             </div>
                           </div>
+                          {m.status === "VALIDE" && (() => {
+                            const recipients = recipientOrganizationIdsByMeeting.get(m.id) ?? new Set<string>();
+                            if (recipients.size === 0) return null;
+                            const distributedCount = (meetingNoteDistributionsByMeeting.get(m.id) ?? []).filter(
+                              (d) => recipients.has(d.organizationId)
+                            ).length;
+                            const acknowledgedNames = [...recipients]
+                              .filter((id) => (meetingNoteAcknowledgmentsByMeeting.get(m.id) ?? []).some((a) => a.organizationId === id))
+                              .map((id) => organizationNameById.get(id) ?? id);
+                            return (
+                              <p className="text-xs text-graphite-500">
+                                Diffusé à {distributedCount}/{recipients.size} destinataire(s) · Accusé de réception :{" "}
+                                {acknowledgedNames.length > 0 ? acknowledgedNames.join(", ") : "aucun"}
+                              </p>
+                            );
+                          })()}
                           {(meetingAgendaItemsByMeeting.get(m.id) ?? []).length > 0 && (
                             <ul className="space-y-0.5 text-xs text-graphite-500">
                               {(meetingAgendaItemsByMeeting.get(m.id) ?? []).map((a) => (
@@ -1528,6 +1608,24 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                                 <div>
                                   <label className="mb-1 block text-xs text-graphite-500">Texte</label>
                                   <Input name="text" className="h-8 w-56 text-xs" />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Tâche liée</label>
+                                  <Select name="taskId" className="h-8 w-40 text-xs" defaultValue="">
+                                    <option value="">Aucune</option>
+                                    {tasks.map((t) => (
+                                      <option key={t.id} value={t.id}>{t.title.slice(0, 28)}</option>
+                                    ))}
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Document lié</label>
+                                  <Select name="documentId" className="h-8 w-40 text-xs" defaultValue="">
+                                    <option value="">Aucun</option>
+                                    {documents.map((d) => (
+                                      <option key={d.id} value={d.id}>{d.title.slice(0, 28)}</option>
+                                    ))}
+                                  </Select>
                                 </div>
                                 <div>
                                   <label className="mb-1 block text-xs text-graphite-500">Entrée de journal liée</label>
@@ -1602,32 +1700,7 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                             </div>
                           </div>
                         )}
-                        <div>
-                          <label className="mb-1 block text-xs text-graphite-500">
-                            Décisions (une par ligne — chacune crée une tâche)
-                          </label>
-                          <textarea
-                            name="decisions"
-                            rows={3}
-                            className="w-full rounded-md border border-surface-border bg-surface-white p-2 text-xs text-graphite-900"
-                            placeholder={"Relancer le BET structure\nValider le plan d'exécution lot 02"}
-                          />
-                        </div>
-                        <div className="flex flex-wrap items-end gap-2">
-                          <div>
-                            <label className="mb-1 block text-xs text-graphite-500">Assigner les décisions à</label>
-                            <Select name="assignedOrganizationId" className="h-8 w-48 text-xs" defaultValue="">
-                              <option value="">Organisation du chantier (défaut)</option>
-                              {siteOrganizations.map((o) => (
-                                <option key={o.id} value={o.id}>{o.legalName}</option>
-                              ))}
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs text-graphite-500">Échéance des décisions</label>
-                            <Input name="decisionsDueDate" type="date" className="h-8 w-36 text-xs" />
-                          </div>
-                        </div>
+                        <DecisionRows lots={lots.map((l) => ({ id: l.id, number: l.number }))} organizations={siteOrganizations} />
                         <Button type="submit" size="sm" variant="accent">Créer la réunion</Button>
                       </form>
                     </Card>

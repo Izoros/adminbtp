@@ -406,13 +406,12 @@ aucun domaine ni déploiement distinct pour l'OPC/CT/SPS.
       organisations avec un rôle OPC ou MOE actif sur le chantier peuvent créer une réunion ou la
       faire passer à VALIDE — vérifié en Server Action via `site_participants`, pas par une policy
       RLS (même choix que pour les actes). Nouvelle table `meeting_agenda_items` (point d'ordre du
-      jour : texte libre ou référence à une entrée de journal — la liaison tâche/document existe
-      en base et côté Server Action mais n'a pas de sélecteur dans l'UI, voir ci-dessous).
+      jour : texte libre, ou référence à une tâche/un document/une entrée de journal — sélecteurs
+      dédiés dans le formulaire, voir complément du 2026-10-23 ci-dessous).
 - [x] **Décisions assignées** : chaque décision crée toujours une tâche existante
-      (`source_type = MEETING`), désormais assignée à une organisation du chantier choisie dans le
-      formulaire (au lieu de toujours retomber sur l'organisation propriétaire du chantier), avec
-      une échéance optionnelle. Simplification assumée : l'assignation et l'échéance s'appliquent
-      à tout le lot de décisions créées en une fois, pas ligne par ligne (voir non-fait).
+      (`source_type = MEETING`), saisie ligne par ligne — chacune avec son propre lot concerné (pour
+      cibler les titulaires lors de la diffusion, voir complément ci-dessous), son organisation
+      assignée et son échéance (composant client `DecisionRows`, voir complément du 2026-10-23).
       "Décisions précédentes toujours ouvertes" : les tâches `MEETING` non closes des réunions
       précédentes sont rechargées en lecture au-dessus du formulaire de création — rien n'est
       recopié à la main.
@@ -445,17 +444,47 @@ aucun domaine ni déploiement distinct pour l'OPC/CT/SPS.
 
 **Explicitement non fait, cases volontairement non cochées :**
 
-- [ ] Accusé de réception du compte-rendu par les titulaires de lot cités, et diffusion réelle
-      (email/notification) aux présents et aux titulaires — la réunion est créée et validée, mais
-      rien n'avertit activement les organisations concernées ni ne trace leur lecture.
-- [ ] Sélecteurs tâche/document pour un point d'ordre du jour — seuls le texte libre et la liaison
-      à une entrée de journal sont exposés dans l'UI (la colonne et le paramètre d'action existent
-      pour `task_id`/`document_id`, non branchés côté formulaire).
-- [ ] Assignation et échéance d'une décision ligne par ligne — s'appliquent à tout le lot de
-      décisions créées en une fois dans le formulaire actuel.
 - [ ] Application mobile OPC dédiée — reste le même moteur web, aucun client mobile séparé.
 - [ ] OCR réel, indices officiels, signature électronique, paiement réel, annuaire BTP — inchangés
       par rapport aux tranches précédentes, voir les sections correspondantes ci-dessus.
+
+#### Tranche E (complément) — diffusion, accusé de réception, décisions ligne par ligne (2026-10-23)
+
+Les trois points ci-dessus, explicitement laissés non faits lors de la livraison initiale de la
+Tranche E, ont été repris et livrés — même moteur, aucune table dupliquée.
+
+- [x] **Diffusion réelle et accusé de réception** : nouvelles tables `meeting_note_distributions`
+      et `meeting_note_acknowledgments` (migration `0034`). Un CR validé se diffuse (bouton
+      "Diffuser", réservé OPC/MOE comme sa création/validation) par email via `IEmailProvider`
+      (`DemoEmailProvider` en l'absence de fournisseur réel) à ses destinataires — les
+      organisations présentes à la réunion, union des titulaires (`lot_members.role = TITULAIRE`)
+      des lots cités par ses décisions. Une organisation sans boîte mail active
+      (`mail_addresses`) est ignorée sans bloquer les autres. Chaque organisation destinataire
+      peut ensuite accuser réception depuis l'onglet Exécution (visible de toutes les
+      organisations du chantier, pas seulement OPC/MOE) — action idempotente (contrainte unique
+      `meeting_id`/`organization_id`), l'éligibilité (présent ou titulaire d'un lot cité) est
+      vérifiée côté Server Action, pas par une policy RLS, même choix que pour la création du CR.
+- [x] **Décisions ligne par ligne** : le formulaire de création de réunion (composant client
+      `DecisionRows`, `apps/web/src/components/chantiers/decision-rows.tsx`) remplace le
+      textarea unique par des lignes ajoutables/retirables, chacune avec son texte, son lot
+      concerné (`meeting_decisions.lot_id`, déjà posé en Tranche C mais jamais renseigné depuis
+      l'UI), son organisation assignée et son échéance — la tâche créée par décision porte
+      désormais l'assignation et l'échéance propres à sa ligne.
+- [x] **Sélecteurs tâche/document pour un point d'ordre du jour** : le formulaire d'ajout
+      (`meeting_agenda_items`, réservé aux CR en brouillon) expose désormais une tâche et un
+      document du chantier en plus du texte libre et de l'entrée de journal — les colonnes et le
+      paramètre d'action existaient déjà, seul le sélecteur manquait.
+- [x] Vérifications exécutées : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web
+      build` verts ; migration `0034` appliquée sans incident ; `generate_typescript_types`
+      régénéré. Parcours complet vérifié en navigateur (serveur de dev local) : décision créée
+      avec lot/échéance propres → tâche correspondante visible avec la bonne assignation et la
+      bonne échéance ; point d'ordre du jour lié à une tâche existante ; CR validé puis diffusé
+      (deux emails simulés tracés sur trois destinataires, le troisième sans boîte mail active
+      correctement ignoré) ; accusé de réception testé pour une organisation présente à la
+      réunion et pour une organisation titulaire d'un lot cité mais non présente — les deux
+      chemins d'éligibilité fonctionnent et s'affichent correctement. Titulaire de lot de test et
+      comptes-rendus de test nettoyés après vérification (tâche née de la décision de test
+      repassée en `ANNULE` par le RPC de suppression douce existant).
 
 ## Phase 3 — Génération de documents réelle
 

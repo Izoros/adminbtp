@@ -236,9 +236,9 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 - Tranches A-D : preuve WhatsApp réelle pour les relances, suppression
   a posteriori d'une entrée de journal/réserve/compte-rendu (l'édition est faite) — voir
   `docs/ROADMAP.md`.
-- Tranche E : accusé de réception et diffusion réelle du CR aux titulaires de lot, sélecteurs
-  tâche/document pour un point d'ordre du jour, assignation/échéance ligne par ligne des
-  décisions, application mobile OPC dédiée — voir `docs/ROADMAP.md`.
+- Tranche E : application mobile OPC dédiée (diffusion/accusé de réception, décisions ligne par
+  ligne et sélecteurs tâche/document du point d'ordre du jour sont livrés depuis le 2026-10-23)
+  — voir `docs/ROADMAP.md`.
 
 ## Structure du dépôt
 

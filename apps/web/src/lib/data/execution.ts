@@ -7,6 +7,8 @@ import type {
   MeetingAttendee,
   MeetingDecision,
   MeetingAgendaItem,
+  MeetingNoteDistribution,
+  MeetingNoteAcknowledgment,
   LotProgress,
 } from "@adminbtp/types";
 import type { Database } from "@adminbtp/types";
@@ -18,6 +20,8 @@ type MeetingNoteRow = Database["public"]["Tables"]["meeting_notes"]["Row"];
 type MeetingAttendeeRow = Database["public"]["Tables"]["meeting_attendees"]["Row"];
 type MeetingDecisionRow = Database["public"]["Tables"]["meeting_decisions"]["Row"];
 type MeetingAgendaItemRow = Database["public"]["Tables"]["meeting_agenda_items"]["Row"];
+type MeetingNoteDistributionRow = Database["public"]["Tables"]["meeting_note_distributions"]["Row"];
+type MeetingNoteAcknowledgmentRow = Database["public"]["Tables"]["meeting_note_acknowledgments"]["Row"];
 type LotProgressRow = Database["public"]["Tables"]["lot_progress"]["Row"];
 
 function mapPlanSubmission(row: PlanSubmissionRow): PlanSubmission {
@@ -110,6 +114,27 @@ function mapMeetingAgendaItem(row: MeetingAgendaItemRow): MeetingAgendaItem {
     sourceLogEntryId: row.source_log_entry_id ?? undefined,
     text: row.text ?? undefined,
     createdAt: row.created_at,
+  };
+}
+
+function mapMeetingNoteDistribution(row: MeetingNoteDistributionRow): MeetingNoteDistribution {
+  return {
+    id: row.id,
+    meetingId: row.meeting_id,
+    organizationId: row.organization_id,
+    channel: row.channel,
+    sentAt: row.sent_at,
+    sentByUserId: row.sent_by_user_id,
+  };
+}
+
+function mapMeetingNoteAcknowledgment(row: MeetingNoteAcknowledgmentRow): MeetingNoteAcknowledgment {
+  return {
+    id: row.id,
+    meetingId: row.meeting_id,
+    organizationId: row.organization_id,
+    acknowledgedAt: row.acknowledged_at,
+    acknowledgedByUserId: row.acknowledged_by_user_id,
   };
 }
 
@@ -209,6 +234,30 @@ export async function getMeetingAgendaItems(meetingIds: string[]): Promise<Meeti
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []).map(mapMeetingAgendaItem);
+}
+
+export async function getMeetingNoteDistributions(meetingIds: string[]): Promise<MeetingNoteDistribution[]> {
+  if (meetingIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meeting_note_distributions")
+    .select("*")
+    .in("meeting_id", meetingIds)
+    .order("sent_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapMeetingNoteDistribution);
+}
+
+export async function getMeetingNoteAcknowledgments(meetingIds: string[]): Promise<MeetingNoteAcknowledgment[]> {
+  if (meetingIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meeting_note_acknowledgments")
+    .select("*")
+    .in("meeting_id", meetingIds)
+    .order("acknowledged_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapMeetingNoteAcknowledgment);
 }
 
 /** Tâches MEETING non closes des réunions précédentes — rechargées dans le formulaire de création. */

@@ -1383,6 +1383,101 @@ export type Database = {
           },
         ]
       }
+      meeting_note_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          acknowledged_by_user_id: string
+          id: string
+          meeting_id: string
+          organization_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          acknowledged_by_user_id: string
+          id?: string
+          meeting_id: string
+          organization_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          acknowledged_by_user_id?: string
+          id?: string
+          meeting_id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_note_acknowledgments_acknowledged_by_user_id_fkey"
+            columns: ["acknowledged_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_note_acknowledgments_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_note_acknowledgments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_note_distributions: {
+        Row: {
+          channel: Database["public"]["Enums"]["meeting_note_distribution_channel"]
+          id: string
+          meeting_id: string
+          organization_id: string
+          sent_at: string
+          sent_by_user_id: string
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["meeting_note_distribution_channel"]
+          id?: string
+          meeting_id: string
+          organization_id: string
+          sent_at?: string
+          sent_by_user_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["meeting_note_distribution_channel"]
+          id?: string
+          meeting_id?: string
+          organization_id?: string
+          sent_at?: string
+          sent_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_note_distributions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_note_distributions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_note_distributions_sent_by_user_id_fkey"
+            columns: ["sent_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_notes: {
         Row: {
           author_organization_id: string | null
@@ -1446,6 +1541,13 @@ export type Database = {
           {
             foreignKeyName: "meeting_notes_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notes_deleted_by_user_id_fkey"
+            columns: ["deleted_by_user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2288,6 +2390,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "reserve_items_deleted_by_user_id_fkey"
+            columns: ["deleted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reserve_items_document_id_fkey"
             columns: ["document_id"]
             isOneToOne: false
@@ -2569,6 +2678,13 @@ export type Database = {
           {
             foreignKeyName: "site_log_entries_author_user_id_fkey"
             columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_log_entries_deleted_by_user_id_fkey"
+            columns: ["deleted_by_user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3329,17 +3445,11 @@ export type Database = {
         Returns: number
       }
       soft_delete_reserve_item: {
-        Args: {
-          p_reason: string
-          p_reserve_id: string
-        }
+        Args: { p_reason: string; p_reserve_id: string }
         Returns: undefined
       }
       soft_delete_site_log_entry: {
-        Args: {
-          p_entry_id: string
-          p_reason: string
-        }
+        Args: { p_entry_id: string; p_reason: string }
         Returns: undefined
       }
       suspend_entitlement: {
@@ -3447,6 +3557,7 @@ export type Database = {
         | "AUTRE"
       market_contract_type: "PRIVE" | "PUBLIC"
       meeting_kind: "OPC" | "SYNTHESE" | "RECEPTION"
+      meeting_note_distribution_channel: "EMAIL"
       meeting_status: "BROUILLON" | "VALIDE"
       mission_role:
         | "MOA"
@@ -3797,6 +3908,7 @@ export const Constants = {
       ],
       market_contract_type: ["PRIVE", "PUBLIC"],
       meeting_kind: ["OPC", "SYNTHESE", "RECEPTION"],
+      meeting_note_distribution_channel: ["EMAIL"],
       meeting_status: ["BROUILLON", "VALIDE"],
       mission_role: [
         "MOA",

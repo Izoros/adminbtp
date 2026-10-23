@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { DemoEmailProvider } from "@adminbtp/integrations";
 import type {
   ReserveSeverity,
   ReserveStatus,
@@ -260,11 +261,23 @@ export async function createMeetingNote(formData: FormData) {
   const kind = String(formData.get("kind") ?? "OPC").trim() as MeetingKind;
   const numberRaw = String(formData.get("number") ?? "").trim();
   const meetingDate = String(formData.get("meetingDate") ?? "").trim();
-  const decisionsText = String(formData.get("decisions") ?? "").trim();
-  const assignedOrganizationId = String(formData.get("assignedOrganizationId") ?? "").trim();
-  const decisionsDueDate = String(formData.get("decisionsDueDate") ?? "").trim();
   if (!siteId || !organizationId || !meetingDate) {
     throw new Error("Chantier, organisation et date sont obligatoires.");
+  }
+
+  // Décisions saisies ligne par ligne (DecisionRows, client) : chacune porte son propre lot,
+  // organisation assignée et échéance — plus un formulaire unique appliqué à tout le lot.
+  const decisionRowCount = Number(formData.get("decisionRowCount") ?? "0") || 0;
+  const decisionRows: { text: string; lotId: string | null; assignedOrganizationId: string | null; dueDate: string | null }[] = [];
+  for (let i = 0; i < decisionRowCount; i++) {
+    const text = String(formData.get(`decisionText_${i}`) ?? "").trim();
+    if (!text) continue;
+    decisionRows.push({
+      text,
+      lotId: String(formData.get(`decisionLotId_${i}`) ?? "").trim() || null,
+      assignedOrganizationId: String(formData.get(`decisionOrganizationId_${i}`) ?? "").trim() || null,
+      dueDate: String(formData.get(`decisionDueDate_${i}`) ?? "").trim() || null,
+    });
   }
 
   const supabase = await createClient();
@@ -318,21 +331,16 @@ export async function createMeetingNote(formData: FormData) {
     if (attendeeError) throw attendeeError;
   }
 
-  const decisionLines = decisionsText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  for (const text of decisionLines) {
+  for (const row of decisionRows) {
     const taskId = randomUUID();
     const { error: taskError } = await supabase.from("tasks").insert({
       id: taskId,
-      organization_id: assignedOrganizationId || site.organization_id,
+      organization_id: row.assignedOrganizationId || site.organization_id,
       site_id: siteId,
-      title: text,
+      title: row.text,
       status: "A_FAIRE",
       priority: "NORMALE",
-      due_date: decisionsDueDate || null,
+      due_date: row.dueDate,
       source_type: "MEETING",
       source_id: meetingId,
     });
@@ -340,7 +348,8 @@ export async function createMeetingNote(formData: FormData) {
 
     const { error: decisionError } = await supabase.from("meeting_decisions").insert({
       meeting_id: meetingId,
-      text,
+      lot_id: row.lotId,
+      text: row.text,
       task_id: taskId,
     });
     if (decisionError) throw decisionError;
@@ -436,6 +445,151 @@ export async function validateMeetingNote(formData: FormData) {
     .select("id");
   if (error) throw error;
   if (!validated || validated.length === 0) throw new Error("Ce compte-rendu est déjà validé.");
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/** Organisations destinataires d'un CR : présentes à la réunion, union titulaires des lots cités dans ses décisions. */
+async function meetingNoteRecipientOrganizationIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  meetingId: string
+): Promise<string[]> {
+  const { data: attendees, error: attendeesError } = await supabase
+    .from("meeting_attendees")
+    .select("organization_id")
+    .eq("meeting_id", meetingId);
+  if (attendeesError) throw attendeesError;
+
+  const { data: decisions, error: decisionsError } = await supabase
+    .from("meeting_decisions")
+    .select("lot_id")
+    .eq("meeting_id", meetingId)
+    .not("lot_id", "is", null);
+  if (decisionsError) throw decisionsError;
+  const lotIds = [...new Set((decisions ?? []).map((d) => d.lot_id as string))];
+
+  let titulaireOrganizationIds: string[] = [];
+  if (lotIds.length > 0) {
+    const { data: members, error: membersError } = await supabase
+      .from("lot_members")
+      .select("organization_id")
+      .in("lot_id", lotIds)
+      .eq("role", "TITULAIRE");
+    if (membersError) throw membersError;
+    titulaireOrganizationIds = (members ?? []).map((m) => m.organization_id);
+  }
+
+  return [...new Set([...(attendees ?? []).map((a) => a.organization_id), ...titulaireOrganizationIds])];
+}
+
+/**
+ * Diffusion réelle d'un compte-rendu validé — réservée OPC/MOE, comme sa création/validation. Un
+ * email par organisation destinataire (présente ou titulaire d'un lot cité), via IEmailProvider
+ * (Demo* en l'absence de fournisseur réel branché) — une organisation sans boîte mail active
+ * (mail_addresses) est simplement ignorée, aucun blocage. Chaque envoi réussi est tracé une fois
+ * dans meeting_note_distributions ; relancer l'action renvoie et retrace à chaque fois (pas de
+ * déduplication — une diffusion est un événement, pas un état).
+ */
+export async function distributeMeetingNote(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const meetingId = String(formData.get("meetingId") ?? "").trim();
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  if (!meetingId || !organizationId) throw new Error("Réunion et organisation sont obligatoires.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  await assertOpcOrMoe(supabase, siteId, organizationId);
+
+  const { data: meeting, error: meetingError } = await supabase
+    .from("meeting_notes")
+    .select("status, kind, number, meeting_date")
+    .eq("id", meetingId)
+    .single();
+  if (meetingError) throw meetingError;
+  if (meeting.status !== "VALIDE") throw new Error("Seul un compte-rendu validé peut être diffusé.");
+
+  const recipientOrganizationIds = await meetingNoteRecipientOrganizationIds(supabase, meetingId);
+  if (recipientOrganizationIds.length === 0) {
+    throw new Error("Aucun destinataire (présent ou titulaire d'un lot cité) pour ce compte-rendu.");
+  }
+
+  const { data: mailAddresses, error: mailError } = await supabase
+    .from("mail_addresses")
+    .select("organization_id, address, site_id")
+    .in("organization_id", recipientOrganizationIds)
+    .eq("is_active", true);
+  if (mailError) throw mailError;
+
+  // Une boîte dédiée au chantier prime sur la boîte générale de l'organisation.
+  const addressByOrganization = new Map<string, string>();
+  for (const row of mailAddresses ?? []) {
+    const current = addressByOrganization.get(row.organization_id);
+    if (!current || row.site_id === siteId) addressByOrganization.set(row.organization_id, row.address);
+  }
+
+  const provider = new DemoEmailProvider();
+  const distributionRows: { meeting_id: string; organization_id: string; sent_by_user_id: string }[] = [];
+  for (const orgId of recipientOrganizationIds) {
+    const address = addressByOrganization.get(orgId);
+    if (!address) continue;
+    await provider.send({
+      to: [address],
+      from: "chantier@adminbtp.test",
+      subject: `Compte-rendu ${meeting.kind}${meeting.number ? ` n°${meeting.number}` : ""} du ${meeting.meeting_date}`,
+      htmlBody: "Le compte-rendu de réunion validé est disponible. Merci d'en accuser réception depuis AdminBTP.",
+    });
+    distributionRows.push({ meeting_id: meetingId, organization_id: orgId, sent_by_user_id: user.id });
+  }
+  if (distributionRows.length === 0) {
+    throw new Error("Aucun destinataire n'a de boîte mail active — rien n'a été diffusé.");
+  }
+
+  const { error: insertError } = await supabase.from("meeting_note_distributions").insert(distributionRows);
+  if (insertError) throw insertError;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/**
+ * Accusé de réception d'un compte-rendu validé — réservé aux organisations destinataires
+ * (présentes ou titulaires d'un lot cité). Idempotent : un deuxième accusé de la même
+ * organisation est un succès silencieux (contrainte unique meeting_id/organization_id).
+ */
+export async function acknowledgeMeetingNote(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const meetingId = String(formData.get("meetingId") ?? "").trim();
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  if (!meetingId || !organizationId) throw new Error("Réunion et organisation sont obligatoires.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  const { data: meeting, error: meetingError } = await supabase
+    .from("meeting_notes")
+    .select("status")
+    .eq("id", meetingId)
+    .single();
+  if (meetingError) throw meetingError;
+  if (meeting.status !== "VALIDE") throw new Error("Seul un compte-rendu validé peut être accusé réception.");
+
+  const recipientOrganizationIds = await meetingNoteRecipientOrganizationIds(supabase, meetingId);
+  if (!recipientOrganizationIds.includes(organizationId)) {
+    throw new Error("Seule une organisation présente à la réunion ou titulaire d'un lot cité peut accuser réception.");
+  }
+
+  const { error } = await supabase.from("meeting_note_acknowledgments").insert({
+    meeting_id: meetingId,
+    organization_id: organizationId,
+    acknowledged_by_user_id: user.id,
+  });
+  if (error && error.code !== "23505") throw error; // 23505 = déjà accusé, succès silencieux
 
   revalidatePath(`/chantiers/${siteId}`);
 }
