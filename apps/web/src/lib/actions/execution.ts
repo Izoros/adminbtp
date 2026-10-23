@@ -141,6 +141,23 @@ export async function updateReserveItem(formData: FormData) {
   revalidatePath(`/chantiers/${siteId}`);
 }
 
+/**
+ * Suppression douce d'une réserve : masquée des écrans, motif obligatoire, trace audit_log. Le RPC
+ * vérifie l'accès au chantier (voir database/migrations/0032_soft_delete_journal_reserves_cr.sql).
+ */
+export async function deleteReserveItem(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const reserveId = String(formData.get("reserveId") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reserveId || !reason) throw new Error("Réserve et motif sont obligatoires.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("soft_delete_reserve_item", { p_reserve_id: reserveId, p_reason: reason });
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
 // --- Journal de chantier -----------------------------------------------------
 
 export async function createSiteLogEntry(formData: FormData) {
@@ -188,6 +205,23 @@ export async function updateSiteLogEntry(formData: FormData) {
     .from("site_log_entries")
     .update({ entry_date: entryDate, kind, description })
     .eq("id", entryId);
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+}
+
+/**
+ * Suppression douce d'une entrée de journal. Refusée par le RPC tant que l'entrée est citée par un
+ * document, un avenant ou un point d'ordre du jour d'un compte-rendu non supprimé.
+ */
+export async function deleteSiteLogEntry(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const entryId = String(formData.get("entryId") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!entryId || !reason) throw new Error("Entrée et motif sont obligatoires.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("soft_delete_site_log_entry", { p_entry_id: entryId, p_reason: reason });
   if (error) throw error;
 
   revalidatePath(`/chantiers/${siteId}`);
@@ -404,6 +438,32 @@ export async function validateMeetingNote(formData: FormData) {
   if (!validated || validated.length === 0) throw new Error("Ce compte-rendu est déjà validé.");
 
   revalidatePath(`/chantiers/${siteId}`);
+}
+
+/**
+ * Suppression douce d'un compte-rendu, brouillon ou validé — réservée OPC/MOE, comme la création.
+ * Le RPC passe en ANNULE les tâches encore ouvertes nées de ses décisions (les tâches faites ou
+ * déjà annulées ne bougent pas) et trace le tout dans audit_log, en une transaction.
+ */
+export async function deleteMeetingNote(formData: FormData) {
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const meetingId = String(formData.get("meetingId") ?? "").trim();
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!meetingId || !organizationId || !reason) {
+    throw new Error("Réunion, organisation et motif sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("soft_delete_meeting_note", {
+    p_meeting_id: meetingId,
+    p_organization_id: organizationId,
+    p_reason: reason,
+  });
+  if (error) throw error;
+
+  revalidatePath(`/chantiers/${siteId}`);
+  revalidatePath("/taches");
 }
 
 // --- Avancement ----------------------------------------------------------------

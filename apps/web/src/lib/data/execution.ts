@@ -141,6 +141,7 @@ export async function getReserveItemsBySite(siteId: string): Promise<ReserveItem
     .from("reserve_items")
     .select("*")
     .eq("site_id", siteId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapReserveItem);
@@ -152,6 +153,7 @@ export async function getSiteLogEntries(siteId: string): Promise<SiteLogEntry[]>
     .from("site_log_entries")
     .select("*")
     .eq("site_id", siteId)
+    .is("deleted_at", null)
     .order("entry_date", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapSiteLogEntry);
@@ -163,6 +165,7 @@ export async function getMeetingNotesBySite(siteId: string): Promise<MeetingNote
     .from("meeting_notes")
     .select("*")
     .eq("site_id", siteId)
+    .is("deleted_at", null)
     .order("meeting_date", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapMeetingNote);

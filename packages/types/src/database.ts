@@ -1388,6 +1388,9 @@ export type Database = {
           author_organization_id: string | null
           created_at: string
           created_by_user_id: string
+          deleted_at: string | null
+          deleted_by_user_id: string | null
+          deletion_reason: string | null
           document_id: string | null
           id: string
           kind: Database["public"]["Enums"]["meeting_kind"]
@@ -1402,6 +1405,9 @@ export type Database = {
           author_organization_id?: string | null
           created_at?: string
           created_by_user_id: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          deletion_reason?: string | null
           document_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["meeting_kind"]
@@ -1416,6 +1422,9 @@ export type Database = {
           author_organization_id?: string | null
           created_at?: string
           created_by_user_id?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          deletion_reason?: string | null
           document_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["meeting_kind"]
@@ -2228,6 +2237,9 @@ export type Database = {
       reserve_items: {
         Row: {
           created_at: string
+          deleted_at: string | null
+          deleted_by_user_id: string | null
+          deletion_reason: string | null
           description: string
           document_id: string | null
           due_date: string | null
@@ -2242,6 +2254,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          deletion_reason?: string | null
           description: string
           document_id?: string | null
           due_date?: string | null
@@ -2256,6 +2271,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          deletion_reason?: string | null
           description?: string
           document_id?: string | null
           due_date?: string | null
@@ -2514,6 +2532,9 @@ export type Database = {
         Row: {
           author_user_id: string
           created_at: string
+          deleted_at: string | null
+          deleted_by_user_id: string | null
+          deletion_reason: string | null
           description: string
           entry_date: string
           id: string
@@ -2523,6 +2544,9 @@ export type Database = {
         Insert: {
           author_user_id: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          deletion_reason?: string | null
           description: string
           entry_date: string
           id?: string
@@ -2532,6 +2556,9 @@ export type Database = {
         Update: {
           author_user_id?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          deletion_reason?: string | null
           description?: string
           entry_date?: string
           id?: string
@@ -3290,6 +3317,28 @@ export type Database = {
           p_organization_id: string
           p_reason?: string
           p_service_id: string
+        }
+        Returns: undefined
+      }
+      soft_delete_meeting_note: {
+        Args: {
+          p_meeting_id: string
+          p_organization_id: string
+          p_reason: string
+        }
+        Returns: number
+      }
+      soft_delete_reserve_item: {
+        Args: {
+          p_reason: string
+          p_reserve_id: string
+        }
+        Returns: undefined
+      }
+      soft_delete_site_log_entry: {
+        Args: {
+          p_entry_id: string
+          p_reason: string
         }
         Returns: undefined
       }
