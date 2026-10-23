@@ -89,11 +89,21 @@ export const SiteLogEntry = z.object({
 });
 export type SiteLogEntry = z.infer<typeof SiteLogEntry>;
 
+export const AttendeeStatus = z.enum(["PRESENT", "EXCUSE", "ABSENT"]);
+export type AttendeeStatus = z.infer<typeof AttendeeStatus>;
+
+export const ATTENDEE_STATUS_LABELS: Record<AttendeeStatus, string> = {
+  PRESENT: "Présent",
+  EXCUSE: "Excusé",
+  ABSENT: "Absent",
+};
+
 export const MeetingAttendee = z.object({
   id: z.string().uuid(),
   meetingId: z.string().uuid(),
   organizationId: z.string().uuid(),
   name: z.string().min(1),
+  status: AttendeeStatus,
 });
 export type MeetingAttendee = z.infer<typeof MeetingAttendee>;
 
@@ -107,16 +117,58 @@ export const MeetingDecision = z.object({
 });
 export type MeetingDecision = z.infer<typeof MeetingDecision>;
 
-/** Le PDF de CR (catégorie COMPTE_RENDU existante) est généré depuis ces lignes, pas l'inverse. */
+export const MeetingKind = z.enum(["OPC", "SYNTHESE", "RECEPTION"]);
+export type MeetingKind = z.infer<typeof MeetingKind>;
+
+export const MEETING_KIND_LABELS: Record<MeetingKind, string> = {
+  OPC: "Réunion de chantier (OPC)",
+  SYNTHESE: "Réunion de synthèse",
+  RECEPTION: "Réunion de réception",
+};
+
+export const MeetingStatus = z.enum(["BROUILLON", "VALIDE"]);
+export type MeetingStatus = z.infer<typeof MeetingStatus>;
+
+export const MEETING_STATUS_LABELS: Record<MeetingStatus, string> = {
+  BROUILLON: "Brouillon",
+  VALIDE: "Validé",
+};
+
+/**
+ * Le PDF de CR (catégorie COMPTE_RENDU existante) est généré depuis ces lignes, pas l'inverse.
+ * Seuls les participants OPC et MOE créent une réunion et la font passer à VALIDE (vérifié côté
+ * Server Action via site_participants, pas par une policy RLS).
+ */
 export const MeetingNote = z.object({
   id: z.string().uuid(),
   siteId: z.string().uuid(),
+  kind: MeetingKind,
+  number: z.number().int().positive().optional(),
   meetingDate: z.string().date(),
+  authorOrganizationId: z.string().uuid().optional(),
+  status: MeetingStatus,
   createdByUserId: z.string().uuid(),
   documentId: z.string().uuid().optional(),
+  validatedAt: z.string().datetime().optional(),
+  validatedByUserId: z.string().uuid().optional(),
   createdAt: z.string().datetime(),
 });
 export type MeetingNote = z.infer<typeof MeetingNote>;
+
+/**
+ * Point d'ordre du jour — référence une tâche, un document ou une entrée de journal, ou reste un
+ * texte libre. Distinct d'une décision (MeetingDecision), qui crée toujours une tâche.
+ */
+export const MeetingAgendaItem = z.object({
+  id: z.string().uuid(),
+  meetingId: z.string().uuid(),
+  taskId: z.string().uuid().optional(),
+  documentId: z.string().uuid().optional(),
+  sourceLogEntryId: z.string().uuid().optional(),
+  text: z.string().optional(),
+  createdAt: z.string().datetime(),
+});
+export type MeetingAgendaItem = z.infer<typeof MeetingAgendaItem>;
 
 /** Avancement déclaré sur un lot — comparé au cumul HT facturé côté UI, pas un moteur de planning. */
 export const LotProgress = z.object({

@@ -379,6 +379,75 @@ task,execution}.ts` et `database/migrations/0021` à `0027`.
 - [ ] Suppression a posteriori d'une entrée de journal, d'une réserve ou d'un compte-rendu déjà
       créés — seule l'édition a été ajoutée (voir ci-dessus).
 
+### Tranche E — Bureaux de mission (OPC, CT, SPS, BET) (en cours, non validé, 2026-10-23)
+
+Travail livré à la suite des Tranches A-D, sur la branche `claude/suite-moteur-chantier`, **non
+terminé et non validé par l'utilisateur** — même moteur unique, aucune application séparée,
+aucun domaine ni déploiement distinct pour l'OPC/CT/SPS.
+
+- [x] **Nouveaux rôles chantier** : `CT` (contrôleur technique), `SPS` (coordonnateur SPS), `CSSI`
+      (coordonnateur SSI) ajoutés à l'enum Postgres `mission_role` et au schéma Zod `MissionRole`
+      — jamais fusionnés avec `MOE`/`OPC`, aucun droit plateforme implicite. Apparaissent
+      automatiquement dans les sélecteurs de rôle déjà dynamiques (`/parametres`, ajout
+      d'intervenant sur `/chantiers/[id]`), sans changement de code dans ces écrans.
+- [x] **Réunions généralisées** : `meeting_notes`/`meeting_attendees`/`meeting_decisions` (posés
+      en Tranche C) étendus plutôt que dupliqués — `kind` (OPC/SYNTHESE/RECEPTION), `number`,
+      `author_organization_id`, `status` (BROUILLON/VALIDE), présences avec statut
+      (Présent/Excusé/Absent, une ligne par organisation active du chantier). Seules les
+      organisations avec un rôle OPC ou MOE actif sur le chantier peuvent créer une réunion ou la
+      faire passer à VALIDE — vérifié en Server Action via `site_participants`, pas par une policy
+      RLS (même choix que pour les actes). Nouvelle table `meeting_agenda_items` (point d'ordre du
+      jour : texte libre ou référence à une entrée de journal — la liaison tâche/document existe
+      en base et côté Server Action mais n'a pas de sélecteur dans l'UI, voir ci-dessous).
+- [x] **Décisions assignées** : chaque décision crée toujours une tâche existante
+      (`source_type = MEETING`), désormais assignée à une organisation du chantier choisie dans le
+      formulaire (au lieu de toujours retomber sur l'organisation propriétaire du chantier), avec
+      une échéance optionnelle. Simplification assumée : l'assignation et l'échéance s'appliquent
+      à tout le lot de décisions créées en une fois, pas ligne par ligne (voir non-fait).
+      "Décisions précédentes toujours ouvertes" : les tâches `MEETING` non closes des réunions
+      précédentes sont rechargées en lecture au-dessus du formulaire de création — rien n'est
+      recopié à la main.
+- [x] **Notes de coordination OPC par lot** (`lot_schedule_notes`) : consigne courte par semaine,
+      avec renvoi optionnel vers un autre lot dont dépend celui-ci — aucun moteur de planning (pas
+      de Gantt, pas de CPM).
+- [x] **Avis techniques** (`technical_opinions`, CT/SPS/BET/CSSI) : nature (Avis/Visite/Observation),
+      verdict optionnel (Favorable/Favorable avec observations/Suspendu/Défavorable), statut
+      (Brouillon/Émis). L'émetteur doit porter ce rôle, actif, sur le chantier — vérifié en Server
+      Action, pas par une policy RLS. Un avis CT `SUSPENDU`/`DEFAVORABLE` s'affiche sur l'écran de
+      visa MOE (onglet Exécution, "Visas en attente") sans jamais bloquer le visa — la MOE tranche,
+      la mention reste visible. Vérifié en navigateur avec un cas réel (avis CT "Suspendu" déposé
+      sur un document, puis déposé pour visa : la mention apparaît, les boutons de décision restent
+      actifs). Une observation SPS ne crée jamais de `ReserveItem` — ce n'est pas le même circuit.
+- [x] **UI** : nouvel onglet "Bureaux" sur `/chantiers/[id]`, masqué section par section selon le
+      rôle actif de l'organisation courante sur ce chantier (Bureau OPC si OPC ou MOE actif ;
+      Bureau CT/BET si CT ou BET actif ; Bureau SPS si SPS actif, avec une liste en lecture seule
+      des PPSPS du chantier). La création de compte-rendu a été déplacée de l'onglet Exécution
+      (qui n'affiche plus qu'une liste enrichie et un lien vers le bureau OPC) vers ce nouvel
+      onglet, pour que la restriction OPC/MOE soit portée par un seul point d'entrée.
+- [x] Vérifications exécutées : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web
+      build` verts ; migrations `0029`/`0030` appliquées sans incident (`ALTER TYPE ... ADD VALUE`
+      isolé de tout usage du littéral dans la même migration, pour éviter l'erreur Postgres "unsafe
+      use of new value of enum type") ; advisors de performance Supabase revus et les 3 index de FK
+      manquants ajoutés. Parcours complet vérifié en navigateur avec changement d'organisation
+      active : création de réunion avec présences et décisions assignées, ajout d'un point d'ordre
+      du jour, validation du CR, note de coordination par lot, dépôt d'un avis CT et affichage de
+      la mention sur l'écran de visa. Données et participations de test (y compris les rôles CT/SPS
+      ajoutés temporairement pour le test) nettoyées après vérification.
+
+**Explicitement non fait, cases volontairement non cochées :**
+
+- [ ] Accusé de réception du compte-rendu par les titulaires de lot cités, et diffusion réelle
+      (email/notification) aux présents et aux titulaires — la réunion est créée et validée, mais
+      rien n'avertit activement les organisations concernées ni ne trace leur lecture.
+- [ ] Sélecteurs tâche/document pour un point d'ordre du jour — seuls le texte libre et la liaison
+      à une entrée de journal sont exposés dans l'UI (la colonne et le paramètre d'action existent
+      pour `task_id`/`document_id`, non branchés côté formulaire).
+- [ ] Assignation et échéance d'une décision ligne par ligne — s'appliquent à tout le lot de
+      décisions créées en une fois dans le formulaire actuel.
+- [ ] Application mobile OPC dédiée — reste le même moteur web, aucun client mobile séparé.
+- [ ] OCR réel, indices officiels, signature électronique, paiement réel, annuaire BTP — inchangés
+      par rapport aux tranches précédentes, voir les sections correspondantes ci-dessus.
+
 ## Phase 3 — Génération de documents réelle
 
 - Branchement d'un fournisseur IA réel derrière `IAIProvider` pour la génération de documents à
