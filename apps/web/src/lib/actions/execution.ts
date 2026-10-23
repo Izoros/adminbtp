@@ -316,8 +316,24 @@ export async function createMeetingNote(formData: FormData) {
 }
 
 /**
- * Correction a posteriori de la date d'un compte-rendu déjà créé. Les décisions et les tâches
- * qu'elles ont engendrées ne sont pas modifiées ici — seule la date de la réunion l'est.
+ * Un compte-rendu VALIDE est figé — la policy RLS le garantit aussi (migration 0031), ce contrôle
+ * sert à renvoyer un message clair plutôt qu'une mise à jour silencieuse de zéro ligne.
+ */
+async function assertMeetingDraft(supabase: Awaited<ReturnType<typeof createClient>>, meetingId: string) {
+  const { data: meeting, error } = await supabase
+    .from("meeting_notes")
+    .select("status")
+    .eq("id", meetingId)
+    .single();
+  if (error) throw error;
+  if (meeting.status !== "BROUILLON") {
+    throw new Error("Ce compte-rendu est validé : il ne peut plus être modifié.");
+  }
+}
+
+/**
+ * Correction a posteriori de la date d'un compte-rendu encore en brouillon. Les décisions et les
+ * tâches qu'elles ont engendrées ne sont pas modifiées ici — seule la date de la réunion l'est.
  */
 export async function updateMeetingNote(formData: FormData) {
   const siteId = String(formData.get("siteId") ?? "").trim();
@@ -326,10 +342,12 @@ export async function updateMeetingNote(formData: FormData) {
   if (!meetingId || !meetingDate) throw new Error("Compte-rendu et date sont obligatoires.");
 
   const supabase = await createClient();
+  await assertMeetingDraft(supabase, meetingId);
   const { error } = await supabase
     .from("meeting_notes")
     .update({ meeting_date: meetingDate })
-    .eq("id", meetingId);
+    .eq("id", meetingId)
+    .eq("status", "BROUILLON");
   if (error) throw error;
 
   revalidatePath(`/chantiers/${siteId}`);
@@ -348,6 +366,7 @@ export async function addMeetingAgendaItem(formData: FormData) {
   }
 
   const supabase = await createClient();
+  await assertMeetingDraft(supabase, meetingId);
   const { error } = await supabase.from("meeting_agenda_items").insert({
     meeting_id: meetingId,
     task_id: taskId,
@@ -375,12 +394,14 @@ export async function validateMeetingNote(formData: FormData) {
 
   await assertOpcOrMoe(supabase, siteId, organizationId);
 
-  const { error } = await supabase
+  const { data: validated, error } = await supabase
     .from("meeting_notes")
     .update({ status: "VALIDE", validated_at: new Date().toISOString(), validated_by_user_id: user.id })
     .eq("id", meetingId)
-    .eq("status", "BROUILLON");
+    .eq("status", "BROUILLON")
+    .select("id");
   if (error) throw error;
+  if (!validated || validated.length === 0) throw new Error("Ce compte-rendu est déjà validé.");
 
   revalidatePath(`/chantiers/${siteId}`);
 }

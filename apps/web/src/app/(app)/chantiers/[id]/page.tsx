@@ -1331,18 +1331,20 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               ))}
                             </ul>
                           )}
-                          <details className="text-xs">
-                            <summary className="cursor-pointer text-graphite-500">Corriger la date</summary>
-                            <form action={updateMeetingNote} className="mt-2 flex items-end gap-2">
-                              <input type="hidden" name="siteId" value={site.id} />
-                              <input type="hidden" name="meetingId" value={m.id} />
-                              <div>
-                                <label className="mb-1 block text-xs text-graphite-500">Date *</label>
-                                <Input name="meetingDate" type="date" defaultValue={m.meetingDate} className="h-8 w-36 text-xs" required />
-                              </div>
-                              <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
-                            </form>
-                          </details>
+                          {m.status === "BROUILLON" && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-graphite-500">Corriger la date</summary>
+                              <form action={updateMeetingNote} className="mt-2 flex items-end gap-2">
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="meetingId" value={m.id} />
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Date *</label>
+                                  <Input name="meetingDate" type="date" defaultValue={m.meetingDate} className="h-8 w-36 text-xs" required />
+                                </div>
+                                <Button type="submit" size="sm" variant="secondary">Mettre à jour</Button>
+                              </form>
+                            </details>
+                          )}
                         </Card>
                       ))}
                     </div>
@@ -1476,27 +1478,29 @@ export default async function ChantierDetailPage({ params }: { params: Promise<{
                               ))}
                             </ul>
                           )}
-                          <details className="text-xs">
-                            <summary className="cursor-pointer text-graphite-500">Ajouter un point d&apos;ordre du jour</summary>
-                            <form action={addMeetingAgendaItem} className="mt-2 flex flex-wrap items-end gap-2">
-                              <input type="hidden" name="siteId" value={site.id} />
-                              <input type="hidden" name="meetingId" value={m.id} />
-                              <div>
-                                <label className="mb-1 block text-xs text-graphite-500">Texte</label>
-                                <Input name="text" className="h-8 w-56 text-xs" />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs text-graphite-500">Entrée de journal liée</label>
-                                <Select name="sourceLogEntryId" className="h-8 w-40 text-xs" defaultValue="">
-                                  <option value="">Aucune</option>
-                                  {logEntries.map((l) => (
-                                    <option key={l.id} value={l.id}>{l.entryDate} — {l.description.slice(0, 24)}</option>
-                                  ))}
-                                </Select>
-                              </div>
-                              <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
-                            </form>
-                          </details>
+                          {m.status === "BROUILLON" && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-graphite-500">Ajouter un point d&apos;ordre du jour</summary>
+                              <form action={addMeetingAgendaItem} className="mt-2 flex flex-wrap items-end gap-2">
+                                <input type="hidden" name="siteId" value={site.id} />
+                                <input type="hidden" name="meetingId" value={m.id} />
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Texte</label>
+                                  <Input name="text" className="h-8 w-56 text-xs" />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs text-graphite-500">Entrée de journal liée</label>
+                                  <Select name="sourceLogEntryId" className="h-8 w-40 text-xs" defaultValue="">
+                                    <option value="">Aucune</option>
+                                    {logEntries.map((l) => (
+                                      <option key={l.id} value={l.id}>{l.entryDate} — {l.description.slice(0, 24)}</option>
+                                    ))}
+                                  </Select>
+                                </div>
+                                <Button type="submit" size="sm" variant="secondary">Ajouter</Button>
+                              </form>
+                            </details>
+                          )}
                         </Card>
                       ))}
                     </div>
