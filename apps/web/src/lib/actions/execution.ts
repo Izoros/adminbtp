@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import { DemoEmailProvider } from "@adminbtp/integrations";
+import { getEmailProvider } from "@adminbtp/integrations";
 import type {
   ReserveSeverity,
   ReserveStatus,
@@ -531,14 +531,14 @@ export async function distributeMeetingNote(formData: FormData) {
     if (!current || row.site_id === siteId) addressByOrganization.set(row.organization_id, row.address);
   }
 
-  const provider = new DemoEmailProvider();
+  const provider = getEmailProvider();
   const distributionRows: { meeting_id: string; organization_id: string; sent_by_user_id: string }[] = [];
   for (const orgId of recipientOrganizationIds) {
     const address = addressByOrganization.get(orgId);
     if (!address) continue;
     await provider.send({
       to: [address],
-      from: "chantier@adminbtp.test",
+      from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
       subject: `Compte-rendu ${meeting.kind}${meeting.number ? ` n°${meeting.number}` : ""} du ${meeting.meeting_date}`,
       htmlBody: "Le compte-rendu de réunion validé est disponible. Merci d'en accuser réception depuis AdminBTP.",
     });

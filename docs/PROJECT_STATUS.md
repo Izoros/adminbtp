@@ -1,6 +1,7 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Phase 3 — génération de documents réelle (démarrée 2026-10-26).** Tranches A-D
+**Phase actuelle : Phase 3 (génération de documents réelle) et Phase 4 (communications réelles,
+email seul pour l'instant) — démarrées 2026-10-26, ni l'une ni l'autre validée.** Tranches A-D
 (2026-10-22) et Tranche E du moteur de chantier, bureaux de mission OPC/CT/SPS/BET, y compris son
 complément diffusion/accusé de réception/décisions ligne par ligne (2026-10-23), **validées par
 l'utilisateur le 2026-10-26**. Module Marketplace & Entitlements **Phase A validée par
@@ -58,6 +59,24 @@ Phase A. Voir `docs/ROADMAP.md` (section Phase B) pour le détail complet et
   voir `docs/ROADMAP.md`) ; les autres méthodes de `IAIProvider` ailleurs dans l'app
   (classification de mail, brouillon de réponse, contrôle de document) n'utilisent pas encore
   `getAIProvider()`, toujours `DemoAIProvider` en dur.
+
+**Arrêt ici, comme pour toute étape non explicitement validée.**
+
+## Phase 4 — Communications réelles, email seul (en cours, non validé, 2026-10-26)
+
+**Non terminé, ne pas considérer cette étape comme close.** Détail complet dans `docs/ROADMAP.md`
+(section "Phase 4").
+
+- `ResendEmailProvider` implémente `IEmailProvider` via l'API Resend, clé lue dans
+  `RESEND_API_KEY` — `getEmailProvider()` retombe sur `DemoEmailProvider` sans clé.
+  Expéditeur configurable via `RESEND_FROM_EMAIL` (défaut `onboarding@resend.dev`, fonctionne
+  sans domaine vérifié). `sendReminder`/`distributeMeetingNote` utilisent désormais
+  `getEmailProvider()` au lieu de `DemoEmailProvider` en dur ; `sendReminder` résout un vrai
+  destinataire (titulaire de lot ou organisation du chantier) au lieu d'une adresse factice.
+- Vérifié avec la vraie clé Resend de l'utilisateur : envoi direct confirmé (200, email
+  réellement délivré à l'adresse du compte Resend de l'utilisateur, mode sandbox).
+- Non fait : WhatsApp Business entièrement reporté (compte Meta à approuver en externe,
+  infrastructure de webhook pour la preuve d'échange) — `IWhatsAppProvider` inchangé.
 
 **Arrêt ici, comme pour toute étape non explicitement validée.**
 

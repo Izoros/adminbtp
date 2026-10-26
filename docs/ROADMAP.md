@@ -535,11 +535,30 @@ Tranche E, ont été repris et livrés — même moteur, aucune table dupliquée
       `DeepSeekAIProvider` ailleurs dans l'app — `document-reviews.ts`/`reminders.ts` etc.
       utilisent toujours `DemoAIProvider` en dur, pas `getAIProvider()`.
 
-## Phase 4 — Communications réelles (email/WhatsApp)
+## Phase 4 — Communications réelles (email/WhatsApp) (en cours, non validé, 2026-10-26)
 
-- Fournisseur email réel derrière `IEmailProvider`.
-- Fournisseur WhatsApp Business réel derrière `IWhatsAppProvider`, avec capture de preuve
-  d'échange (`whatsappProofUrl`) — toujours distincte de la signature électronique.
+- [x] **Fournisseur email réel** : `ResendEmailProvider` (`packages/integrations/src/email/provider.ts`)
+      implémente `IEmailProvider` via l'API Resend (`https://api.resend.com/emails`), clé lue
+      dans `RESEND_API_KEY`. `getEmailProvider()` retombe sur `DemoEmailProvider` sans clé —
+      `listInbox()` n'a pas d'équivalent Resend (service d'envoi sortant uniquement) et échoue
+      explicitement plutôt que de renvoyer une liste vide silencieuse. Expéditeur configurable
+      via `RESEND_FROM_EMAIL`, par défaut `onboarding@resend.dev` (fonctionne sans domaine
+      vérifié, en mode sandbox Resend). Les deux points d'appel existants
+      (`sendReminder`/`reminders.ts`, `distributeMeetingNote`/`execution.ts`) utilisent
+      désormais `getEmailProvider()` au lieu de `DemoEmailProvider` en dur.
+- [x] `sendReminder` résout désormais un vrai destinataire (titulaire du lot de la situation, ou
+      organisation du chantier à défaut, via `mail_addresses`) au lieu d'une adresse factice fixe
+      — une organisation sans boîte mail active trace la relance sans tenter d'envoi.
+- [x] Vérifié avec la vraie clé Resend de l'utilisateur : premier essai avec un domaine `from` non
+      vérifié → 403 explicite de l'API, corrigé en basculant sur `onboarding@resend.dev` ; second
+      essai → 403 "sandbox : destinataire doit être le propriétaire du compte" (comportement
+      Resend attendu, pas un bug) ; envoi direct vers l'adresse du compte Resend de l'utilisateur
+      → 200, email réellement délivré.
+- [ ] **WhatsApp Business reporté** — nécessite un compte professionnel déjà approuvé côté Meta
+      (processus externe de plusieurs jours) et une infrastructure de webhook pour capturer la
+      preuve d'échange (`whatsappProofUrl`). `IWhatsAppProvider`/`DemoWhatsAppProvider` restent
+      inchangés ; `sendReminder` simule toujours le canal WhatsApp. Sera repris dans une passe
+      dédiée.
 
 ## Phase 5 — Signature électronique
 
