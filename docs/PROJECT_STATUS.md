@@ -31,6 +31,36 @@ Phase A. Voir `docs/ROADMAP.md` (section Phase B) pour le détail complet et
 
 **Arrêt ici comme demandé — Phase C (bibliothèque de documents premium) non démarrée.**
 
+## Phase 3 — Génération de documents réelle (en cours, non validé, 2026-10-26)
+
+**Non terminé, ne pas considérer cette étape comme close.** Détail complet dans `docs/ROADMAP.md`
+(section "Phase 3").
+
+- `IAIProvider` étendu de `generateDocumentContent` ; `DeepSeekAIProvider` implémente
+  l'interface complète via l'API DeepSeek (compatible OpenAI), clé lue dans `DEEPSEEK_API_KEY` —
+  `getAIProvider()` retombe sur `DemoAIProvider` tant qu'elle n'est pas définie. **Clé non fournie
+  à ce stade**, le fournisseur réel reste inactif.
+- Garantie technique (trigger Postgres `enforce_ppsps_preedition()`, migration `0035`) qu'un
+  PPSPS naît toujours en `PREEDITION`, quel que soit le statut demandé par le code appelant —
+  vérifié par une tentative d'insertion directe en SQL avec `status = 'VALIDE'`, forcée à
+  `PREEDITION`.
+- Stockage réel (bucket Supabase Storage privé `documents`, RLS alignée sur
+  `can_access_organization()`). Nouvelle action `generateDocumentFromTemplate` (IA → PDF via
+  `pdf-lib` → upload Storage → ligne `documents`) et téléchargement par URL signée. Écran
+  `/documents/nouveau` : génération depuis un modèle de l'organisation active, un formulaire par
+  `DocumentTemplate` avec un champ par variable.
+- Vérifié : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web build` verts ; parcours
+  complet vérifié en navigateur (`DemoAIProvider` faute de clé) : génération d'un PPSPS,
+  statut `PREEDITION`, fichier réellement stocké et téléchargeable (URL signée testée
+  directement, PDF valide confirmé) ; document de test nettoyé après vérification.
+- Non fait : clé `DEEPSEEK_API_KEY` à fournir par l'utilisateur ; templates DOCX réellement
+  uploadés/parsés avec substitution de variables (choix assumé : texte structuré rendu en PDF,
+  voir `docs/ROADMAP.md`) ; les autres méthodes de `IAIProvider` ailleurs dans l'app
+  (classification de mail, brouillon de réponse, contrôle de document) n'utilisent pas encore
+  `getAIProvider()`, toujours `DemoAIProvider` en dur.
+
+**Arrêt ici, comme pour toute étape non explicitement validée.**
+
 ## Tranche E — Bureaux de mission OPC, CT, SPS, BET ✅ (validé 2026-10-26)
 
 Livré à la suite des Tranches A-D — même moteur unique, aucune application séparée pour
@@ -51,17 +81,12 @@ l'OPC/CT/SPS. Complément diffusion/accusé de réception/décisions ligne par l
   complet vérifié en navigateur avec changement d'organisation active (création de réunion,
   validation du CR, note de coordination, avis CT et mention sur l'écran de visa) ; données et
   participations de test nettoyées après vérification.
-- Non fait : accusé de réception et diffusion réelle du CR aux titulaires de lot, sélecteurs
-  tâche/document pour un point d'ordre du jour, assignation/échéance ligne par ligne des
-  décisions, application mobile OPC dédiée — voir `docs/ROADMAP.md`.
+- Non fait : application mobile OPC dédiée — voir `docs/ROADMAP.md`.
 
-**Arrêt ici, comme pour toute étape non explicitement validée.**
+## Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien ✅ (validé 2026-10-26)
 
-## Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien (en cours, 2026-10-22)
-
-**Non terminé, ne pas considérer cette étape comme close.** Quatre tranches livrées à la suite du
-module ci-dessous, même moteur unique — détail complet, y compris ce qui reste explicitement non
-fait, dans `docs/ROADMAP.md` (section "Tranches A-D").
+Quatre tranches livrées à la suite du module ci-dessous, même moteur unique — détail complet, y
+compris ce qui reste explicitement non fait, dans `docs/ROADMAP.md` (section "Tranches A-D").
 
 - Pièces d'entreprise (`organization_credentials`, rattachées à l'organisation) : échéance dépassée
   toujours affichée comme expirée côté UI quel que soit le statut stocké. Diffusion ciblée des

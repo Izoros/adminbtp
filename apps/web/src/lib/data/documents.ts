@@ -72,6 +72,13 @@ export async function getDocumentsBySite(siteId: string): Promise<Document[]> {
  * tag reste visible à tous. Ne crée aucun droit ; si un modèle devient un service premium, c'est
  * has_entitlement() qui gouverne l'accès, pas ce filtre.
  */
+export async function getDocumentTemplate(id: string): Promise<DocumentTemplate | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("document_templates").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? mapDocumentTemplate(data) : null;
+}
+
 export async function getDocumentTemplates(
   organizationId: string,
   audience?: { legalKind?: string; tradeCodes?: string[] }

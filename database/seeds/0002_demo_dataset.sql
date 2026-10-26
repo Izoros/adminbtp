@@ -195,10 +195,12 @@ begin
   -- -------------------------------------------------------------------------
   -- Modèles de documents (org-1, correspond à l'écran Paramètres > Modèles de documents)
   -- -------------------------------------------------------------------------
-  insert into document_templates (organization_id, category, name, file_url, requires_expert_review)
-  values (v_org1, 'PPSPS', 'PPSPS type', 'demo://templates/ppsps-type.docx', true) returning id into v_tpl_ppsps;
-  insert into document_templates (organization_id, category, name, file_url)
-  values (v_org1, 'COURRIER', 'Courrier de notification de démarrage', 'demo://templates/courrier-demarrage.docx') returning id into v_tpl_courrier;
+  insert into document_templates (organization_id, category, name, file_url, requires_expert_review, variables)
+  values (v_org1, 'PPSPS', 'PPSPS type', 'demo://templates/ppsps-type.docx', true,
+    array['chantier.nom', 'entreprise.nom', 'date.debut']) returning id into v_tpl_ppsps;
+  insert into document_templates (organization_id, category, name, file_url, variables)
+  values (v_org1, 'COURRIER', 'Courrier de notification de démarrage', 'demo://templates/courrier-demarrage.docx',
+    array['chantier.nom', 'destinataire.nom']) returning id into v_tpl_courrier;
   insert into document_templates (organization_id, category, name, file_url)
   values (v_org1, 'SITUATION_TRAVAUX', 'Situation de travaux', 'demo://templates/situation-travaux.docx') returning id into v_tpl_situation;
   insert into document_templates (organization_id, category, name, file_url)

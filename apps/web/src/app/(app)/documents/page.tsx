@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDocuments } from "@/lib/data/documents";
 import { getSites } from "@/lib/data/sites";
+import { getDocumentDownloadUrl } from "@/lib/actions/documents";
 import { DOCUMENT_CATEGORY_LABELS, DOCUMENT_STATUS_LABELS, type DocumentStatus } from "@adminbtp/types";
 
 const STATUS_TONE: Record<DocumentStatus, "neutral" | "info" | "warning" | "success" | "danger"> = {
@@ -21,6 +22,11 @@ const STATUS_TONE: Record<DocumentStatus, "neutral" | "info" | "warning" | "succ
 
 export default async function DocumentsPage() {
   const [documents, sites] = await Promise.all([getDocuments(), getSites()]);
+  const downloadUrls = new Map(
+    await Promise.all(
+      documents.map(async (doc) => [doc.id, await getDocumentDownloadUrl(doc.fileUrl)] as const)
+    )
+  );
 
   return (
     <div className="space-y-6">
@@ -47,11 +53,13 @@ export default async function DocumentsPage() {
                 <th className="px-4 py-2.5">Catégorie</th>
                 <th className="px-4 py-2.5">Version</th>
                 <th className="px-4 py-2.5">Statut</th>
+                <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
               {documents.map((doc) => {
                 const site = sites.find((s) => s.id === doc.siteId);
+                const downloadUrl = downloadUrls.get(doc.id);
                 return (
                   <tr key={doc.id} className="hover:bg-surface-subtle">
                     <td className="px-4 py-3 font-medium text-graphite-900">{doc.title}</td>
@@ -67,6 +75,17 @@ export default async function DocumentsPage() {
                     <td className="px-4 py-3 text-graphite-700">{DOCUMENT_CATEGORY_LABELS[doc.category]}</td>
                     <td className="px-4 py-3 text-graphite-700">v{doc.version}</td>
                     <td className="px-4 py-3"><Badge tone={STATUS_TONE[doc.status]}>{DOCUMENT_STATUS_LABELS[doc.status]}</Badge></td>
+                    <td className="px-4 py-3 text-right">
+                      {downloadUrl && (
+                        <a
+                          href={downloadUrl}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-graphite-500 hover:text-graphite-900"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          PDF
+                        </a>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

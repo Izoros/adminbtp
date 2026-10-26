@@ -488,13 +488,52 @@ Tranche E, ont été repris et livrés — même moteur, aucune table dupliquée
       comptes-rendus de test nettoyés après vérification (tâche née de la décision de test
       repassée en `ANNULE` par le RPC de suppression douce existant).
 
-## Phase 3 — Génération de documents réelle
+## Phase 3 — Génération de documents réelle (en cours, non validé, 2026-10-26)
 
-- Branchement d'un fournisseur IA réel derrière `IAIProvider` pour la génération de documents à
-  partir des modèles (`DocumentTemplate`).
-- Garantie technique (pas seulement conventionnelle) que tout PPSPS généré par IA naît en
-  `PREEDITION`.
-- Stockage réel des fichiers (Supabase Storage ou équivalent) derrière `fileUrl`.
+- [x] **Fournisseur IA réel** : `IAIProvider` étendu d'une méthode `generateDocumentContent`
+      (rédaction du corps texte d'un document à partir d'un modèle et de ses variables — jamais le
+      fichier final ni le statut). `DeepSeekAIProvider` (`packages/integrations/src/ai/provider.ts`)
+      implémente l'interface complète via l'API DeepSeek (compatible OpenAI,
+      `https://api.deepseek.com/chat/completions`, modèle `deepseek-chat`), clé lue dans
+      `DEEPSEEK_API_KEY` sans valeur en dur. `getAIProvider()` retombe sur `DemoAIProvider` tant que
+      la clé n'est pas définie — aucun appel réseau sans elle. **Clé non fournie à ce stade** : le
+      provider réel reste scaffoldé mais inactif tant que `DEEPSEEK_API_KEY` n'est pas ajoutée à
+      `.env.local` (et aux variables Vercel pour la production).
+- [x] **Garantie technique PPSPS** : trigger Postgres `enforce_ppsps_preedition()` (migration
+      `0035`) force `status = 'PREEDITION'` sur tout `INSERT` dans `documents` où
+      `category = 'PPSPS'`, quel que soit le statut demandé par le code appelant — vérifié en
+      tentant une insertion SQL directe avec `status = 'VALIDE'`, forcée à `PREEDITION` par le
+      trigger.
+- [x] **Stockage réel** : bucket Supabase Storage privé `documents` (migration `0035`), chemin
+      `{organization_id}/{document_id}.pdf`, RLS sur `storage.objects` alignée sur
+      `can_access_organization()` — même règle d'isolation que la table `documents`. Nouvelle
+      action `generateDocumentFromTemplate` (rédaction IA → mise en page PDF via `pdf-lib`,
+      réutilise `wrapText`/`sanitizeForCharset` du générateur de CR existant → upload Storage →
+      ligne `documents` avec `file_url` réel) et `getDocumentDownloadUrl` (URL signée 10 min,
+      jamais pour un `fileUrl` `demo://`). Écran `/documents/nouveau` : nouvelle section "Générer
+      avec l'IA depuis un modèle" (un formulaire par `DocumentTemplate` de l'organisation active,
+      champ par variable), la création manuelle d'une fiche vierge existante est conservée à côté.
+      Liste `/documents` : lien de téléchargement si un fichier réel existe.
+- [x] Vérifications exécutées : `pnpm -r typecheck/lint/test` et `pnpm --filter @adminbtp/web
+      build` verts ; migration `0035` appliquée sans incident. Parcours complet vérifié en
+      navigateur (serveur de dev local, `DemoAIProvider` faute de clé DeepSeek) : génération d'un
+      PPSPS depuis le modèle "PPSPS type", document créé en `PREEDITION`, fichier réellement
+      stocké et téléchargeable (URL signée testée directement : réponse 200,
+      `content-type: application/pdf`, en-tête `%PDF-` confirmé). Document de test nettoyé après
+      vérification.
+
+**Explicitement non fait, cases volontairement non cochées :**
+
+- [ ] Clé `DEEPSEEK_API_KEY` non configurée — le fournisseur IA réel reste inactif (replié sur
+      `DemoAIProvider`) tant que l'utilisateur ne l'ajoute pas lui-même.
+- [ ] Templates DOCX réellement uploadés et parsés avec substitution de variables en préservant
+      la mise en forme — choix assumé (voir discussion) de générer un texte structuré rendu en PDF
+      via `pdf-lib`, pas de parsing d'un fichier DOCX existant. `document_templates.file_url`
+      reste un chemin `demo://...` non exploité par la génération.
+- [ ] Les autres méthodes de `IAIProvider` (classification de mail, brouillon de réponse,
+      contrôle de document, suggestion de classement) ne sont pas encore appelées depuis
+      `DeepSeekAIProvider` ailleurs dans l'app — `document-reviews.ts`/`reminders.ts` etc.
+      utilisent toujours `DemoAIProvider` en dur, pas `getAIProvider()`.
 
 ## Phase 4 — Communications réelles (email/WhatsApp)
 

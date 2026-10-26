@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { getAIProvider } from "@adminbtp/integrations";
+import { getDocumentTemplate } from "@/lib/data/documents";
+import { renderGeneratedDocumentPdf } from "@/lib/pdf/generated-document";
 import type { DocumentCategory } from "@adminbtp/types";
 
 export async function createDocument(formData: FormData) {
@@ -22,14 +25,14 @@ export async function createDocument(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Non authentifié");
 
-  // Règle produit non négociable : un PPSPS généré par la plateforme naît toujours en
-  // PREEDITION, jamais directement VALIDE/ENVOYE — voir docs/VALIDATION_CHECKLIST.md. Tout autre
-  // document créé manuellement démarre en BROUILLON : la création ne doit jamais sauter les
-  // étapes du circuit de contrôle.
+  // Règle produit non négociable : un PPSPS naît toujours en PREEDITION — garantie désormais
+  // technique (trigger enforce_ppsps_preedition(), migration 0035), ce statut n'est qu'un défaut
+  // cohérent côté UI. Tout autre document créé manuellement démarre en BROUILLON : la création ne
+  // doit jamais sauter les étapes du circuit de contrôle.
   const status = category === "PPSPS" ? "PREEDITION" : "BROUILLON";
 
-  // Pas de stockage de fichiers réel branché (Phase 3, voir docs/ROADMAP.md) — chemin de
-  // substitution cohérent avec les documents de démonstration existants.
+  // Document vierge, sans contenu ni fichier réel — voir generateDocumentFromTemplate() pour la
+  // génération IA avec stockage réel (Phase 3, Supabase Storage).
   const fileUrl = `demo://documents/${randomUUID()}.pdf`;
 
   const { error } = await supabase.from("documents").insert({
@@ -47,4 +50,85 @@ export async function createDocument(formData: FormData) {
   revalidatePath("/documents");
   revalidatePath("/dashboard");
   redirect("/documents");
+}
+
+/**
+ * Génère le contenu d'un document via IAIProvider (DeepSeek si DEEPSEEK_API_KEY est définie,
+ * DemoAIProvider sinon) à partir d'un modèle et de ses variables, le met en page en PDF et le
+ * stocke réellement (Supabase Storage, bucket "documents", chemin {organizationId}/{documentId}.pdf
+ * — RLS alignée sur can_access_organization(), migration 0035). Le statut initial reste décidé
+ * par la base, jamais ici : enforce_ppsps_preedition() force PREEDITION pour tout PPSPS, quel que
+ * soit le statut inséré.
+ */
+export async function generateDocumentFromTemplate(formData: FormData) {
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const templateId = String(formData.get("templateId") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  if (!organizationId || !templateId || !title) {
+    throw new Error("Organisation, modèle et titre sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  const template = await getDocumentTemplate(templateId);
+  if (!template || template.organizationId !== organizationId) {
+    throw new Error("Modèle introuvable pour cette organisation.");
+  }
+
+  const variables: Record<string, string> = {};
+  for (const name of template.variables) {
+    variables[name] = String(formData.get(`variable:${name}`) ?? "").trim();
+  }
+
+  const ai = getAIProvider();
+  const body = await ai.generateDocumentContent({
+    category: template.category,
+    templateName: template.name,
+    title,
+    variables,
+  });
+
+  const generatedAt = new Date();
+  const pdfBytes = await renderGeneratedDocumentPdf({ title, body, generatedAt });
+
+  const documentId = randomUUID();
+  const storagePath = `${organizationId}/${documentId}.pdf`;
+  const { error: uploadError } = await supabase.storage
+    .from("documents")
+    .upload(storagePath, pdfBytes, { contentType: "application/pdf" });
+  if (uploadError) throw uploadError;
+
+  // Statut non précisé pour PPSPS : enforce_ppsps_preedition() le force à PREEDITION en base ;
+  // les autres catégories démarrent en BROUILLON, comme createDocument().
+  const status = template.category === "PPSPS" ? "PREEDITION" : "BROUILLON";
+  const { error: insertError } = await supabase.from("documents").insert({
+    id: documentId,
+    organization_id: organizationId,
+    site_id: siteId || null,
+    category: template.category,
+    title,
+    status,
+    file_url: storagePath,
+    template_id: templateId,
+    created_by_user_id: user.id,
+  });
+  if (insertError) throw insertError;
+
+  revalidatePath("/documents");
+  revalidatePath("/dashboard");
+  redirect("/documents");
+}
+
+/** URL signée temporaire (10 min) pour télécharger un document réellement stocké — jamais de fichier "demo://". */
+export async function getDocumentDownloadUrl(fileUrl: string): Promise<string | null> {
+  if (fileUrl.startsWith("demo://")) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from("documents").createSignedUrl(fileUrl, 600);
+  if (error) throw error;
+  return data.signedUrl;
 }
