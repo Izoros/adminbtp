@@ -273,12 +273,13 @@ métier. Voir `packages/types/src/{roles,trade,document,market,finance,chantier}
 **Ne pas démarrer les phases B+ du module Marketplace à partir de ce travail** — ce sont deux
 chantiers indépendants (voir section précédente).
 
-### Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien (en cours, non validé, 2026-10-22)
+### Tranches A-D — pièces d'entreprise, avenants/retenue/avance/DGD, exécution, quotidien ✅ (validé 2026-10-26)
 
-Quatre tranches livrées à la suite du module ci-dessus, **non terminées et non validées par
-l'utilisateur** — toujours un seul moteur (phases/documents/lots/situations/validations/tâches/mails),
-aucun moteur parallèle par métier. Voir `packages/types/src/{roles,chantier,document,market,finance,
-task,execution}.ts` et `database/migrations/0021` à `0027`.
+Quatre tranches livrées à la suite du module ci-dessus — toujours un seul moteur
+(phases/documents/lots/situations/validations/tâches/mails), aucun moteur parallèle par métier.
+Voir `packages/types/src/{roles,chantier,document,market,finance,task,execution}.ts` et
+`database/migrations/0021` à `0027`. Points explicitement non faits (voir plus bas) non
+bloquants pour la validation, repris dans les phases suivantes si besoin.
 
 - [x] **Tranche A — profil, actes, groupement** : `organization_credentials` (ASSURANCE_RC/
       ASSURANCE_DECENNALE/URSSAF/QUALIFICATION/AUTRE, échéance optionnelle, statut) rattachées à
@@ -388,11 +389,12 @@ task,execution}.ts` et `database/migrations/0021` à `0027`.
       tâches encore ouvertes (`A_FAIRE`, `EN_COURS`, `EN_ATTENTE`) passent en `ANNULE`, les tâches
       faites restent. Pas de restauration depuis l'UI (possible en base si besoin).
 
-### Tranche E — Bureaux de mission (OPC, CT, SPS, BET) (en cours, non validé, 2026-10-23)
+### Tranche E — Bureaux de mission (OPC, CT, SPS, BET) ✅ (validé 2026-10-26)
 
-Travail livré à la suite des Tranches A-D, sur la branche `claude/suite-moteur-chantier`, **non
-terminé et non validé par l'utilisateur** — même moteur unique, aucune application séparée,
-aucun domaine ni déploiement distinct pour l'OPC/CT/SPS.
+Travail livré à la suite des Tranches A-D — même moteur unique, aucune application séparée,
+aucun domaine ni déploiement distinct pour l'OPC/CT/SPS. Les trois points initialement laissés
+non faits (diffusion/accusé de réception, décisions ligne par ligne, sélecteurs tâche/document)
+ont été repris et livrés le 2026-10-23 (voir complément plus bas).
 
 - [x] **Nouveaux rôles chantier** : `CT` (contrôleur technique), `SPS` (coordonnateur SPS), `CSSI`
       (coordonnateur SSI) ajoutés à l'enum Postgres `mission_role` et au schéma Zod `MissionRole`

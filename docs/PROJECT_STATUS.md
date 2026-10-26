@@ -1,11 +1,11 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Tranche E du moteur de chantier (bureaux de mission OPC, CT, SPS, BET) — en
-cours, non terminée et non validée par l'utilisateur (livrée 2026-10-23, sur la branche
-`claude/suite-moteur-chantier`, à la suite des Tranches A-D du 2026-10-22).** Module Marketplace &
-Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP) terminée** le
-2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md` pour le
-détail des cases cochées/restantes.
+**Phase actuelle : Phase 3 — génération de documents réelle (démarrée 2026-10-26).** Tranches A-D
+(2026-10-22) et Tranche E du moteur de chantier, bureaux de mission OPC/CT/SPS/BET, y compris son
+complément diffusion/accusé de réception/décisions ligne par ligne (2026-10-23), **validées par
+l'utilisateur le 2026-10-26**. Module Marketplace & Entitlements **Phase A validée par
+l'utilisateur et Phase B (annuaire BTP) terminée** le 2026-10-22, Phase 2 (persistance réelle) et
+Phase 1 validées. Voir `docs/ROADMAP.md` pour le détail des cases cochées/restantes.
 
 ## Module Marketplace & Entitlements — Phase B : annuaire professionnel BTP (2026-10-22)
 
@@ -31,12 +31,11 @@ Phase A. Voir `docs/ROADMAP.md` (section Phase B) pour le détail complet et
 
 **Arrêt ici comme demandé — Phase C (bibliothèque de documents premium) non démarrée.**
 
-## Tranche E — Bureaux de mission OPC, CT, SPS, BET (en cours, 2026-10-23)
+## Tranche E — Bureaux de mission OPC, CT, SPS, BET ✅ (validé 2026-10-26)
 
-**Non terminé, ne pas considérer cette étape comme close.** Livré à la suite des Tranches A-D sur
-la branche `claude/suite-moteur-chantier` — même moteur unique, aucune application séparée pour
-l'OPC/CT/SPS. Détail complet, y compris ce qui reste explicitement non fait, dans
-`docs/ROADMAP.md` (section "Tranche E").
+Livré à la suite des Tranches A-D — même moteur unique, aucune application séparée pour
+l'OPC/CT/SPS. Complément diffusion/accusé de réception/décisions ligne par ligne livré le
+2026-10-23. Détail complet dans `docs/ROADMAP.md` (section "Tranche E").
 
 - Nouveaux rôles chantier `CT`/`SPS`/`CSSI`, jamais fusionnés avec `MOE`/`OPC`.
 - Réunions généralisées (`meeting_notes` étendu : nature, numéro, statut Brouillon/Validé,
