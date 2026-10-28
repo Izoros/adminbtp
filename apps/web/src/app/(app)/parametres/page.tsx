@@ -28,10 +28,12 @@ import {
   CredentialKind,
   CREDENTIAL_KIND_LABELS,
   CREDENTIAL_STATUS_LABELS,
+  COMMON_TIMEZONES,
 } from "@adminbtp/types";
 import { updateOrganizationProfile } from "@/lib/actions/organizations";
 import { saveOrganizationProfile, saveOrganizationTrades } from "@/lib/actions/organization-profile";
 import { saveOrganizationCredential } from "@/lib/actions/credentials";
+import { formatDateInTimezone } from "@/lib/format/date";
 
 const VALIDATION_CIRCUIT = [
   { step: "Préparation", responsible: "Chargé d'affaires" },
@@ -122,6 +124,45 @@ export default async function ParametresPage() {
                             Code postal
                           </label>
                           <Input id="postalCode" name="postalCode" defaultValue={activeOrg.postalCode ?? ""} />
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <label htmlFor="timezone" className="mb-1 block text-xs font-medium text-graphite-500">
+                            Fuseau horaire
+                          </label>
+                          <Select id="timezone" name="timezone" defaultValue={activeOrg.timezone}>
+                            {COMMON_TIMEZONES.includes(
+                              activeOrg.timezone as (typeof COMMON_TIMEZONES)[number],
+                            ) ? null : (
+                              <option value={activeOrg.timezone}>{activeOrg.timezone}</option>
+                            )}
+                            {COMMON_TIMEZONES.map((tz) => (
+                              <option key={tz} value={tz}>
+                                {tz}
+                              </option>
+                            ))}
+                          </Select>
+                          <p className="mt-1 text-xs text-graphite-500">
+                            Utilisé pour l&apos;affichage des dates et échéances de cette organisation
+                            (défaut Indian/Mayotte). Heure actuelle dans ce fuseau :{" "}
+                            {formatDateInTimezone(new Date(), activeOrg.timezone)}.
+                          </p>
+                        </div>
+                        <div>
+                          <label htmlFor="postalCodePatterns" className="mb-1 block text-xs font-medium text-graphite-500">
+                            Formats de code postal autorisés
+                          </label>
+                          <Input
+                            id="postalCodePatterns"
+                            name="postalCodePatterns"
+                            defaultValue={activeOrg.postalCodePatterns?.join(", ") ?? ""}
+                            placeholder="^976\d{2}$"
+                          />
+                          <p className="mt-1 text-xs text-graphite-500">
+                            Un ou plusieurs motifs (regex), séparés par une virgule. Laisser vide pour
+                            n&apos;imposer aucun format (comportement par défaut).
+                          </p>
                         </div>
                       </div>
                       <Button type="submit" variant="secondary" size="sm">

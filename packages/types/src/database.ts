@@ -1886,8 +1886,10 @@ export type Database = {
           logo_url: string | null
           name: string
           postal_code: string | null
+          postal_code_patterns: string[] | null
           siret: string | null
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          timezone: string
           updated_at: string
         }
         Insert: {
@@ -1902,8 +1904,10 @@ export type Database = {
           logo_url?: string | null
           name: string
           postal_code?: string | null
+          postal_code_patterns?: string[] | null
           siret?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          timezone?: string
           updated_at?: string
         }
         Update: {
@@ -1918,8 +1922,10 @@ export type Database = {
           logo_url?: string | null
           name?: string
           postal_code?: string | null
+          postal_code_patterns?: string[] | null
           siret?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          timezone?: string
           updated_at?: string
         }
         Relationships: []

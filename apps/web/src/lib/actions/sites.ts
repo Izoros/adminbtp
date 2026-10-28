@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import type { SiteStatus } from "@adminbtp/types";
+import { matchesPostalCodePatterns, type SiteStatus } from "@adminbtp/types";
 
 export async function createSite(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "").trim();
@@ -23,13 +23,26 @@ export async function createSite(formData: FormData) {
     throw new Error("Organisation, nom, référence, adresse et ville sont obligatoires.");
   }
 
+  const supabase = await createClient();
+
+  // Format de code postal paramétrable par organisation (Phase 11) — aucune contrainte imposée
+  // si l'organisation n'a pas renseigné de motif (comportement historique, voir
+  // database/migrations/0037_organization_locale_settings.sql).
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("postal_code_patterns")
+    .eq("id", organizationId)
+    .maybeSingle();
+  if (!matchesPostalCodePatterns(postalCode, org?.postal_code_patterns)) {
+    throw new Error("Le code postal ne correspond à aucun des formats autorisés pour cette organisation.");
+  }
+
   // Id généré côté serveur et une insertion sans RETURNING : sur Postgres 17, RETURNING
   // applique aussi la policy SELECT (sites_select_shared, via can_access_site()), qui est
   // STABLE et lit sites/site_participants avec l'instantané de la requête — elle ne voit donc
   // pas la ligne que cette même instruction est en train d'insérer. Voir docs/DECISIONS.md.
   const id = randomUUID();
 
-  const supabase = await createClient();
   const { error } = await supabase.from("sites").insert({
     id,
     organization_id: organizationId,

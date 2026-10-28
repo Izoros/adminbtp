@@ -4,6 +4,32 @@ export const SubscriptionPlan = z.enum(["DEMO", "STARTER", "PRO", "ENTERPRISE"])
 export type SubscriptionPlan = z.infer<typeof SubscriptionPlan>;
 
 /**
+ * Fuseau horaire par défaut d'une organisation — territoire cible initial d'AdminBTP (Mayotte).
+ * Reste le défaut de toute organisation qui ne personnalise pas son réglage (voir
+ * `database/migrations/0037_organization_locale_settings.sql`), pour une rétrocompatibilité
+ * totale lors de l'extension hors Mayotte (Phase 11, docs/ROADMAP.md).
+ */
+export const DEFAULT_ORGANIZATION_TIMEZONE = "Indian/Mayotte";
+
+/**
+ * Fuseaux horaires proposés en confort de saisie dans /parametres — liste non exhaustive, le
+ * champ `Organization.timezone` accepte tout identifiant IANA valide saisi librement.
+ */
+export const COMMON_TIMEZONES = [
+  "Indian/Mayotte",
+  "Indian/Reunion",
+  "Indian/Antananarivo",
+  "Indian/Comoro",
+  "Europe/Paris",
+  "America/Cayenne",
+  "America/Guadeloupe",
+  "America/Martinique",
+  "Pacific/Noumea",
+  "Pacific/Tahiti",
+  "UTC",
+] as const;
+
+/**
  * Société cliente d'AdminBTP (tenant). Toutes les données métier sont rattachées
  * à une organizationId et isolées via RLS (voir database/policies). AdminBTP est un SaaS
  * multi-tenant : aucune organisation (MAWU comprise) n'a de statut particulier — voir
@@ -22,10 +48,34 @@ export const Organization = z.object({
   domain: z.string().optional(), // domaine mail principal (ex: societe.yt) — voir OrganizationDomain pour la liste complète
   domainVerified: z.boolean().default(false),
   subscriptionPlan: SubscriptionPlan.default("DEMO"),
+  // Fuseau horaire et format de code postal : paramétrage par organisation (Phase 11), jamais
+  // de constante Mayotte figée dans le code — voir DEFAULT_ORGANIZATION_TIMEZONE et
+  // matchesPostalCodePatterns ci-dessous.
+  timezone: z.string().min(1).default(DEFAULT_ORGANIZATION_TIMEZONE),
+  postalCodePatterns: z.array(z.string().min(1)).optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type Organization = z.infer<typeof Organization>;
+
+/**
+ * Vérifie un code postal par rapport aux motifs (regex) configurés pour une organisation.
+ * Aucun motif renseigné (undefined/tableau vide) = aucune contrainte imposée : c'est le
+ * comportement historique (champ libre), conservé par défaut pour toute organisation qui n'a pas
+ * explicitement activé ce réglage. Un motif qui ne compile pas est ignoré plutôt que de bloquer
+ * la saisie (erreur de configuration, pas une faute de l'utilisateur qui saisit son adresse).
+ */
+export function matchesPostalCodePatterns(postalCode: string, patterns?: string[] | null): boolean {
+  if (!patterns || patterns.length === 0) return true;
+  if (!postalCode) return true;
+  return patterns.some((pattern) => {
+    try {
+      return new RegExp(pattern).test(postalCode);
+    } catch {
+      return false;
+    }
+  });
+}
 
 /** Domaine mail supplémentaire d'une organisation (une organisation peut en avoir plusieurs). */
 export const OrganizationDomain = z.object({
