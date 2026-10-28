@@ -246,6 +246,112 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          organization_id: string
+          performed_by_user_id: string
+          reason: string
+          transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          usage_record_id: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          organization_id: string
+          performed_by_user_id: string
+          reason: string
+          transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          usage_record_id?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          organization_id?: string
+          performed_by_user_id?: string
+          reason?: string
+          transaction_type?: Database["public"]["Enums"]["credit_transaction_type"]
+          usage_record_id?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_performed_by_user_id_fkey"
+            columns: ["performed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_usage_record_id_fkey"
+            columns: ["usage_record_id"]
+            isOneToOne: false
+            referencedRelation: "usage_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       directory_access_log: {
         Row: {
           accessed_at: string
@@ -1837,6 +1943,96 @@ export type Database = {
           },
         ]
       }
+      organization_subscriptions: {
+        Row: {
+          activated_at: string
+          activated_by_user_id: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by_user_id: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          expires_at: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          price_id: string | null
+          service_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string
+          activated_by_user_id: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by_user_id?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          price_id?: string | null
+          service_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string
+          activated_by_user_id?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by_user_id?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          price_id?: string | null
+          service_id?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_activated_by_user_id_fkey"
+            columns: ["activated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_cancelled_by_user_id_fkey"
+            columns: ["cancelled_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_price_id_fkey"
+            columns: ["price_id"]
+            isOneToOne: false
+            referencedRelation: "service_prices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_trades: {
         Row: {
           id: string
@@ -3156,6 +3352,67 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_records: {
+        Row: {
+          created_at: string
+          credits_cost: number
+          id: string
+          idempotency_key: string
+          metadata: Json
+          organization_id: string
+          quantity: number
+          recorded_by_user_id: string
+          service_id: string | null
+          usage_type: string
+        }
+        Insert: {
+          created_at?: string
+          credits_cost: number
+          id?: string
+          idempotency_key: string
+          metadata?: Json
+          organization_id: string
+          quantity?: number
+          recorded_by_user_id: string
+          service_id?: string | null
+          usage_type: string
+        }
+        Update: {
+          created_at?: string
+          credits_cost?: number
+          id?: string
+          idempotency_key?: string
+          metadata?: Json
+          organization_id?: string
+          quantity?: number
+          recorded_by_user_id?: string
+          service_id?: string | null
+          usage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_records_recorded_by_user_id_fkey"
+            columns: ["recorded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_records_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -3282,6 +3539,39 @@ export type Database = {
         }
         Returns: undefined
       }
+      activate_subscription: {
+        Args: {
+          p_current_period_end?: string
+          p_current_period_start?: string
+          p_expires_at?: string
+          p_note?: string
+          p_organization_id: string
+          p_price_id?: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_organization_id: string
+          p_reason: string
+          p_wallet_expires_at?: string
+        }
+        Returns: {
+          amount: number
+          balance_after: number
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          organization_id: string
+          performed_by_user_id: string
+          reason: string
+          transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          usage_record_id: string | null
+          wallet_id: string
+        }
+      }
       approve_access_request: {
         Args: {
           p_admin_note?: string
@@ -3300,6 +3590,14 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      cancel_subscription: {
+        Args: {
+          p_organization_id: string
+          p_reason?: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
       check_internal_reminders: { Args: { p_site_id: string }; Returns: number }
       current_app_user_id: { Args: never; Returns: string }
       current_user_organization_id: { Args: never; Returns: string }
@@ -3307,8 +3605,40 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_permission_role"]
       }
+      debit_credits: {
+        Args: {
+          p_amount: number
+          p_idempotency_key: string
+          p_organization_id: string
+          p_reason: string
+          p_usage_record_id?: string
+        }
+        Returns: {
+          amount: number
+          balance_after: number
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          organization_id: string
+          performed_by_user_id: string
+          reason: string
+          transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          usage_record_id: string | null
+          wallet_id: string
+        }
+      }
       extend_entitlement: {
         Args: {
+          p_new_expires_at: string
+          p_note?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      extend_subscription: {
+        Args: {
+          p_new_current_period_end?: string
           p_new_expires_at: string
           p_note?: string
           p_organization_id: string
@@ -3372,6 +3702,10 @@ export type Database = {
         Args: { p_organization_id: string; p_site_id: string }
         Returns: boolean
       }
+      is_subscription_active: {
+        Args: { target_org_id: string; target_service_id: string }
+        Returns: boolean
+      }
       list_directory_companies_admin: {
         Args: { p_category_id?: string; p_search?: string }
         Returns: {
@@ -3415,6 +3749,38 @@ export type Database = {
           p_service_id: string
         }
         Returns: undefined
+      }
+      reactivate_subscription: {
+        Args: {
+          p_expires_at?: string
+          p_note?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
+      record_usage: {
+        Args: {
+          p_credits_cost: number
+          p_idempotency_key: string
+          p_metadata?: Json
+          p_organization_id: string
+          p_quantity?: number
+          p_service_id: string
+          p_usage_type: string
+        }
+        Returns: {
+          created_at: string
+          credits_cost: number
+          id: string
+          idempotency_key: string
+          metadata: Json
+          organization_id: string
+          quantity: number
+          recorded_by_user_id: string
+          service_id: string | null
+          usage_type: string
+        }
       }
       reject_access_request: {
         Args: { p_admin_note?: string; p_request_id: string }
@@ -3460,6 +3826,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      suspend_subscription: {
+        Args: {
+          p_note?: string
+          p_organization_id: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       access_request_status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
@@ -3475,6 +3849,7 @@ export type Database = {
         | "QUALIFICATION"
         | "AUTRE"
       credential_status: "VALIDE" | "EXPIRE" | "MANQUANT"
+      credit_transaction_type: "TOPUP" | "DEBIT" | "ADJUSTMENT" | "REFUND"
       document_category:
         | "COURRIER"
         | "COMPTE_RENDU"
@@ -3636,7 +4011,9 @@ export type Database = {
         | "GPA"
         | "CLOTURE"
         | "SUSPENDU"
+      subscription_action: "ACTIVATE" | "SUSPEND" | "REACTIVATE" | "EXTEND" | "CANCEL"
       subscription_plan: "DEMO" | "STARTER" | "PRO" | "ENTERPRISE"
+      subscription_status: "ACTIVE" | "SUSPENDED" | "EXPIRED" | "CANCELLED"
       task_priority: "BASSE" | "NORMALE" | "HAUTE" | "CRITIQUE"
       task_source_type:
         | "MANUEL"
@@ -3818,6 +4195,7 @@ export const Constants = {
         "AUTRE",
       ],
       credential_status: ["VALIDE", "EXPIRE", "MANQUANT"],
+      credit_transaction_type: ["TOPUP", "DEBIT", "ADJUSTMENT", "REFUND"],
       document_category: [
         "COURRIER",
         "COMPTE_RENDU",
@@ -3995,7 +4373,9 @@ export const Constants = {
         "CLOTURE",
         "SUSPENDU",
       ],
+      subscription_action: ["ACTIVATE", "SUSPEND", "REACTIVATE", "EXTEND", "CANCEL"],
       subscription_plan: ["DEMO", "STARTER", "PRO", "ENTERPRISE"],
+      subscription_status: ["ACTIVE", "SUSPENDED", "EXPIRED", "CANCELLED"],
       task_priority: ["BASSE", "NORMALE", "HAUTE", "CRITIQUE"],
       task_source_type: [
         "MANUEL",
