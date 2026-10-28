@@ -20,6 +20,7 @@ export type Database = {
           admin_decision_by_user_id: string | null
           admin_note: string | null
           created_at: string
+          document_template_catalog_id: string | null
           id: string
           message: string | null
           organization_id: string
@@ -33,6 +34,7 @@ export type Database = {
           admin_decision_by_user_id?: string | null
           admin_note?: string | null
           created_at?: string
+          document_template_catalog_id?: string | null
           id?: string
           message?: string | null
           organization_id: string
@@ -46,6 +48,7 @@ export type Database = {
           admin_decision_by_user_id?: string | null
           admin_note?: string | null
           created_at?: string
+          document_template_catalog_id?: string | null
           id?: string
           message?: string | null
           organization_id?: string
@@ -60,6 +63,13 @@ export type Database = {
             columns: ["admin_decision_by_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_requests_document_template_catalog_id_fkey"
+            columns: ["document_template_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_catalog"
             referencedColumns: ["id"]
           },
           {
@@ -518,6 +528,50 @@ export type Database = {
           },
         ]
       }
+      document_template_catalog: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          service_code: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["document_category"]
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          service_code: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          service_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_catalog_service_code_fkey"
+            columns: ["service_code"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           audience_legal_kind: Database["public"]["Enums"]["legal_kind"] | null
@@ -586,6 +640,7 @@ export type Database = {
           id: string
           lot_id: string | null
           organization_id: string
+          premium_template_version_id: string | null
           site_id: string | null
           source_log_entry_id: string | null
           status: Database["public"]["Enums"]["document_status"]
@@ -604,6 +659,7 @@ export type Database = {
           id?: string
           lot_id?: string | null
           organization_id: string
+          premium_template_version_id?: string | null
           site_id?: string | null
           source_log_entry_id?: string | null
           status: Database["public"]["Enums"]["document_status"]
@@ -622,6 +678,7 @@ export type Database = {
           id?: string
           lot_id?: string | null
           organization_id?: string
+          premium_template_version_id?: string | null
           site_id?: string | null
           source_log_entry_id?: string | null
           status?: Database["public"]["Enums"]["document_status"]
@@ -657,6 +714,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_premium_template_version_id_fkey"
+            columns: ["premium_template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
             referencedColumns: ["id"]
           },
           {
@@ -3135,6 +3199,126 @@ export type Database = {
           },
         ]
       }
+      template_purchases: {
+        Row: {
+          id: string
+          note: string | null
+          organization_id: string
+          purchased_at: string
+          purchased_by_user_id: string
+          source_access_request_id: string | null
+          template_catalog_id: string
+          version_id: string
+        }
+        Insert: {
+          id?: string
+          note?: string | null
+          organization_id: string
+          purchased_at?: string
+          purchased_by_user_id: string
+          source_access_request_id?: string | null
+          template_catalog_id: string
+          version_id: string
+        }
+        Update: {
+          id?: string
+          note?: string | null
+          organization_id?: string
+          purchased_at?: string
+          purchased_by_user_id?: string
+          source_access_request_id?: string | null
+          template_catalog_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_purchases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_purchases_purchased_by_user_id_fkey"
+            columns: ["purchased_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_purchases_source_access_request_id_fkey"
+            columns: ["source_access_request_id"]
+            isOneToOne: false
+            referencedRelation: "access_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_purchases_template_catalog_id_fkey"
+            columns: ["template_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_purchases_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          changelog: string | null
+          created_at: string
+          created_by_user_id: string
+          file_url: string
+          id: string
+          requires_expert_review: boolean
+          template_catalog_id: string
+          variables: string[]
+          version_number: number
+        }
+        Insert: {
+          changelog?: string | null
+          created_at?: string
+          created_by_user_id: string
+          file_url: string
+          id?: string
+          requires_expert_review?: boolean
+          template_catalog_id: string
+          variables?: string[]
+          version_number: number
+        }
+        Update: {
+          changelog?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          file_url?: string
+          id?: string
+          requires_expert_review?: boolean
+          template_catalog_id?: string
+          variables?: string[]
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_versions_template_catalog_id_fkey"
+            columns: ["template_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_codes: {
         Row: {
           code: string
@@ -3291,6 +3475,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      approve_template_purchase_request: {
+        Args: { p_admin_note?: string; p_request_id: string }
+        Returns: undefined
+      }
       can_access_organization: {
         Args: { target_org_id: string }
         Returns: boolean
@@ -3345,6 +3533,18 @@ export type Database = {
           website: string
         }[]
       }
+      get_purchased_template_version: {
+        Args: { p_organization_id: string; p_template_catalog_id: string }
+        Returns: {
+          category: Database["public"]["Enums"]["document_category"]
+          file_url: string
+          name: string
+          requires_expert_review: boolean
+          template_catalog_id: string
+          variables: string[]
+          version_id: string
+        }[]
+      }
       grant_entitlement: {
         Args: {
           p_access_quota?: number
@@ -3360,12 +3560,20 @@ export type Database = {
         Args: { target_service_code: string }
         Returns: boolean
       }
+      has_any_template_purchase: {
+        Args: { target_template_catalog_id: string }
+        Returns: boolean
+      }
       has_entitlement: {
         Args: { target_org_id: string; target_service_code: string }
         Returns: boolean
       }
       has_portfolio_access: {
         Args: { target_org_id: string }
+        Returns: boolean
+      }
+      has_template_purchase: {
+        Args: { target_org_id: string; target_template_catalog_id: string }
         Returns: boolean
       }
       has_valid_subcontractor_agreement: {
@@ -3425,6 +3633,14 @@ export type Database = {
           p_message?: string
           p_organization_id: string
           p_service_id: string
+        }
+        Returns: string
+      }
+      request_template_purchase: {
+        Args: {
+          p_message?: string
+          p_organization_id: string
+          p_template_catalog_id: string
         }
         Returns: string
       }

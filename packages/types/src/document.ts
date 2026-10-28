@@ -105,6 +105,15 @@ export const Document = z.object({
   version: z.number().int().positive().default(1),
   templateId: z.string().uuid().optional(),
   /**
+   * Version d'un modèle premium (Phase C, bibliothèque de documents — voir
+   * template-marketplace.ts) utilisée pour générer ce document, quand il ne provient pas d'un
+   * `DocumentTemplate` organisationnel (`templateId`). Jamais les deux à la fois (contrainte
+   * `documents_single_template_source` en base). Référence directement la version, jamais le
+   * catalogue — garantit que ce document reste consultable même si le modèle est ensuite retiré
+   * du catalogue.
+   */
+  premiumTemplateVersionId: z.string().uuid().optional(),
+  /**
    * Organisation concernée par ce document quand il ne s'agit pas de son auteur (ex: un DC4 ou un
    * AGREMENT_SOUS_TRAITANT désigne un sous-traitant précis, distinct de `organizationId` qui reste
    * l'organisation propriétaire/auteure du document). Vide pour la plupart des documents.
