@@ -32,6 +32,7 @@ import {
 import { updateOrganizationProfile } from "@/lib/actions/organizations";
 import { saveOrganizationProfile, saveOrganizationTrades } from "@/lib/actions/organization-profile";
 import { saveOrganizationCredential } from "@/lib/actions/credentials";
+import { MfaSettingsCard } from "@/components/settings/mfa-settings-card";
 
 const VALIDATION_CIRCUIT = [
   { step: "Préparation", responsible: "Chargé d'affaires" },
@@ -81,6 +82,15 @@ export default async function ParametresPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Paramètres" description="Organisation, modèles de documents, circuits de validation et intégrations" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sécurité du compte</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MfaSettingsCard />
+        </CardContent>
+      </Card>
 
       {!activeOrg ? (
         <EmptyState icon={Building2} title="Aucune organisation accessible" />

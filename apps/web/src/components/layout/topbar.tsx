@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, Menu, LogOut } from "lucide-react";
+import { Search, Bell, Menu, LogOut, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
@@ -14,6 +14,7 @@ export interface TopbarUser {
   fullName: string;
   permissionRole: UserPermissionRole | null;
   organizationId: string | null;
+  mfaEnabled: boolean;
 }
 
 function initialsFor(name: string) {
@@ -73,6 +74,11 @@ export function Topbar({
       <div className="ml-auto flex items-center gap-3">
         {!user.organizationId && user.permissionRole !== "ADMIN_PLATEFORME" && (
           <Badge tone="warning">Sans organisation</Badge>
+        )}
+        {user.mfaEnabled && (
+          <Badge tone="success">
+            <ShieldCheck className="h-3 w-3" /> MFA activé
+          </Badge>
         )}
         <button
           type="button"

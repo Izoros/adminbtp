@@ -40,7 +40,26 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && isAuthRoute) {
+  // Si l'utilisateur a un facteur MFA vérifié (TOTP via Supabase Auth), une session mot de
+  // passe seul reste au niveau aal1 — tant que le step-up aal2 n'est pas complété, elle ne doit
+  // donner accès à aucune route protégée, seulement à "/" où le formulaire de connexion affiche
+  // l'étape de code à 6 chiffres. getAuthenticatorAssuranceLevel() décode le JWT déjà en
+  // mémoire/cookies, sans appel réseau supplémentaire.
+  let requiresMfaStepUp = false;
+  if (user) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    requiresMfaStepUp = Boolean(
+      aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel
+    );
+  }
+
+  if (user && requiresMfaStepUp && !isAuthRoute) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && !requiresMfaStepUp && isAuthRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     return NextResponse.redirect(redirectUrl);
