@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getMailThreads } from "@/lib/data/mails";
 import { getSites, getAllLots } from "@/lib/data/sites";
 import { classifyMailThread } from "@/lib/actions/mail-filing";
-import { DemoAIProvider } from "@adminbtp/integrations";
+import { getAIProvider } from "@adminbtp/integrations";
 import {
   MAIL_STATUS_LABELS,
   MAIL_URGENCY_LABELS,
@@ -24,11 +24,10 @@ const URGENCY_TONE: Record<MailUrgency, "neutral" | "warning" | "danger"> = {
   CRITIQUE: "danger",
 };
 
-const aiProvider = new DemoAIProvider();
-
 export default async function MailsPage() {
   const [mailThreads, sites, lots] = await Promise.all([getMailThreads(), getSites(), getAllLots()]);
   const sorted = [...mailThreads].sort((a, b) => (b.lastMessageAt > a.lastMessageAt ? 1 : -1));
+  const aiProvider = getAIProvider();
   const suggestions = await Promise.all(
     sorted.map((mail) => (mail.siteId && mail.status === "NON_TRAITE" ? aiProvider.suggestMailFiling(mail.subject, "") : null)),
   );

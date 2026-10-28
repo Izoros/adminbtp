@@ -7,8 +7,8 @@ import type { DocumentCategory } from "@adminbtp/types";
 
 /**
  * Classe un mail déjà lié à un chantier : la catégorie est confirmée par un humain (pré-remplie
- * par une suggestion Demo* calculée côté page, jamais appliquée automatiquement ici), et crée soit
- * une tâche, soit un document BROUILLON. N'ingère jamais de boîte mail réelle.
+ * par une suggestion IA calculée côté page via getAIProvider(), jamais appliquée automatiquement
+ * ici), et crée soit une tâche, soit un document BROUILLON. N'ingère jamais de boîte mail réelle.
  */
 export async function classifyMailThread(formData: FormData) {
   const threadId = String(formData.get("threadId") ?? "").trim();

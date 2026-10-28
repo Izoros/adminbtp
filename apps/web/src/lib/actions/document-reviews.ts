@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { DemoAIProvider } from "@adminbtp/integrations";
+import { getAIProvider } from "@adminbtp/integrations";
 import type { Json } from "@adminbtp/types";
 
 /**
@@ -20,7 +20,7 @@ export async function runAiReview(documentId: string) {
     .single();
   if (documentError) throw documentError;
 
-  const ai = new DemoAIProvider();
+  const ai = getAIProvider();
   const result = await ai.reviewDocument(document.category, document.title);
 
   const { error: reviewError } = await supabase.from("document_reviews").insert({
