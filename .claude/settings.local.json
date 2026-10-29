@@ -82,7 +82,28 @@
       "mcp__claude-in-chrome__browser_batch",
       "mcp__claude-in-chrome__read_network_requests",
       "mcp__claude-in-chrome__javascript_tool",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(find / -iname \"adminbtp-multitenant-security*\" -not -path \"*/node_modules/*\")",
+      "Bash(find / -iname \"adminbtp-project-workflows*\" -not -path \"*/node_modules/*\")",
+      "Bash(pnpm -v)",
+      "Bash(grep -n \"Functions:\\\\|grant_entitlement:\\\\|Enums:\\\\|^      [a-z_]*: {$\" packages/types/src/database.ts)",
+      "Bash(python3 -I -)",
+      "Bash(awk '/create table organizations/,/^\\\\\\);/' database/migrations/0001_init_core_schema.sql)",
+      "Bash(grep -n \"^      [a-z_]*: {$\" packages/types/src/database.ts)",
+      "Bash(xargs -I{} echo {})",
+      "Bash(grep -n \"^- \\\\`migrations/00\\\\\\(3[0-9]\\\\\\)\" database/README.md)",
+      "Bash(xargs -I{} sh -c 'echo \"--- {} ---\"; grep -n \"fetch\\(\\\\|axios\\\\|http\\\\.\\\\|https\\\\.\" {}')",
+      "Bash(awk '/^    Tables: {/{f=1} f&&/^      [a-z_]+: \\\\{$/{print NR\": \"$0} /^    Views: {|^    Functions: {/{exit}' packages/types/src/database.ts)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(cat /private/tmp/claude-502/-Users-ama26-Desktop-AdminBTP/9165bc7b-b829-4c89-b85a-cfcc122e2160/scratchpad/.. 2>/dev/null; wc -l /tmp/lint_out.txt; cat /tmp/lint_out.txt)",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(git status *)",
+      "Bash(pnpm --filter @adminbtp/web test)",
+      "Bash(git merge *)",
+      "Bash(grep -rn *)",
+      "Bash(git commit *)",
+      "Bash(grep -n *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }
