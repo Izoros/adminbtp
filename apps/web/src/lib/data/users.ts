@@ -67,3 +67,13 @@ export async function getUserFullName(userId: string): Promise<string | undefine
   if (error) throw error;
   return data?.full_name ?? undefined;
 }
+
+/** Noms de plusieurs utilisateurs en une requête (ex: auteurs du journal d'audit). */
+export async function getUserFullNames(userIds: string[]): Promise<Record<string, string>> {
+  const uniqueIds = Array.from(new Set(userIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("users").select("id, full_name").in("id", uniqueIds);
+  if (error) throw error;
+  return Object.fromEntries((data ?? []).map((row) => [row.id, row.full_name]));
+}
