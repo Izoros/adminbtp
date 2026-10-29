@@ -372,3 +372,263 @@ rollback;
   version est publiée après un achat déjà approuvé.
 - Application réelle des migrations/policies sur l'instance Supabase (aucun accès MCP dans cet
   environnement — à faire par un humain, voir `database/README.md`).
+- **Pas de fonction de révocation d'un achat** : contrairement à `revoke_entitlement()` (Phase A),
+  aucune fonction symétrique à `approve_template_purchase_request()` ne permet à
+  `ADMIN_PLATEFORME` de retirer un achat déjà accordé dans `template_purchases` — **point ouvert,
+  non traité par cette phase ni par aucune migration ultérieure relue (`0010` à `0049`)**.
+
+---
+
+# Checklist de validation — Durcissement sécurité (migrations 0033 et 0036)
+
+Suite aux rapports des advisors de sécurité Supabase du 2026-10-23 et du 2026-10-27 (lint
+`anon_security_definer_function_executable`). Revue statique du SQL effectuée pour cette mise à
+jour documentaire (lecture complète de `0033` et `0036`), **non ré-exécutée contre une instance
+réelle dans cet environnement**.
+
+## Revue statique
+
+- [x] `0033` révoque explicitement `EXECUTE` de `public`/`anon` (et `authenticated` pour le
+      helper interne `_upsert_entitlement()`) sur les 24 fonctions `SECURITY DEFINER` posées par
+      `0001` à `0029`, puis le ré-accorde à `authenticated` seul pour celles appelées par
+      l'application — plus aucune de ces fonctions n'est appelable via
+      `/rest/v1/rpc/<nom>` sans session authentifiée.
+- [x] `0036` complète cet effort pour `enforce_ppsps_preedition()` (oubliée par `0035`), qui n'a
+      de toute façon aucun usage RPC légitime (fonction trigger pure).
+- [x] Règle documentée dans les commentaires de `0033` comme à reprendre pour toute nouvelle
+      fonction `SECURITY DEFINER` — effectivement reprise par les migrations suivantes relues
+      dans ce travail (`0036`, `0039`, `0041`-`0042`, `0048`-`0049`), chacune révoque `public`/
+      `anon` puis accorde explicitement à `authenticated` (ou ne l'accorde à personne pour un
+      helper interne).
+- [ ] Ré-exécution des advisors de sécurité Supabase après application de `0033`/`0036` pour
+      confirmer la disparition effective des avertissements — à faire par un humain avec accès
+      MCP Supabase (hors de cet environnement).
+
+## Explicitement non fait
+
+- `ALTER DEFAULT PRIVILEGES` global n'a pas été utilisé (assumé, voir commentaire de `0033`) :
+  chaque nouvelle fonction `SECURITY DEFINER` doit continuer à révoquer explicitement — un oubli
+  reste possible migration par migration, pas de garde-fou automatique.
+
+---
+
+# Checklist de validation — Moteur de chantier avancé et Tranches A à E (migrations 0012-0016,
+0021-0032, 0034)
+
+D'après `docs/PROJECT_STATUS.md`, les Tranches A-D et la Tranche E (y compris son complément
+diffusion/accusé de réception) ont été **validées par l'utilisateur le 2026-10-26** — cette
+checklist n'existait pas encore à l'époque dans ce fichier ; elle est ajoutée ici après coup par
+revue statique du SQL (`0012` à `0016`, `0021` à `0032`, `0034`), **sans ré-exécution de scénarios
+SQL ou navigateur dans cet environnement**.
+
+## Schéma, fonctions et RLS (revue statique)
+
+- [x] Profil société/corps d'état, actes de lancement déclaratifs, pièces de marché structurées,
+      décomptes enrichis, macrolots et contrôle qualité IA/humain (`0012`-`0016`) : RLS activée
+      sur chaque nouvelle table, policies `SELECT`/`INSERT`/`UPDATE` cohérentes avec
+      `can_access_site()`/`can_access_organization()` existants.
+- [x] `has_valid_subcontractor_agreement()` + trigger `check_subcontractor_allocation()` :
+      bloquent toute ventilation vers un sous-traitant sans DC4/agrément `VALIDE` (`0013`),
+      durci en `0021` pour refuser aussi une pièce d'entreprise `EXPIRE`.
+- [x] `prevent_lot_cycle()` : empêche un macrolot de devenir son propre ancêtre (profondeur
+      maximale 50 contrôlée explicitement).
+- [x] Avenants, retenue de garantie, avance, DGD, relances tracées (`0021`-`0022`) : contrainte
+      `check_advance_balance()` interdit qu'une avance récupérée cumulée dépasse l'avance versée
+      sur le contrat correspondant.
+- [x] Journal de chantier, visa de plans, réserves, comptes-rendus, avancement (`0023`) : RLS
+      posée sur chaque table via `can_access_site()`.
+- [x] Compte-rendu validé figé (`0031`) : contrainte `meeting_notes_validation_consistency` +
+      policies `UPDATE`/`INSERT` réécrites pour exiger `status = 'BROUILLON'` sur les tables
+      liées (`meeting_attendees`, `meeting_decisions`, `meeting_agenda_items`).
+- [x] Suppression douce du journal/des réserves/des comptes-rendus (`0032`) : colonnes
+      `deleted_at`/`deleted_by_user_id`/`deletion_reason` avec contrainte de cohérence, trigger
+      `_guard_soft_delete_columns()` interdisant tout contournement par `UPDATE` direct (rôles
+      `anon`/`authenticated`), fonctions `soft_delete_site_log_entry()`/`soft_delete_reserve_item()`/
+      `soft_delete_meeting_note()` exigeant un motif non vide et traçant dans `audit_log` ;
+      `soft_delete_meeting_note()` annule aussi les tâches encore ouvertes issues de ses
+      décisions et vérifie que l'appelant appartient à une organisation `OPC`/`MOE` active sur le
+      chantier.
+- [x] Bureaux de mission OPC/CT/SPS/BET (`0029`-`0030`) : nouveaux rôles chantier `CT`/`SPS`/
+      `CSSI` ajoutés sans droit plateforme implicite, avis techniques (`technical_opinions`)
+      affichés sans jamais bloquer le visa MOE.
+- [x] Diffusion réelle et accusé de réception des comptes-rendus validés (`0034`) : policy
+      `INSERT` sur `meeting_note_distributions` exige `status = 'VALIDE'` ; une organisation
+      accuse réception au plus une fois par compte-rendu (contrainte unique).
+
+## Scénarios de test — non exécutés dans cet environnement de travail documentaire
+
+- [ ] Rejeu des scénarios SQL/navigateur ayant servi à la validation utilisateur du 2026-10-26
+      (voir `docs/PROJECT_STATUS.md`) — non rejoués ici ; cette section documente une revue de
+      code a posteriori, pas une nouvelle exécution.
+
+## Explicitement non fait (voir `docs/PROJECT_STATUS.md` / `docs/ROADMAP.md`)
+
+- Preuve WhatsApp réelle pour les relances (toujours `Demo*`).
+- Application mobile OPC dédiée.
+
+---
+
+# Checklist de validation — Phase 3 : stockage réel et garantie technique PPSPS (migrations 0035,
+0036)
+
+Revue statique de `0035`-`0036` effectuée pour cette mise à jour documentaire. L'exécution
+navigateur/IA réelle de cette phase est déjà documentée de façon vérifiée dans
+`docs/PROJECT_STATUS.md` (section "Phase 3") — non refaite ici, seule la garantie SQL est
+revérifiée par lecture du code ci-dessous.
+
+## Revue statique
+
+- [x] Trigger `enforce_ppsps_preedition()` (`BEFORE INSERT on documents`) : force
+      `status = 'PREEDITION'` dès qu'un document a `category = 'PPSPS'`, quelle que soit la
+      valeur transmise par l'appelant — garantie au niveau base, pas seulement convention
+      applicative dans `createDocument()`/`generateDocumentFromTemplate()`.
+- [x] Bucket Storage privé `documents`, policies `storage.objects` alignées sur
+      `can_access_organization((storage.foldername(name))[1]::uuid)` pour les quatre opérations
+      (`select`/`insert`/`update`/`delete`).
+- [x] `0036` révoque `EXECUTE` sur `enforce_ppsps_preedition()` (fonction trigger pure, oubliée
+      par `0033`/`0035`).
+
+## Point ouvert identifié lors de cette revue (hors scope de ce qui a été vérifié en 2026-10-26)
+
+- **Pas de garde sur les transitions ultérieures de `documents.status`** : le trigger ne couvre
+  que l'`INSERT` d'un PPSPS. Aucun trigger ni contrainte ne contrôle un `UPDATE` de
+  `documents.status` (PPSPS ou autre catégorie) — par exemple rien n'empêche aujourd'hui, côté
+  base, de faire régresser un document `VALIDE` vers `BROUILLON` ou de sauter une étape du
+  circuit de validation par un appel direct. **En cours de correction par un autre travail en
+  parallèle** : vérifier si une migration `0050` (ou suivante) existe dans
+  `database/migrations/` au moment de la lecture ; à la date de cette revue (2026-10-29), elle
+  n'existe pas encore — signalé ici comme gap connu, pas comme résolu.
+
+---
+
+# Checklist de validation — Phase 11 : paramétrage locale par organisation (migration 0037)
+
+## Revue statique
+
+- [x] `organizations.timezone` (défaut `'Indian/Mayotte'`) et
+      `organizations.postal_code_patterns` (`text[]`, défaut `NULL`) ajoutées sans migration de
+      données : toute organisation existante conserve exactement son comportement actuel
+      (aucune validation de code postal, aucun fuseau figé côté code) tant que personne ne
+      renseigne ces colonnes.
+- [x] Commentaires de colonnes (`comment on column`) documentant explicitement cette garantie de
+      non-régression.
+
+## Point ouvert
+
+- [ ] **Aucun appel applicatif ne lit encore ces deux colonnes** (vérifié par la migration
+      elle-même, qui le dit explicitement : "les appels de formatage qui ne la lisent pas encore
+      continuent de se comporter exactement comme avant") — le réglage existe en base mais n'est
+      pas encore exploité par `apps/web` au moment de cette revue ; à confirmer/compléter par la
+      personne qui a porté cette phase avant de considérer Phase 11 comme terminée.
+
+---
+
+# Checklist de validation — MFA Phase 2 (migration 0039)
+
+## Revue statique
+
+- [x] Aucune table applicative pour un secret ou un code : le TOTP est entièrement délégué à
+      Supabase Auth (`auth.mfa_factors`/`auth.mfa_challenges`).
+- [x] `public.users.mfa_enabled` synchronisée par le trigger `handle_mfa_factor_change()`
+      (`SECURITY DEFINER`, `AFTER INSERT OR UPDATE OR DELETE on auth.mfa_factors`) — vrai si au
+      moins un facteur `verified` existe pour l'utilisateur.
+- [x] Aucune policy RLS d'`UPDATE` sur `users` n'autorise le client à écrire `mfa_enabled`
+      lui-même — seule écriture possible via ce trigger, cohérent avec la règle déjà appliquée à
+      `handle_new_user()` (`0002`).
+- [x] `EXECUTE` sur `handle_mfa_factor_change()` révoqué de `public`/`anon`/`authenticated`
+      (fonction trigger pure, même règle que `0033`).
+- [x] Rattrapage ponctuel pour tout facteur déjà vérifié avant la création du trigger (`update`
+      inconditionnel en fin de migration, sans effet si aucun facteur MFA n'existait encore).
+
+## Points ouverts identifiés lors de cette revue
+
+- **Pas de codes de récupération (backup codes)** : aucune table ni fonction ne permet à un
+  utilisateur de récupérer l'accès à son compte s'il perd son authentificateur TOTP — ce gap
+  n'est traité par aucune migration relue (`0010` à `0049`). À documenter explicitement comme
+  limite connue avant toute communication "MFA disponible" côté produit.
+- [ ] Vérification de l'écran UI MFA natif (activation/désactivation d'un facteur, badge
+      "MFA activé" dans la topbar et `/parametres`) — non vérifiée dans cet environnement
+      documentaire (pas d'accès navigateur) ; mentionnée comme livrée par le message du commit
+      `85811ca` mais à confirmer par un parcours réel avant de cocher cette phase comme validée.
+
+---
+
+# Checklist de validation — Module Marketplace & Entitlements, Phase D : abonnements et crédits
+prépayés (migrations 0046-0049)
+
+Revue statique du SQL effectuée pour cette mise à jour documentaire — **non exécutée contre une
+instance réelle ni vérifiée en navigateur dans cet environnement**, même limite que la Phase C
+ci-dessus.
+
+## Schéma, fonctions et RLS (revue statique)
+
+- [x] 4 tables (`organization_subscriptions`, `credit_wallets`, `usage_records`,
+      `credit_transactions`), RLS activée partout, aucune policy `INSERT`/`UPDATE`/`DELETE` sur
+      aucune des quatre — toute écriture passe par une fonction `SECURITY DEFINER`.
+- [x] Abonnements : `_upsert_subscription()` (helper interne, `EXECUTE` révoqué de tous les
+      rôles applicatifs) + une fonction publique par action
+      (`activate_subscription`/`suspend_subscription`/`reactivate_subscription`/
+      `extend_subscription`/`cancel_subscription`), chacune vérifiant explicitement
+      `current_user_permission_role() = 'ADMIN_PLATEFORME'` en première instruction — même
+      pattern que `grant_entitlement()` (Phase A). `is_subscription_active()` centralise la
+      vérification d'abonnement actif et non expiré.
+- [x] Crédits : `credit_wallets.balance` protégé par une contrainte `check (balance >= 0)` en
+      plus du contrôle applicatif. `add_credits()` réservée `ADMIN_PLATEFORME` (verrou de ligne
+      `for update` avant lecture puis écriture du solde, pour sérialiser les ajouts/débits
+      concurrents).
+- [x] `debit_credits()` : idempotente (clé d'idempotence unique par organisation sur
+      `credit_transactions`, un retry renvoie la transaction déjà créée sans débiter deux fois),
+      refuse tout débit qui mettrait le solde en négatif ou si le portefeuille a expiré. **Non
+      exposée à `authenticated`** — révoquée de `public`/`anon`/`authenticated`, appelable
+      uniquement depuis `record_usage()` (appel interne sous le rôle propriétaire de la
+      fonction) : un appel direct contournerait la vérification d'abonnement actif et ne
+      laisserait aucune trace dans `usage_records`.
+- [x] `record_usage()` : orchestre `usage_records` + `debit_credits()` dans une seule
+      transaction (idempotente de bout en bout via `on conflict ... do nothing` puis relecture
+      en cas de course concurrente) ; bloque toute consommation si un abonnement existe pour le
+      service et n'est pas actif, même si l'organisation dispose encore de crédits. Ouverte à
+      `authenticated`, protégée par `can_access_organization()` : un utilisateur ne peut débiter
+      que le portefeuille de sa propre organisation.
+
+## Scénarios à exécuter (non exécutés dans cet environnement)
+
+- [ ] Un rôle non-`ADMIN_PLATEFORME` ne peut appeler aucune des 5 fonctions de cycle de vie
+      d'abonnement ni `add_credits()` — attendu `42501`.
+- [ ] Un `UPDATE`/`INSERT` manuel direct sur les 4 tables échoue (aucune policy d'écriture).
+- [ ] Un retry de `record_usage()`/`debit_credits()` avec la même `idempotency_key` ne débite
+      jamais deux fois — à vérifier par appel SQL direct répété.
+- [ ] Un débit qui mettrait le solde en négatif est refusé avec le message explicite attendu.
+- [ ] Une consommation sur un service dont l'abonnement est `EXPIRED`/`SUSPENDED` est refusée
+      même si le portefeuille de crédits a un solde suffisant.
+- [ ] Appel direct de `debit_credits()` par un rôle `authenticated` quelconque (hors appel
+      interne via `record_usage()`) : attendu un refus (`permission denied`, droit `EXECUTE`
+      non accordé).
+
+## Vérifications techniques
+
+- [ ] `pnpm -r typecheck` / `pnpm -r lint` / `pnpm --filter @adminbtp/web build` — non exécutés
+      pour cette mise à jour purement documentaire ; à faire avant de considérer Phase D comme
+      validée si un travail applicatif (UI, Server Actions) a été ajouté en parallèle de ces
+      migrations.
+
+## Couche applicative (constat, non vérifié en exécution)
+
+- Des Server Actions existent déjà (`apps/web/src/lib/actions/subscriptions.ts` :
+  `activateSubscription`/`suspendSubscription`/`reactivateSubscription`/`extendSubscription`/
+  `cancelSubscription`/`addCredits`) et des requêtes de lecture
+  (`apps/web/src/lib/data/subscriptions.ts`), intégrées dans `/admin`
+  (`apps/web/src/app/(app)/admin/page.tsx`). **Non revues en détail ni testées dans cet
+  environnement documentaire** — cette checklist ne couvre que le SQL (`0046`-`0049`) ; la
+  correction des Server Actions (vérification de rôle côté serveur, gestion d'erreur,
+  revalidation) reste à auditer séparément avant de cocher cette phase comme validée.
+- Aucun débit (`record_usage()`) consommé par une fonctionnalité réelle de l'application n'a été
+  identifié dans ce qui a été relu — seule la commercialisation (abonnement, ajout de crédits)
+  semble câblée côté UI à ce stade, pas encore la consommation (ex: un appel IA qui débiterait
+  effectivement un portefeuille).
+
+## Explicitement non fait en Phase D (constaté dans les migrations 0046-0049)
+
+- Paiement réel en contrepartie d'un ajout de crédits ou d'une activation d'abonnement — reporté
+  à une Phase E/facturation (hors scope de ce qui a été relu dans `0010` à `0049`).
+- Tâche planifiée de passage automatique `ACTIVE → EXPIRED` à l'échéance d'un abonnement (même
+  limite déjà documentée pour les entitlements de Phase A).

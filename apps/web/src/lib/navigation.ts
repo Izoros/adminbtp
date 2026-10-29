@@ -12,6 +12,7 @@ import {
   Store,
   Crown,
   BookUser,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/relances", label: "Relances", icon: BellRing },
   { href: "/services", label: "Services & options", icon: Store },
   { href: "/annuaire", label: "Annuaire BTP", icon: BookUser },
+  { href: "/audit", label: "Journal d'audit", icon: ScrollText },
   { href: "/parametres", label: "Paramètres", icon: Settings },
 ];
 
