@@ -16,4 +16,5 @@ export * from "./directory";
 export * from "./execution";
 export * from "./opc";
 export * from "./template-marketplace";
+export * from "./subscriptions";
 export * from "./database";
