@@ -15,7 +15,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const [{ data: profile }, organizations, activeOrganizationId] = await Promise.all([
-    supabase.from("users").select("full_name, permission_role, organization_id").eq("id", user.id).single(),
+    supabase
+      .from("users")
+      .select("full_name, permission_role, organization_id, mfa_enabled")
+      .eq("id", user.id)
+      .single(),
     getOrganizations(),
     getActiveOrganizationIdCookie(),
   ]);
@@ -27,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         fullName: profile?.full_name ?? user.email ?? "Utilisateur",
         permissionRole: profile?.permission_role ?? null,
         organizationId: profile?.organization_id ?? null,
+        mfaEnabled: profile?.mfa_enabled ?? false,
       }}
       organizations={organizations}
       activeOrganizationId={activeOrganizationId}

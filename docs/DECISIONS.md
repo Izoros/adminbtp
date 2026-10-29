@@ -231,3 +231,40 @@ fourni Node v24.22.0. pnpm a été activé via corepack (`corepack prepare pnpm@
 sans besoin de Homebrew. Conséquence : `gh`, `supabase` et `docker` CLI restent absents de
 l'environnement (non requis pour builder/lancer l'application Phase 1) — voir
 `docs/INTEGRATIONS_STATUS.md`.
+
+## 2026-10-29 — Lot parallèle Mayotte/MFA/Marketplace C+D/Phase 8 : décisions de consolidation
+
+**Contexte** : 5 agents lancés en parallèle (worktrees isolées) sur des travaux non bloqués du
+roadmap : Phase 11 (fuseau horaire/codes postaux Mayotte), reste de la Phase 2 (MFA TOTP + pas de
+sécurité AAL2), Marketplace Phase C (catalogue de modèles payants), Marketplace Phase D (moteur
+d'abonnements/crédits par service), et un sous-ensemble de la Phase 8 (domaines/signature dans
+Paramètres). Consolidés dans `integration/roadmap-parallel-batch`, fusion propre
+(typecheck/lint/build/test verts), puis validé par l'utilisateur sans réserve
+("Pars sur tes recommandations par défaut et enchaîne").
+
+**Décision 1 — `organizations.subscription_plan`/`plan_features` (Phase 2) et
+`organization_subscriptions`/`credit_wallets` (Phase D) restent deux modèles distincts.**
+Le premier est le plan global de la plateforme (DEMO/STARTER/PRO/ENTERPRISE, fonctionnalités
+activées côté AdminBTP lui-même). Le second est un abonnement par service du catalogue
+Marketplace (Phase A), avec un portefeuille de crédits prépayés consommé à l'usage. Ce sont deux
+axes commerciaux différents (plateforme vs. services tiers du catalogue) qui n'ont pas vocation à
+fusionner — à documenter clairement dans le futur écran de facturation plutôt qu'à unifier le
+schéma.
+
+**Décision 2 — `debit_credits()` n'est plus accessible directement à `authenticated`.**
+La fonction centrale de débit (0049) était ouverte en appel direct, en plus de l'orchestration
+`record_usage()`. Un appel direct contourne la vérification d'abonnement actif de
+`record_usage()` et ne laisse aucune trace dans `usage_records`. Corrigé avant application en
+production : `debit_credits()` est désormais révoquée pour `authenticated` (appelable uniquement
+en interne par `record_usage()`, sous les privilèges du rôle propriétaire de la fonction
+SECURITY DEFINER) — voir `database/migrations/0049_phase_d_credit_engine_functions.sql`.
+
+**Décision 3 — reportés à une vague suivante, non bloquants** : le trigger PPSPS ne protège que la
+création (`INSERT`) contre un statut initial différent de `PREEDITION`, pas une modification
+ultérieure de `status` par une requête `UPDATE` directe (relevé par l'audit Phase 9) ; l'absence de
+fonction de révocation d'un achat de modèle (Marketplace C) ; l'absence de mécanisme de codes de
+récupération MFA (API Supabase encore `@experimental`) ; le branchement de
+`formatDateInTimezone()` sur les affichages existants (listes, PDF) n'a volontairement pas été
+fait pour ne rien casser hors Mayotte. `docs/VALIDATION_CHECKLIST.md`, `docs/DECISIONS.md` (ce
+fichier) et `database/README.md` restent à mettre à jour pour couvrir les migrations 0010-0049 —
+prévu dans la vague suivante.

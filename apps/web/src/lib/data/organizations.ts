@@ -18,6 +18,8 @@ function mapOrganization(row: OrgRow): Organization {
     domain: row.domain ?? undefined,
     domainVerified: row.domain_verified,
     subscriptionPlan: row.subscription_plan,
+    timezone: row.timezone,
+    postalCodePatterns: row.postal_code_patterns ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

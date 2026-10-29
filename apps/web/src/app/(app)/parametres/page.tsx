@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Building2 } from "lucide-react";
+import { Building2, Globe, PenLine } from "lucide-react";
 import { getOrganizations } from "@/lib/data/organizations";
 import { getDocumentTemplates } from "@/lib/data/documents";
 import {
@@ -16,6 +16,9 @@ import {
 import { getOrganizationProfile, getOrganizationTrades } from "@/lib/data/organization-profile";
 import { getTradeCodes } from "@/lib/data/trades";
 import { getOrganizationCredentials } from "@/lib/data/credentials";
+import { getOrganizationDomains } from "@/lib/data/organization-domains";
+import { getOrganizationIntegrations } from "@/lib/data/organization-integrations";
+import { getSignatureProfiles } from "@/lib/data/signature-profiles";
 import {
   DOCUMENT_CATEGORY_LABELS,
   LegalKind,
@@ -28,10 +31,20 @@ import {
   CredentialKind,
   CREDENTIAL_KIND_LABELS,
   CREDENTIAL_STATUS_LABELS,
+  COMMON_TIMEZONES,
+  IntegrationType,
+  IntegrationManagedBy,
+  INTEGRATION_TYPE_LABELS,
+  INTEGRATION_MANAGED_BY_LABELS,
 } from "@adminbtp/types";
 import { updateOrganizationProfile } from "@/lib/actions/organizations";
 import { saveOrganizationProfile, saveOrganizationTrades } from "@/lib/actions/organization-profile";
 import { saveOrganizationCredential } from "@/lib/actions/credentials";
+import { formatDateInTimezone } from "@/lib/format/date";
+import { MfaSettingsCard } from "@/components/settings/mfa-settings-card";
+import { addOrganizationDomain, removeOrganizationDomain } from "@/lib/actions/organization-domains";
+import { saveOrganizationIntegration } from "@/lib/actions/organization-integrations";
+import { createSignatureProfile } from "@/lib/actions/signature-profiles";
 
 const VALIDATION_CIRCUIT = [
   { step: "Préparation", responsible: "Chargé d'affaires" },
@@ -42,28 +55,24 @@ const VALIDATION_CIRCUIT = [
   { step: "Archivage", responsible: "Automatique" },
 ];
 
-const INTEGRATIONS = [
-  { name: "Odoo", status: "Non connecté", description: "Adaptateur JSON-2 API — synchronisation non bloquante" },
-  { name: "Email (générique)", status: "Mode démo", description: "Boîtes génériques des sociétés clientes" },
-  { name: "WhatsApp Business", status: "Mode démo", description: "Preuve d'échange — ne vaut pas signature électronique" },
-  { name: "IA (génération de documents)", status: "Mode démo", description: "Fournisseur interchangeable" },
-  { name: "n8n (automatisations)", status: "Non connecté", description: "Orchestration des workflows multi-outils" },
-];
-
 export default async function ParametresPage() {
   const [organizations, activeOrgCookie] = await Promise.all([
     getOrganizations(),
     getActiveOrganizationIdCookie(),
   ]);
   const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
-  const [organizationProfile, organizationTrades, tradeCodes, credentials] = activeOrg
-    ? await Promise.all([
-        getOrganizationProfile(activeOrg.id),
-        getOrganizationTrades(activeOrg.id),
-        getTradeCodes(),
-        getOrganizationCredentials(activeOrg.id),
-      ])
-    : [null, [], [], []];
+  const [organizationProfile, organizationTrades, tradeCodes, credentials, domains, integrations, signatureProfiles] =
+    activeOrg
+      ? await Promise.all([
+          getOrganizationProfile(activeOrg.id),
+          getOrganizationTrades(activeOrg.id),
+          getTradeCodes(),
+          getOrganizationCredentials(activeOrg.id),
+          getOrganizationDomains(activeOrg.id),
+          getOrganizationIntegrations(activeOrg.id),
+          getSignatureProfiles(activeOrg.id),
+        ])
+      : [null, [], [], [], [], [], []];
   const selectedTradeCodeIds = new Set(organizationTrades.map((t) => t.tradeCodeId));
   const primaryTradeCodeId = organizationTrades.find((t) => t.isPrimary)?.tradeCodeId;
   const tradeCodesById = new Map(tradeCodes.map((t) => [t.id, t.code]));
@@ -81,6 +90,15 @@ export default async function ParametresPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Paramètres" description="Organisation, modèles de documents, circuits de validation et intégrations" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sécurité du compte</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MfaSettingsCard />
+        </CardContent>
+      </Card>
 
       {!activeOrg ? (
         <EmptyState icon={Building2} title="Aucune organisation accessible" />
@@ -122,6 +140,45 @@ export default async function ParametresPage() {
                             Code postal
                           </label>
                           <Input id="postalCode" name="postalCode" defaultValue={activeOrg.postalCode ?? ""} />
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <label htmlFor="timezone" className="mb-1 block text-xs font-medium text-graphite-500">
+                            Fuseau horaire
+                          </label>
+                          <Select id="timezone" name="timezone" defaultValue={activeOrg.timezone}>
+                            {COMMON_TIMEZONES.includes(
+                              activeOrg.timezone as (typeof COMMON_TIMEZONES)[number],
+                            ) ? null : (
+                              <option value={activeOrg.timezone}>{activeOrg.timezone}</option>
+                            )}
+                            {COMMON_TIMEZONES.map((tz) => (
+                              <option key={tz} value={tz}>
+                                {tz}
+                              </option>
+                            ))}
+                          </Select>
+                          <p className="mt-1 text-xs text-graphite-500">
+                            Utilisé pour l&apos;affichage des dates et échéances de cette organisation
+                            (défaut Indian/Mayotte). Heure actuelle dans ce fuseau :{" "}
+                            {formatDateInTimezone(new Date(), activeOrg.timezone)}.
+                          </p>
+                        </div>
+                        <div>
+                          <label htmlFor="postalCodePatterns" className="mb-1 block text-xs font-medium text-graphite-500">
+                            Formats de code postal autorisés
+                          </label>
+                          <Input
+                            id="postalCodePatterns"
+                            name="postalCodePatterns"
+                            defaultValue={activeOrg.postalCodePatterns?.join(", ") ?? ""}
+                            placeholder="^976\d{2}$"
+                          />
+                          <p className="mt-1 text-xs text-graphite-500">
+                            Un ou plusieurs motifs (regex), séparés par une virgule. Laisser vide pour
+                            n&apos;imposer aucun format (comportement par défaut).
+                          </p>
                         </div>
                       </div>
                       <Button type="submit" variant="secondary" size="sm">
@@ -384,15 +441,204 @@ export default async function ParametresPage() {
               label: "Intégrations",
               content: (
                 <div className="space-y-2">
-                  {INTEGRATIONS.map((integ) => (
-                    <Card key={integ.name} className="flex items-center justify-between gap-4 p-4">
+                  <p className="text-xs text-graphite-500">
+                    Configuration non sensible uniquement (URL, identifiant d&apos;instance). Le champ
+                    « Clé API » n&apos;est pas enregistré : le coffre-fort de secrets réel est hors
+                    scope de cette tâche (voir Phase 7 du roadmap).
+                  </p>
+                  {IntegrationType.options.map((type) => {
+                    const integration = integrations.find((i) => i.integrationType === type);
+                    return (
+                      <Card key={type} className="p-4">
+                        <div className="mb-3 flex items-center justify-between gap-4">
+                          <p className="font-medium text-graphite-900">{INTEGRATION_TYPE_LABELS[type]}</p>
+                          <Badge tone={integration?.isActive ? "success" : "neutral"}>
+                            {integration?.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <form action={saveOrganizationIntegration} className="flex flex-wrap items-end gap-2">
+                          <input type="hidden" name="organizationId" value={activeOrg.id} />
+                          <input type="hidden" name="integrationType" value={type} />
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Gérée par</label>
+                            <Select
+                              name="managedBy"
+                              className="h-8 w-44 text-xs"
+                              defaultValue={integration?.managedBy ?? "ADMINBTP"}
+                            >
+                              {IntegrationManagedBy.options.map((mode) => (
+                                <option key={mode} value={mode}>
+                                  {INTEGRATION_MANAGED_BY_LABELS[mode]}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">URL</label>
+                            <Input
+                              name="url"
+                              className="h-8 w-56 text-xs"
+                              placeholder="https://…"
+                              defaultValue={typeof integration?.config.url === "string" ? integration.config.url : ""}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">Identifiant d&apos;instance</label>
+                            <Input
+                              name="instanceId"
+                              className="h-8 w-40 text-xs"
+                              defaultValue={
+                                typeof integration?.config.instanceId === "string" ? integration.config.instanceId : ""
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-graphite-500">
+                              Clé API (non stockée — démo)
+                            </label>
+                            <Input type="password" name="apiKeyDemo" className="h-8 w-40 text-xs" placeholder="••••••" />
+                          </div>
+                          <label className="flex items-center gap-1.5 pb-2 text-xs text-graphite-900">
+                            <input
+                              type="checkbox"
+                              name="isActive"
+                              defaultChecked={integration?.isActive}
+                              className="h-4 w-4 rounded border-surface-border"
+                            />
+                            Active
+                          </label>
+                          <Button type="submit" size="sm" variant="secondary">
+                            Enregistrer
+                          </Button>
+                        </form>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ),
+            },
+            {
+              key: "domaines",
+              label: "Domaines mail",
+              content: (
+                <div className="space-y-4">
+                  <Card className="overflow-hidden">
+                    {domains.length === 0 ? (
+                      <EmptyState icon={Globe} title="Aucun domaine mail déclaré" className="border-none" />
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
+                          <tr>
+                            <th className="px-4 py-2.5">Domaine</th>
+                            <th className="px-4 py-2.5">Statut</th>
+                            <th className="px-4 py-2.5" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-surface-border">
+                          {domains.map((d) => (
+                            <tr key={d.id} className="hover:bg-surface-subtle">
+                              <td className="px-4 py-3 font-medium text-graphite-900">{d.domain}</td>
+                              <td className="px-4 py-3">
+                                <Badge tone={d.isVerified ? "success" : "neutral"}>
+                                  {d.isVerified ? "Vérifié" : "Non vérifié"}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <form action={removeOrganizationDomain}>
+                                  <input type="hidden" name="domainId" value={d.id} />
+                                  <Button type="submit" size="sm" variant="ghost">
+                                    Supprimer
+                                  </Button>
+                                </form>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </Card>
+                  <Card className="p-4">
+                    <form action={addOrganizationDomain} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="organizationId" value={activeOrg.id} />
                       <div>
-                        <p className="font-medium text-graphite-900">{integ.name}</p>
-                        <p className="text-xs text-graphite-500">{integ.description}</p>
+                        <label className="mb-1 block text-xs text-graphite-500">Nouveau domaine</label>
+                        <Input name="domain" className="h-8 w-56 text-xs" placeholder="exemple.yt" required />
                       </div>
-                      <Badge tone={integ.status === "Mode démo" ? "warning" : "neutral"}>{integ.status}</Badge>
-                    </Card>
-                  ))}
+                      <Button type="submit" size="sm" variant="accent">
+                        Ajouter
+                      </Button>
+                    </form>
+                  </Card>
+                </div>
+              ),
+            },
+            {
+              key: "signature",
+              label: "Signature",
+              content: (
+                <div className="space-y-4">
+                  <p className="text-xs text-graphite-500">
+                    Gestion du profil en base uniquement — aucune génération de document signé ni
+                    preuve réelle ici (voir Phase 5 du roadmap). Une preuve d&apos;échange WhatsApp ne
+                    vaut jamais signature électronique à elle seule.
+                  </p>
+                  {signatureProfiles.length === 0 ? (
+                    <EmptyState icon={PenLine} title="Aucun profil de signature" />
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {signatureProfiles.map((profile) => (
+                        <Card key={profile.id} className="p-4">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <p className="font-medium text-graphite-900">{profile.label}</p>
+                            {profile.whatsappEnabled && <Badge tone="info">WhatsApp activé</Badge>}
+                          </div>
+                          <p className="text-xs text-graphite-500">
+                            {profile.signerName} — {profile.signerRole}
+                          </p>
+                          <p className="text-xs text-graphite-500">Style : {profile.signatureStyle}</p>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Nouveau profil de signature</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <form action={createSignatureProfile} className="grid gap-3 md:grid-cols-2">
+                        <input type="hidden" name="organizationId" value={activeOrg.id} />
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Libellé</label>
+                          <Input name="label" placeholder="Ex: Signature Direction" required />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Nom du signataire</label>
+                          <Input name="signerName" required />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Rôle du signataire</label>
+                          <Input name="signerRole" placeholder="Ex: Gérant" required />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-graphite-500">Style de signature</label>
+                          <Input name="signatureStyle" placeholder="Ex: Manuscrite, Tampon, Initiales" required />
+                        </div>
+                        <label className="flex items-center gap-1.5 text-sm text-graphite-900">
+                          <input
+                            type="checkbox"
+                            name="whatsappEnabled"
+                            className="h-4 w-4 rounded border-surface-border"
+                          />
+                          Preuve d&apos;échange WhatsApp autorisée pour ce signataire
+                        </label>
+                        <div className="md:col-span-2">
+                          <Button type="submit" variant="secondary" size="sm">
+                            Créer le profil
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
                 </div>
               ),
             },

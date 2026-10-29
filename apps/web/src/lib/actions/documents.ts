@@ -124,6 +124,89 @@ export async function generateDocumentFromTemplate(formData: FormData) {
   redirect("/documents");
 }
 
+/**
+ * Génère un document à partir d'un modèle premium acheté (bibliothèque de documents, Phase C du
+ * module Marketplace — voir docs/MONETIZATION_AND_ENTITLEMENTS.md et docs/ROADMAP.md). Réutilise
+ * exactement le même pipeline que generateDocumentFromTemplate() ci-dessus (IAIProvider + rendu
+ * PDF pdf-lib + Supabase Storage), seule la provenance du modèle change.
+ *
+ * Double vérification, même principe que get_directory_company_detail() en Phase B : la policy
+ * RLS SELECT sur template_versions (has_any_template_purchase()) est une première barrière, mais
+ * cette Server Action revérifie explicitement l'achat en appelant get_purchased_template_version()
+ * (SECURITY DEFINER) — un appel direct à l'API sans passer par ce RPC ne peut donc jamais générer
+ * de document à partir d'un modèle non acheté par l'organisation.
+ */
+export async function generateDocumentFromPremiumTemplate(formData: FormData) {
+  const organizationId = String(formData.get("organizationId") ?? "").trim();
+  const siteId = String(formData.get("siteId") ?? "").trim();
+  const templateCatalogId = String(formData.get("templateCatalogId") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  if (!organizationId || !templateCatalogId || !title) {
+    throw new Error("Organisation, modèle et titre sont obligatoires.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifié");
+
+  // Vérification explicite de l'achat, indépendante de la RLS — voir get_purchased_template_version()
+  // (database/migrations/0042_template_marketplace_phase_c_functions.sql). Lève une exception
+  // Postgres 42501 si cette organisation n'a pas acheté ce modèle.
+  const { data: versionRows, error: versionError } = await supabase.rpc("get_purchased_template_version", {
+    p_organization_id: organizationId,
+    p_template_catalog_id: templateCatalogId,
+  });
+  if (versionError) throw versionError;
+  const version = versionRows?.[0];
+  if (!version) {
+    throw new Error("Ce modèle n'a pas été acheté par cette organisation.");
+  }
+
+  const variables: Record<string, string> = {};
+  for (const name of version.variables) {
+    variables[name] = String(formData.get(`variable:${name}`) ?? "").trim();
+  }
+
+  const ai = getAIProvider();
+  const body = await ai.generateDocumentContent({
+    category: version.category,
+    templateName: version.name,
+    title,
+    variables,
+  });
+
+  const generatedAt = new Date();
+  const pdfBytes = await renderGeneratedDocumentPdf({ title, body, generatedAt });
+
+  const documentId = randomUUID();
+  const storagePath = `${organizationId}/${documentId}.pdf`;
+  const { error: uploadError } = await supabase.storage
+    .from("documents")
+    .upload(storagePath, pdfBytes, { contentType: "application/pdf" });
+  if (uploadError) throw uploadError;
+
+  // Statut non précisé pour PPSPS : enforce_ppsps_preedition() le force à PREEDITION en base.
+  const status = version.category === "PPSPS" ? "PREEDITION" : "BROUILLON";
+  const { error: insertError } = await supabase.from("documents").insert({
+    id: documentId,
+    organization_id: organizationId,
+    site_id: siteId || null,
+    category: version.category,
+    title,
+    status,
+    file_url: storagePath,
+    premium_template_version_id: version.version_id,
+    created_by_user_id: user.id,
+  });
+  if (insertError) throw insertError;
+
+  revalidatePath("/documents");
+  revalidatePath("/dashboard");
+  redirect("/documents");
+}
+
 /** URL signée temporaire (10 min) pour télécharger un document réellement stocké — jamais de fichier "demo://". */
 export async function getDocumentDownloadUrl(fileUrl: string): Promise<string | null> {
   if (fileUrl.startsWith("demo://")) return null;

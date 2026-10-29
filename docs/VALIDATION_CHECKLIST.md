@@ -247,3 +247,128 @@ ou constatée sans effet persistant après coup — vérifié par relecture de `
 - Édition individuelle d'une fiche/d'un contact déjà importé.
 - Export de fiches.
 - Quota appliqué à un axe autre que "nombre de fiches distinctes consultées par mois".
+
+---
+
+# Checklist de validation — Module Marketplace & Entitlements, Phase C (2026-10-28)
+
+Bibliothèque de modèles de documents premium. Voir `docs/MONETIZATION_AND_ENTITLEMENTS.md` et
+`docs/ROADMAP.md` (Phase C) pour les règles complètes. Réutilise le moteur de génération existant
+(Phase 3 — `generateDocumentFromTemplate`/`IAIProvider`/`renderGeneratedDocumentPdf`), jamais
+dupliqué.
+
+**Important — contrairement aux Phases A/B, les vérifications SQL ci-dessous n'ont PAS été
+exécutées contre une instance réelle : cet environnement de travail n'a pas d'accès MCP
+Supabase (consigne explicite de la tâche). Elles sont documentées ici pour qu'un humain les
+exécute avant toute mise en production, après avoir appliqué les migrations 0041-0042 et le seed
+`0006_template_marketplace_phase_c_seed.sql`.**
+
+## Schéma, fonctions et RLS (revue statique du SQL, non exécutée)
+
+- [x] 3 tables (`document_template_catalog`, `template_versions`, `template_purchases`), RLS
+      activée partout.
+- [x] `template_purchases` : aucune policy `INSERT`/`UPDATE`/`DELETE`, même pour
+      `ADMIN_PLATEFORME` — écriture exclusivement via `approve_template_purchase_request()`
+      (`SECURITY DEFINER`, vérifie `current_user_permission_role() = 'ADMIN_PLATEFORME'` en
+      première instruction).
+- [x] `template_versions` : policy `SELECT` basée sur `has_any_template_purchase()`, pas de
+      policy `UPDATE`/`DELETE` — une version publiée n'est jamais modifiée ni supprimée.
+- [x] `has_template_purchase()`/`has_any_template_purchase()` sont `SECURITY DEFINER` dès leur
+      création (lisent une table elle-même protégée par RLS — même piège que `can_access_site()`
+      documenté dans `docs/DECISIONS.md` et le skill `adminbtp-multitenant-security`).
+- [x] `documents.premium_template_version_id` référence `template_versions(id)`, jamais
+      `document_template_catalog(id)` — un document généré reste donc résoluble même si la ligne
+      catalogue est désactivée (`is_active = false`) ou si une nouvelle version est publiée.
+      Contrainte `documents_single_template_source` : un document ne référence jamais
+      `template_id` (modèle organisationnel, Phase 3) et `premium_template_version_id` (modèle
+      premium, Phase C) à la fois.
+
+## Scénarios à exécuter (SQL direct, non exécutés dans cet environnement)
+
+À exécuter après connexion à l'instance Supabase réelle, chaque transaction `rollback`ée sauf
+mention contraire :
+
+```sql
+-- 1. Isolation : une organisation SANS achat valide ne voit aucune ligne template_versions, même
+--    si elle est authentifiée et que les lignes existent bien (COUNT(*) sans RLS les confirme).
+set local role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '<user_id_bati_mayotte>')::text, true);
+select count(*) from template_versions
+where template_catalog_id = 'c3d4e5f6-0001-4000-8000-000000000001'; -- attendu : 0
+
+reset role;
+select count(*) from template_versions
+where template_catalog_id = 'c3d4e5f6-0001-4000-8000-000000000001'; -- attendu : 1 (RLS contournée)
+
+-- 2. Organisation AVEC achat valide (SARL Madaterrassement) voit la version achetée.
+set local role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '<user_id_madaterrassement>')::text, true);
+select count(*) from template_versions
+where template_catalog_id = 'c3d4e5f6-0001-4000-8000-000000000001'; -- attendu : 1
+
+-- 3. get_purchased_template_version() refuse explicitement une organisation sans achat (double
+--    vérification applicative, indépendante de la RLS testée ci-dessus).
+select * from get_purchased_template_version(
+  '<organization_id_bati_mayotte>', 'c3d4e5f6-0001-4000-8000-000000000001'
+); -- attendu : exception 42501 "Ce modèle n'a pas été acheté par cette organisation"
+
+select * from get_purchased_template_version(
+  'c0115ecd-2400-4a48-b18a-4db633451692', 'c3d4e5f6-0001-4000-8000-000000000001'
+); -- attendu : 1 ligne (version achetée)
+
+-- 4. Invariant de rétention : retirer le modèle du catalogue ne doit pas casser l'accès déjà
+--    accordé, ni le document déjà généré.
+update document_template_catalog set is_active = false
+where id = 'c3d4e5f6-0001-4000-8000-000000000001';
+
+select has_template_purchase(
+  'c0115ecd-2400-4a48-b18a-4db633451692', 'c3d4e5f6-0001-4000-8000-000000000001'
+); -- attendu : true (inchangé par is_active)
+
+select * from get_purchased_template_version(
+  'c0115ecd-2400-4a48-b18a-4db633451692', 'c3d4e5f6-0001-4000-8000-000000000001'
+); -- attendu : toujours 1 ligne, retrait du catalogue sans effet sur l'achat existant
+
+-- (générer un document via generateDocumentFromPremiumTemplate() avant le retrait, puis vérifier
+-- après le retrait que `select * from documents where id = '<document_id>'` retourne toujours la
+-- ligne avec son premium_template_version_id résolvable — invariant explicite du roadmap).
+
+rollback;
+
+-- 5. Seul ADMIN_PLATEFORME peut approuver un achat.
+set local role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '<user_id_non_admin>')::text, true);
+select approve_template_purchase_request('<request_id>', null);
+-- attendu : exception 42501 "Seul un Super Administrateur peut approuver un achat de modèle"
+rollback;
+```
+
+- [ ] Scénario 1 (isolation stricte) — à exécuter par un humain après connexion Supabase.
+- [ ] Scénario 2 (achat valide visible) — à exécuter par un humain après connexion Supabase.
+- [ ] Scénario 3 (double vérification applicative) — à exécuter par un humain après connexion
+      Supabase.
+- [ ] Scénario 4 (rétention après retrait du catalogue, et document déjà généré consultable) — à
+      exécuter par un humain après connexion Supabase.
+- [ ] Scénario 5 (approbation réservée à `ADMIN_PLATEFORME`) — à exécuter par un humain après
+      connexion Supabase.
+
+## Vérifications techniques (exécutées dans cet environnement)
+
+- [ ] `pnpm -r typecheck` — voir rapport de la tâche.
+- [ ] `pnpm -r lint` — voir rapport de la tâche.
+- [ ] `pnpm --filter @adminbtp/web build` — voir rapport de la tâche.
+
+## Explicitement non fait en Phase C (voir `docs/ROADMAP.md`)
+
+- Paiement réel : "Acheter" crée une ligne `access_requests` en attente de validation
+  `ADMIN_PLATEFORME`, exactement comme les autres demandes du Marketplace — aucune intégration de
+  paiement.
+- Import DOCX réel avec extraction de variables (`file_url` reste un chemin Storage saisi par
+  `ADMIN_PLATEFORME`, comme `document_templates` en Phase 3) — l'upload/la lecture automatique du
+  modèle n'est pas dans le périmètre de cette phase.
+- Mécanisme de mise à niveau automatique d'un achat existant vers une nouvelle version publiée :
+  `approve_template_purchase_request()` pointe toujours vers la dernière version au moment de
+  l'approbation, mais aucune notification ni ré-approbation automatique n'existe si une nouvelle
+  version est publiée après un achat déjà approuvé.
+- Application réelle des migrations/policies sur l'instance Supabase (aucun accès MCP dans cet
+  environnement — à faire par un humain, voir `database/README.md`).
