@@ -115,6 +115,14 @@ export type PlanFeature = z.infer<typeof PlanFeature>;
 export const IntegrationType = z.enum(["ODOO", "N8N", "EMAIL", "WHATSAPP", "AI"]);
 export type IntegrationType = z.infer<typeof IntegrationType>;
 
+export const INTEGRATION_TYPE_LABELS: Record<IntegrationType, string> = {
+  ODOO: "Odoo",
+  N8N: "n8n (automatisations)",
+  EMAIL: "Email (boîtes génériques)",
+  WHATSAPP: "WhatsApp Business",
+  AI: "IA (génération de documents)",
+};
+
 /**
  * Qui opère l'intégration pour cette organisation : AdminBTP par défaut, ou l'entreprise cliente
  * elle-même si elle gère sa propre instance (ex: Odoo déjà déployé en interne). Permet de changer
@@ -122,6 +130,11 @@ export type IntegrationType = z.infer<typeof IntegrationType>;
  */
 export const IntegrationManagedBy = z.enum(["ADMINBTP", "CLIENT"]);
 export type IntegrationManagedBy = z.infer<typeof IntegrationManagedBy>;
+
+export const INTEGRATION_MANAGED_BY_LABELS: Record<IntegrationManagedBy, string> = {
+  ADMINBTP: "Géré par AdminBTP",
+  CLIENT: "Géré par l'entreprise cliente",
+};
 
 /**
  * Connecteur externe isolé par organisation (Odoo, n8n...). Ne stocke que de la configuration
