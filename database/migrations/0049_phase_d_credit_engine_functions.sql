@@ -4,11 +4,15 @@
 --   - add_credits() : geste commercial (contrepartie en crédits d'un achat — le paiement réel est
 --     hors Phase D, voir docs/ROADMAP.md Phase E/7). Réservé à ADMIN_PLATEFORME, même pattern que
 --     grant_entitlement/activate_subscription : vérification explicite en première ligne.
---   - debit_credits() / record_usage() : consommation d'une fonctionnalité payante par un membre
---     ordinaire de l'organisation (ce n'est pas une mutation de l'état commercial — l'accès a déjà
---     été accordé par un Super Administrateur en amont). Ouvertes à authenticated, protégées par
+--   - record_usage() : consommation d'une fonctionnalité payante par un membre ordinaire de
+--     l'organisation (ce n'est pas une mutation de l'état commercial — l'accès a déjà été accordé
+--     par un Super Administrateur en amont). Ouverte à authenticated, protégée par
 --     can_access_organization() : un utilisateur ne peut débiter que le portefeuille de sa propre
 --     organisation.
+--   - debit_credits() : non exposée directement à authenticated — appelable uniquement depuis
+--     record_usage() (appel interne sous les privilèges du propriétaire SECURITY DEFINER). Un appel
+--     direct contournerait la vérification d'abonnement actif de record_usage() et ne laisserait
+--     aucune trace dans usage_records.
 --
 -- Toute écriture sur credit_wallets/credit_transactions/usage_records passe exclusivement par ces
 -- fonctions (voir 0046 : aucune policy INSERT/UPDATE sur ces tables).
@@ -235,10 +239,11 @@ $$;
 -- Fonctions publiques : réservées aux utilisateurs connectés (voir 0033, règle à conserver pour
 -- toute nouvelle fonction SECURITY DEFINER — révoquer explicitement de public/anon, puis accorder
 -- à authenticated, chaque fonction vérifiant ensuite le rôle/l'appartenance en interne).
-revoke execute on function add_credits(uuid, integer, text, timestamptz) from public, anon;
-revoke execute on function debit_credits(uuid, integer, text, text, uuid) from public, anon;
+-- debit_credits() reste révoquée pour authenticated : seule record_usage() peut l'appeler
+-- (appel interne sous le rôle propriétaire de la fonction SECURITY DEFINER).
+revoke execute on function add_credits(uuid, integer, text, timestamptz) from public, anon, authenticated;
+revoke execute on function debit_credits(uuid, integer, text, text, uuid) from public, anon, authenticated;
 revoke execute on function record_usage(uuid, uuid, text, integer, text, integer, jsonb) from public, anon;
 
 grant execute on function add_credits(uuid, integer, text, timestamptz) to authenticated;
-grant execute on function debit_credits(uuid, integer, text, text, uuid) to authenticated;
 grant execute on function record_usage(uuid, uuid, text, integer, text, integer, jsonb) to authenticated;
