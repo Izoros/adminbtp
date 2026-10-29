@@ -1,4 +1,4 @@
-import { Store, Building2 } from "lucide-react";
+import { Store, Building2, FileText } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,9 @@ import {
   getServiceCatalogWithPrices,
   getServiceCategories,
 } from "@/lib/data/entitlements";
+import { getPremiumDocumentTemplates, getTemplatePurchasesForOrganization } from "@/lib/data/templates";
 import { requestServiceAccess, cancelAccessRequest } from "@/lib/actions/entitlements";
+import { requestTemplatePurchase } from "@/lib/actions/templates";
 import {
   BILLING_MODEL_LABELS,
   SERVICE_CATEGORY_LABELS,
@@ -50,25 +52,34 @@ const ENTITLEMENT_TONE: Record<EntitlementStatus, "success" | "warning" | "dange
 };
 
 export default async function ServicesPage() {
-  const [organizations, activeOrgCookie, categories, catalog] = await Promise.all([
+  const [organizations, activeOrgCookie, categories, catalog, premiumTemplates] = await Promise.all([
     getOrganizations(),
     getActiveOrganizationIdCookie(),
     getServiceCategories(),
     getServiceCatalogWithPrices(),
+    getPremiumDocumentTemplates(),
   ]);
   const activeOrg = resolveActiveOrganization(organizations, activeOrgCookie);
 
-  const [entitlements, accessRequests] = activeOrg
+  const [entitlements, accessRequests, templatePurchases] = activeOrg
     ? await Promise.all([
         getOrganizationEntitlements(activeOrg.id),
         getAccessRequestsForOrganization(activeOrg.id),
+        getTemplatePurchasesForOrganization(activeOrg.id),
       ])
-    : [[], []];
+    : [[], [], []];
 
   const entitlementByService = new Map(entitlements.map((e) => [e.serviceId, e]));
   const pendingRequestByService = new Map(
-    accessRequests.filter((r) => r.status === "PENDING").map((r) => [r.serviceId, r])
+    accessRequests.filter((r) => r.status === "PENDING" && !r.documentTemplateCatalogId).map((r) => [r.serviceId, r])
   );
+  const purchasedTemplateIds = new Set(templatePurchases.map((p) => p.templateCatalogId));
+  const pendingTemplateRequestByTemplate = new Map(
+    accessRequests
+      .filter((r) => r.status === "PENDING" && r.documentTemplateCatalogId)
+      .map((r) => [r.documentTemplateCatalogId as string, r])
+  );
+  const activePremiumTemplates = premiumTemplates.filter((t) => t.isActive);
 
   return (
     <div className="space-y-6">
@@ -169,6 +180,9 @@ export default async function ServicesPage() {
               ) : (
                 <div className="space-y-2">
                   {accessRequests.map((request) => {
+                    const template = request.documentTemplateCatalogId
+                      ? premiumTemplates.find((t) => t.id === request.documentTemplateCatalogId)
+                      : undefined;
                     const service = catalog.find((c) => c.id === request.serviceId);
                     return (
                       <div
@@ -176,7 +190,9 @@ export default async function ServicesPage() {
                         className="flex items-center justify-between gap-4 border-b border-surface-border pb-2 text-sm last:border-none last:pb-0"
                       >
                         <div>
-                          <p className="font-medium text-graphite-900">{service?.name ?? request.serviceId}</p>
+                          <p className="font-medium text-graphite-900">
+                            {template ? template.name : service?.name ?? request.serviceId}
+                          </p>
                           <p className="text-xs text-graphite-500">
                             {new Date(request.createdAt).toLocaleDateString("fr-FR")}
                             {request.adminNote ? ` — ${request.adminNote}` : ""}
@@ -208,6 +224,65 @@ export default async function ServicesPage() {
               )}
             </CardContent>
           </Card>
+
+          <div>
+            <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+              Modèles de documents premium
+            </h2>
+            <p className="mb-3 text-xs text-graphite-500">
+              Un modèle acheté reste utilisable même s&apos;il est ensuite retiré du catalogue —
+              l&apos;achat est définitif, propre à {activeOrg.name}, jamais transféré à une autre
+              organisation. Aucun paiement réel n&apos;est prélevé ici : &laquo;&nbsp;Acheter&nbsp;&raquo;
+              crée une demande soumise à validation par un Super Administrateur, comme pour les
+              autres services du catalogue.
+            </p>
+            {activePremiumTemplates.length === 0 ? (
+              <EmptyState icon={FileText} title="Aucun modèle premium au catalogue" />
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {activePremiumTemplates.map((template) => {
+                  const isPurchased = purchasedTemplateIds.has(template.id);
+                  const pendingRequest = pendingTemplateRequestByTemplate.get(template.id);
+                  return (
+                    <Card key={template.id} className="flex flex-col p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-medium text-graphite-900">{template.name}</h3>
+                        {isPurchased && <Badge tone="success">Déjà acheté</Badge>}
+                      </div>
+                      {template.description && (
+                        <p className="mt-1 text-xs text-graphite-500">{template.description}</p>
+                      )}
+                      <p className="mt-2 text-xs text-graphite-500">Service : {template.serviceCode}</p>
+                      <div className="mt-3">
+                        {isPurchased ? (
+                          <p className="text-xs text-graphite-500">
+                            Génération disponible depuis l&apos;écran Documents.
+                          </p>
+                        ) : pendingRequest ? (
+                          <form action={cancelAccessRequest.bind(null, pendingRequest.id)}>
+                            <Badge tone="info" className="mb-2 block w-fit">
+                              Demande d&apos;achat en attente
+                            </Badge>
+                            <Button type="submit" size="sm" variant="secondary">
+                              Annuler la demande
+                            </Button>
+                          </form>
+                        ) : (
+                          <form action={requestTemplatePurchase}>
+                            <input type="hidden" name="organizationId" value={activeOrg.id} />
+                            <input type="hidden" name="templateCatalogId" value={template.id} />
+                            <Button type="submit" size="sm" variant="accent">
+                              Acheter
+                            </Button>
+                          </form>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

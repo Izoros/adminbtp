@@ -25,30 +25,51 @@ import {
 } from "@/lib/actions/entitlements";
 import { getDirectoryCategories, getDirectoryCompaniesAdmin, getDirectorySources } from "@/lib/data/directory";
 import { importDirectoryCsv } from "@/lib/actions/directory";
+import { getAllTemplatePurchases, getPremiumDocumentTemplates } from "@/lib/data/templates";
+import { approveTemplatePurchaseRequest } from "@/lib/actions/templates";
 import { BILLING_MODEL_LABELS, SERVICE_CATEGORY_LABELS } from "@adminbtp/types";
 
 export default async function AdminPage() {
-  const [organizations, requests, entitlements, catalog, categories, directoryCategories, directoryCompanies, directorySources] =
-    await Promise.all([
-      getOrganizations(),
-      getAllAccessRequests(),
-      getAllOrganizationEntitlements(),
-      getServiceCatalogWithPrices(),
-      getServiceCategories(),
-      getDirectoryCategories(),
-      getDirectoryCompaniesAdmin(),
-      getDirectorySources(),
-    ]);
+  const [
+    organizations,
+    requests,
+    entitlements,
+    catalog,
+    categories,
+    directoryCategories,
+    directoryCompanies,
+    directorySources,
+    premiumTemplates,
+    templatePurchases,
+  ] = await Promise.all([
+    getOrganizations(),
+    getAllAccessRequests(),
+    getAllOrganizationEntitlements(),
+    getServiceCatalogWithPrices(),
+    getServiceCategories(),
+    getDirectoryCategories(),
+    getDirectoryCompaniesAdmin(),
+    getDirectorySources(),
+    getPremiumDocumentTemplates(),
+    getAllTemplatePurchases(),
+  ]);
 
   const orgName = (id: string) => organizations.find((o) => o.id === id)?.name ?? id;
   const serviceName = (id: string) => catalog.find((c) => c.id === id)?.name ?? id;
+  const templateName = (id: string) => premiumTemplates.find((t) => t.id === id)?.name ?? id;
   const categoryLabel = (id: string) => {
     const cat = categories.find((c) => c.id === id);
     return cat ? SERVICE_CATEGORY_LABELS[cat.code] : "—";
   };
 
-  const pendingRequests = requests.filter((r) => r.status === "PENDING");
-  const requestHistory = requests.filter((r) => r.status !== "PENDING");
+  // Demandes génériques de service (hors achats de modèle premium, traités dans un onglet dédié).
+  const genericRequests = requests.filter((r) => !r.documentTemplateCatalogId);
+  const pendingRequests = genericRequests.filter((r) => r.status === "PENDING");
+  const requestHistory = genericRequests.filter((r) => r.status !== "PENDING");
+
+  const templateRequests = requests.filter((r) => r.documentTemplateCatalogId);
+  const pendingTemplateRequests = templateRequests.filter((r) => r.status === "PENDING");
+  const templateRequestHistory = templateRequests.filter((r) => r.status !== "PENDING");
   const activeEntitlements = entitlements.filter((e) => e.status === "ACTIVE" || e.status === "SUSPENDED");
   const pastEntitlements = entitlements.filter((e) => e.status === "EXPIRED" || e.status === "REVOKED");
 
@@ -418,6 +439,158 @@ export default async function AdminPage() {
     </div>
   );
 
+  const modelesTab = (
+    <div className="space-y-6">
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+          Demandes d&apos;achat en attente ({pendingTemplateRequests.length})
+        </h2>
+        {pendingTemplateRequests.length === 0 ? (
+          <EmptyState icon={FileCheck2} title="Aucune demande en attente" />
+        ) : (
+          <div className="space-y-2">
+            {pendingTemplateRequests.map((request) => (
+              <Card key={request.id} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-graphite-900">
+                      {templateName(request.documentTemplateCatalogId ?? "")}
+                    </p>
+                    <p className="text-xs text-graphite-500">
+                      {orgName(request.organizationId)} — demandé le{" "}
+                      {new Date(request.createdAt).toLocaleDateString("fr-FR")}
+                    </p>
+                    {request.message && <p className="mt-1 text-xs text-graphite-700">« {request.message} »</p>}
+                  </div>
+                  <Badge tone="info">En attente</Badge>
+                </div>
+                <div className="mt-3 flex flex-wrap items-end gap-2">
+                  <form action={approveTemplatePurchaseRequest}>
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <Button type="submit" size="sm" variant="primary">
+                      Approuver l&apos;achat
+                    </Button>
+                  </form>
+                  <form action={rejectAccessRequest}>
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <Button type="submit" size="sm" variant="secondary">
+                      Refuser
+                    </Button>
+                  </form>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+          Historique des demandes ({templateRequestHistory.length})
+        </h2>
+        <Card className="overflow-hidden">
+          {templateRequestHistory.length === 0 ? (
+            <EmptyState icon={FileCheck2} title="Aucun historique" className="border-none" />
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
+                <tr>
+                  <th className="px-4 py-2.5">Organisation</th>
+                  <th className="px-4 py-2.5">Modèle</th>
+                  <th className="px-4 py-2.5">Statut</th>
+                  <th className="px-4 py-2.5">Décision</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-border">
+                {templateRequestHistory.map((request) => (
+                  <tr key={request.id} className="hover:bg-surface-subtle">
+                    <td className="px-4 py-3 text-graphite-900">{orgName(request.organizationId)}</td>
+                    <td className="px-4 py-3 text-graphite-700">
+                      {templateName(request.documentTemplateCatalogId ?? "")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone={request.status === "APPROVED" ? "success" : request.status === "REJECTED" ? "danger" : "neutral"}>
+                        {request.status === "APPROVED" ? "Approuvée" : request.status === "REJECTED" ? "Refusée" : "Annulée"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-graphite-500">
+                      {request.adminDecisionAt ? new Date(request.adminDecisionAt).toLocaleDateString("fr-FR") : "—"}
+                      {request.adminNote ? ` — ${request.adminNote}` : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+          Catalogue de modèles premium ({premiumTemplates.length})
+        </h2>
+        <Card className="overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
+              <tr>
+                <th className="px-4 py-2.5">Modèle</th>
+                <th className="px-4 py-2.5">Service</th>
+                <th className="px-4 py-2.5">Catégorie document</th>
+                <th className="px-4 py-2.5">Statut</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-border">
+              {premiumTemplates.map((template) => (
+                <tr key={template.id} className="hover:bg-surface-subtle">
+                  <td className="px-4 py-3 font-medium text-graphite-900">{template.name}</td>
+                  <td className="px-4 py-3 text-graphite-700">{template.serviceCode}</td>
+                  <td className="px-4 py-3 text-graphite-700">{template.category}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone={template.isActive ? "success" : "neutral"}>
+                      {template.isActive ? "Actif" : "Retiré"}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-graphite-900">
+          Achats enregistrés ({templatePurchases.length})
+        </h2>
+        <Card className="overflow-hidden">
+          {templatePurchases.length === 0 ? (
+            <EmptyState icon={Package} title="Aucun achat enregistré" className="border-none" />
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-surface-subtle text-left text-xs font-medium uppercase tracking-wide text-graphite-500">
+                <tr>
+                  <th className="px-4 py-2.5">Organisation</th>
+                  <th className="px-4 py-2.5">Modèle</th>
+                  <th className="px-4 py-2.5">Acheté le</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-border">
+                {templatePurchases.map((purchase) => (
+                  <tr key={purchase.id} className="hover:bg-surface-subtle">
+                    <td className="px-4 py-3 text-graphite-900">{orgName(purchase.organizationId)}</td>
+                    <td className="px-4 py-3 text-graphite-700">{templateName(purchase.templateCatalogId)}</td>
+                    <td className="px-4 py-3 text-xs text-graphite-500">
+                      {new Date(purchase.purchasedAt).toLocaleDateString("fr-FR")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -432,6 +605,7 @@ export default async function AdminPage() {
           { key: "entitlements", label: "Entitlements", content: entitlementsTab },
           { key: "catalogue", label: "Catalogue", content: catalogueTab },
           { key: "annuaire", label: "Annuaire", content: annuaireTab },
+          { key: "modeles", label: `Modèles premium (${pendingTemplateRequests.length})`, content: modelesTab },
         ]}
       />
     </div>

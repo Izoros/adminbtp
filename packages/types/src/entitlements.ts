@@ -129,6 +129,13 @@ export const AccessRequest = z.object({
   adminDecisionByUserId: z.string().uuid().optional(),
   adminDecisionAt: z.string().datetime().optional(),
   adminNote: z.string().optional(),
+  /**
+   * Renseigné uniquement quand cette demande concerne un achat de modèle premium (Phase C,
+   * bibliothèque de documents) plutôt qu'une activation de service générique — voir
+   * `template-marketplace.ts`. `serviceId` reste toujours rempli dans ce cas (résolu depuis
+   * `PremiumDocumentTemplate.serviceCode`), pour que l'historique des demandes reste uniforme.
+   */
+  documentTemplateCatalogId: z.string().uuid().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
