@@ -11,6 +11,9 @@ export const User = z.object({
   // docs/CDC/MULTI_TENANT_SAAS.md. Doit rester cohérent avec PERMISSION_ROLE_SCOPE[permissionRole].
   roleScope: RoleScope,
   avatarUrl: z.string().url().optional(),
+  // Colonne de cache en lecture : tenue à jour par le trigger public.handle_mfa_factor_change()
+  // (database/migrations/0039_mfa_factor_sync.sql) à partir de auth.mfa_factors — jamais écrite
+  // directement par l'application. Le secret TOTP reste géré uniquement par Supabase Auth.
   mfaEnabled: z.boolean().default(false),
   isActive: z.boolean().default(true),
   createdAt: z.string().datetime(),
