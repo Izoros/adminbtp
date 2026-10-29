@@ -156,3 +156,13 @@ begin
       and tp.template_catalog_id = p_template_catalog_id;
 end;
 $$;
+
+-- Durcissement 0033 (oublié dans le reste de cette migration) : révoquer public/anon, accorder
+-- explicitement authenticated.
+revoke execute on function request_template_purchase(uuid, uuid, text) from public, anon;
+revoke execute on function approve_template_purchase_request(uuid, text) from public, anon;
+revoke execute on function get_purchased_template_version(uuid, uuid) from public, anon;
+
+grant execute on function request_template_purchase(uuid, uuid, text) to authenticated;
+grant execute on function approve_template_purchase_request(uuid, text) to authenticated;
+grant execute on function get_purchased_template_version(uuid, uuid) to authenticated;

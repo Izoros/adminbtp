@@ -176,3 +176,13 @@ create policy template_versions_insert on template_versions for insert with chec
 -- approve_template_purchase_request() (SECURITY DEFINER, migration 0042) — aucune policy
 -- INSERT/UPDATE/DELETE, même pour ADMIN_PLATEFORME (invariant 4).
 create policy template_purchases_select on template_purchases for select using (can_access_organization(organization_id));
+
+-- Durcissement 0033 à appliquer à toute nouvelle fonction SECURITY DEFINER : révoquer l'exécution
+-- implicite de public/anon (PostgREST n'expose ainsi ces fonctions qu'aux sessions authentifiées),
+-- puis l'accorder explicitement à authenticated, chaque fonction vérifiant ensuite l'accès/le rôle
+-- en interne.
+revoke execute on function has_template_purchase(uuid, uuid) from public, anon;
+revoke execute on function has_any_template_purchase(uuid) from public, anon;
+
+grant execute on function has_template_purchase(uuid, uuid) to authenticated;
+grant execute on function has_any_template_purchase(uuid) to authenticated;
