@@ -268,3 +268,25 @@ récupération MFA (API Supabase encore `@experimental`) ; le branchement de
 fait pour ne rien casser hors Mayotte. `docs/VALIDATION_CHECKLIST.md`, `docs/DECISIONS.md` (ce
 fichier) et `database/README.md` restent à mettre à jour pour couvrir les migrations 0010-0049 —
 prévu dans la vague suivante.
+
+## 2026-10-29 — Vague 2 : garde-fou statut document, rattrapage docs, écran audit RGPD
+
+**Décision** : 3 agents parallèles supplémentaires ont livré `database/migrations/0050` (garde
+contre les sauts de statut de document illégitimes — voir `docs/ROADMAP.md` Phase 9 pour le
+détail du cycle de transitions autorisé et les hypothèses retenues), le rattrapage de
+`database/README.md`/`docs/VALIDATION_CHECKLIST.md` jusqu'à la migration 0049, et l'écran
+`/audit` (Phase 9, export CSV du journal d'audit). Tout a été relu, vérifié
+(typecheck/lint/build/test + advisors Supabase) et appliqué en production par Claude avant d'être
+mergé sur `main` et poussé — mais, comme pour la vague 1, sans vérification fonctionnelle en
+navigateur ni validation explicite de l'utilisateur.
+
+## 2026-10-29 — "Leaked password protection" bloqué par le plan Supabase
+
+**Décision** : ne pas chercher d'autre moyen d'activer ce réglage (toggle dashboard ou API de
+gestion) jusqu'à ce que l'utilisateur confirme un passage en plan Supabase Pro.
+
+**Contexte** : l'advisor de sécurité `auth_leaked_password_protection` signale ce réglage comme
+désactivé depuis plusieurs vérifications. L'utilisateur a activé le toggle dans le dashboard, sans
+effet observable sur l'advisor, puis a confirmé que la fonctionnalité nécessite un plan Pro sur ce
+projet Supabase — mise à niveau reportée à plus tard par l'utilisateur. Ce n'est donc pas un bug
+ni un oubli de configuration côté code.

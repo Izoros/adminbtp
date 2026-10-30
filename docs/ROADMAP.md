@@ -60,7 +60,11 @@ Arrêt explicite ici — Phase 2 non démarrée sans confirmation utilisateur.
       `docs/DECISIONS.md` (`RETURNING` + policy SELECT auto-référentielle = faux négatif RLS sur
       Postgres 17). Organisations et autres entités restent en lecture seule (pas de formulaire
       de création).
-- [ ] MFA (mentionné dans le formulaire de connexion Phase 1, pas encore implémenté).
+- [x] MFA (2026-10-29) : TOTP natif Supabase Auth, écran d'enrôlement/vérification/désenrôlement
+      (`MfaSettingsCard`, carte "Sécurité du compte" dans `/parametres`), synchronisation
+      `public.users.mfa_enabled` par trigger (`database/migrations/0039_mfa_factor_sync.sql`), et
+      application du palier AAL2 côté middleware (toute session `aal1` avec un facteur vérifié est
+      renvoyée vers `/`). Non fait : codes de récupération (API Supabase encore `@experimental`).
 - [x] Exigences SaaS multi-tenant actées le 2026-10-21 (voir `docs/CDC/MULTI_TENANT_SAAS.md`),
       traduites au schéma (`database/migrations/0005` à `0007`) : `role_scope` explicite sur
       `users` (plateforme/entreprise, distinct du rôle chantier `MissionRole`),
@@ -177,20 +181,41 @@ phases 0-11 ci-dessus (ce module est transverse, pas une étape séquentielle du
 - [ ] Quota appliqué à un axe autre que "nombre de fiches distinctes par mois" (ex: export en
       masse, recherche illimitée) — seule la consultation de détail est quota-gated.
 
-### Phase C — Bibliothèque de modèles de documents premium (non démarrée)
+### Phase C — Bibliothèque de modèles de documents premium ✅ implémenté, non validé par l'utilisateur (2026-10-29)
 
-- Tables `document_template_catalog`, `template_versions`, `template_purchases`.
-- Moteur de génération (import DOCX, variables, PDF), modèles privés jamais redistribués entre
-  organisations.
-- Validation : une organisation achetant un modèle peut l'utiliser selon ses droits, les autres
-  non ; un document déjà généré reste accessible même après retrait du modèle du catalogue.
+- Tables `document_template_catalog`, `template_versions`, `template_purchases`
+  (`database/migrations/0041`-`0042`), réutilisant le moteur de génération existant (Phase 3) —
+  pas de second moteur. Modèles privés jamais redistribués entre organisations
+  (`unique(organization_id, template_catalog_id)`), accès vérifié en RLS et en applicatif
+  (défense en profondeur, même principe que l'annuaire Phase B).
+- Flux demande → approbation `ADMIN_PLATEFORME` (`request_template_purchase`,
+  `approve_template_purchase_request`), génération vérifiée par `get_purchased_template_version`.
+  Un modèle retiré du catalogue (`is_active = false`) reste utilisable par qui l'a déjà acheté ; un
+  document déjà généré référence sa version exacte, jamais le catalogue.
+- UI livrée : client (`/services`, catalogue + demande d'achat) et admin (`/admin`, onglet
+  "Modèles premium", approbation des demandes).
+- Non fait : import DOCX réel avec substitution de variables (reprend le choix déjà assumé en
+  Phase 3 : texte structuré rendu en PDF), fonction de révocation d'un achat.
 
-### Phase D — Abonnements et crédits (non démarrée)
+### Phase D — Abonnements et crédits ✅ implémenté, non validé par l'utilisateur (2026-10-29)
 
-- Tables `organization_subscriptions`, `credit_wallets`, `credit_transactions`, `usage_records`.
-- Débit de crédit exactement une fois par opération, transactions atomiques/idempotentes,
-  expiration gérée.
-- Validation : aucun double débit, aucun contournement de quota.
+- Tables `organization_subscriptions`, `credit_wallets`, `credit_transactions`, `usage_records`
+  (`database/migrations/0046`-`0049`). Cycle de vie d'abonnement réservé à `ADMIN_PLATEFORME`
+  (`activate_subscription`/`suspend_subscription`/`reactivate_subscription`/
+  `extend_subscription`/`cancel_subscription`).
+- Débit de crédit exactement une fois par opération : `debit_credits()` idempotent (clé unique par
+  organisation), verrou de ligne, jamais de solde négatif (contrainte + contrôle applicatif) ;
+  `record_usage()` orchestre `usage_records` + `debit_credits()` dans une seule transaction et
+  bloque toute consommation si l'abonnement au service est expiré/inactif. `debit_credits()` n'est
+  **pas** appelable directement par un utilisateur — uniquement via `record_usage()` (durci le
+  2026-10-29, voir `docs/DECISIONS.md`).
+- **Décision actée (2026-10-29, voir `docs/DECISIONS.md`)** : ce modèle reste distinct de
+  `organizations.subscription_plan`/`plan_features` (Phase 2) — plan plateforme vs abonnement par
+  service du catalogue, pas de fusion prévue.
+- UI livrée : client (`/services`) et admin (`/admin`, onglet "Abonnements & crédits" :
+  activation/suspension/réactivation/prolongation/annulation, ajout de crédits).
+- Non fait : aucune fonctionnalité réelle de l'application n'appelle encore `record_usage()`
+  (le moteur de débit existe, rien ne le déclenche automatiquement à ce jour).
 
 ### Phase E — Intégration Odoo et commercialisation (non démarrée)
 
@@ -586,38 +611,66 @@ Tranche E, ont été repris et livrés — même moteur, aucune table dupliquée
   cliente de gérer elle-même son instance Odoo plutôt que de passer par celle d'AdminBTP, sans
   migration de schéma supplémentaire (le champ existe déjà depuis la Phase 2).
 
-## Phase 8 — Onboarding multi-entreprises, abonnements et portefeuille avancé
+## Phase 8 — Onboarding multi-entreprises, abonnements et portefeuille avancé (partiellement implémenté, non validé par l'utilisateur, 2026-10-29)
 
-- **Onboarding self-service** : une entreprise crée elle-même son organisation (aujourd'hui un
+- [ ] **Onboarding self-service** : une entreprise crée elle-même son organisation (aujourd'hui un
   nouvel inscrit démarre sans organisation et attend un rattachement manuel — voir
-  `database/migrations/0002_auth_user_sync.sql`).
-- **Abonnements** : UI de gestion de `subscription_plan` par organisation, feature-gating réel
-  dans l'application à partir de `plan_features` (référentiel à définir — table créée vide en
-  Phase 2).
-- Gestion complète des `PortfolioGrant` (attribution/révocation d'accès cross-organisation,
-  colonnes `revoked_at`/`revoked_by` posées en Phase 2) — écran dédié avec traçabilité visible.
-- Tableaux de bord consolidés multi-organisations pour les collaborateurs AdminBTP.
-- **Collaboration inter-entreprises** : UI exploitant la RLS de chantier partagé posée en Phase 2
-  (`can_access_site()`) — une entreprise participante à un chantier (`site_participants`) doit
-  pouvoir voir les ressources de ce chantier sans accéder aux autres chantiers de l'organisation
-  propriétaire.
-- Gestion de plusieurs domaines mail par entreprise (`organization_domains`, schéma posé en
-  Phase 2, UI à construire).
-- Modèles documentaires et signatures spécifiques par entreprise (`signature_profiles`, schéma
-  posé en Phase 2, UI à construire) — toujours sans confondre preuve WhatsApp et signature
-  électronique (voir `docs/VALIDATION_CHECKLIST.md`).
+  `database/migrations/0002_auth_user_sync.sql`). Non fait.
+- [ ] **Abonnements plateforme** : UI de gestion de `subscription_plan` par organisation,
+  feature-gating réel dans l'application à partir de `plan_features` (référentiel à définir —
+  table toujours vide). Non fait — à ne pas confondre avec les abonnements par service de
+  Marketplace Phase D (UI livrée, voir plus haut), qui sont un modèle commercial distinct (voir
+  `docs/DECISIONS.md`).
+- [x] Gestion complète des `PortfolioGrant` (attribution/révocation d'accès cross-organisation,
+  colonnes `revoked_at`/`revoked_by` posées en Phase 2) — écran `/portefeuille` avec traçabilité
+  visible (2026-10-29).
+- [x] Tableaux de bord consolidés multi-organisations pour les collaborateurs AdminBTP (déjà en
+  place depuis les phases précédentes).
+- [ ] **Collaboration inter-entreprises** : UI exploitant la RLS de chantier partagé posée en
+  Phase 2 (`can_access_site()`) — une entreprise participante à un chantier (`site_participants`)
+  doit pouvoir voir les ressources de ce chantier sans accéder aux autres chantiers de
+  l'organisation propriétaire. La RLS existe (Tranche E), pas d'écran dédié à la gestion de cette
+  participation.
+- [x] Gestion de plusieurs domaines mail par entreprise (`organization_domains`) — onglet
+  "Domaines" dans `/parametres` (2026-10-29).
+- [x] Modèles documentaires et signatures spécifiques par entreprise (`signature_profiles`) —
+  onglet "Signature" dans `/parametres` (2026-10-29), toujours sans confondre preuve WhatsApp et
+  signature électronique (voir `docs/VALIDATION_CHECKLIST.md`). Pas de signature électronique
+  réelle (bloqué sur le choix d'un fournisseur, voir Phase 5).
+- [x] Configuration des intégrations par organisation (`organization_integrations`) — onglet
+  "Intégrations" dans `/parametres` (2026-10-29) ; reste de la config non sensible, pas de secret
+  réel tant que la Phase 7 (Odoo) n'est pas démarrée.
 
-## Phase 9 — Durcissement sécurité et audit
+## Phase 9 — Durcissement sécurité et audit (partiellement implémenté, non validé par l'utilisateur, 2026-10-29)
 
-- Revue de sécurité complète des policies RLS en conditions réelles (données client).
-- Export et consultation de l'`AuditLogEntry` pour conformité RGPD/preuve.
+- [x] Revue de sécurité statique des policies RLS (audit sans accès navigateur/données client réel
+  — a trouvé et fait corriger : la faille de transition de statut de document couverte
+  ci-dessous, et deux oublis du durcissement 0033 sur des fonctions Marketplace Phase C). Revue
+  en conditions réelles (données client) toujours non faite.
+- [x] Garde-fou en base contre les sauts de statut de document illégitimes
+  (`database/migrations/0050_document_status_transition_guard.sql`, 2026-10-29) : un `UPDATE`
+  direct ou un appel RPC ne peut plus faire sauter un document (PPSPS en tête) de
+  `PREEDITION`/`BROUILLON` directement à `VALIDE`/`ENVOYE`/`ARCHIVE` en contournant le circuit de
+  validation — seules les transitions du cycle documenté par le skill `adminbtp-documents` sont
+  autorisées. Le trigger d'INSERT de la Phase 3 (`enforce_ppsps_preedition`) ne couvrait que la
+  création, pas l'`UPDATE` ; c'est maintenant corrigé.
+- [x] Export et consultation de l'`AuditLogEntry` pour conformité RGPD/preuve — écran `/audit`
+  (liste paginée, filtres date/action/organisation, export CSV), 2026-10-29.
 
 ## Phase 10 — Performance et montée en charge
 
 - Tests de charge, optimisation des requêtes multi-tenant, mise en cache ciblée (potentiel retour
   de `cacheComponents` sur les routes avec vraies données serveur — voir `docs/DECISIONS.md`).
+  Non démarrée : nécessite un trafic réel à mesurer, prématuré sans utilisateurs en production.
 
-## Phase 11 — Extension hors Mayotte
+## Phase 11 — Extension hors Mayotte (schéma implémenté, non branché à l'UI, non validé par l'utilisateur, 2026-10-29)
 
-- Généralisation des hypothèses actuellement spécifiques à Mayotte (fuseau horaire
-  Indian/Mayotte, codes postaux 976xx) vers un paramétrage par organisation.
+- [x] Paramétrage par organisation posé en base (`organizations.timezone`, défaut
+  `Indian/Mayotte` ; `organizations.postal_code_patterns`, `NULL` par défaut = comportement actuel
+  inchangé) — `database/migrations/0037_organization_locale_settings.sql`. Utilitaire
+  `formatDateInTimezone()` écrit (`apps/web/src/lib/format/date.ts`) mais **volontairement non
+  branché** sur les affichages de dates existants, pour ne rien changer tant que ce n'est pas
+  validé.
+- [ ] Généralisation effective : brancher `formatDateInTimezone()` sur les affichages de dates
+  réels, étendre la validation de code postal (actuellement non appliquée) au-delà du profil
+  d'organisation (ex. import annuaire/CSV).

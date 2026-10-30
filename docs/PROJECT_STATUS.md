@@ -1,12 +1,45 @@
 # Statut du projet AdminBTP
 
-**Phase actuelle : Phase 3 (génération de documents réelle) et Phase 4 (communications réelles,
-email seul pour l'instant) — démarrées 2026-10-26, ni l'une ni l'autre validée.** Tranches A-D
-(2026-10-22) et Tranche E du moteur de chantier, bureaux de mission OPC/CT/SPS/BET, y compris son
-complément diffusion/accusé de réception/décisions ligne par ligne (2026-10-23), **validées par
-l'utilisateur le 2026-10-26**. Module Marketplace & Entitlements **Phase A validée par
-l'utilisateur et Phase B (annuaire BTP) terminée** le 2026-10-22, Phase 2 (persistance réelle) et
-Phase 1 validées. Voir `docs/ROADMAP.md` pour le détail des cases cochées/restantes.
+**Phase actuelle (2026-10-30) : Phase 3 (génération de documents réelle), Phase 4 (communications
+réelles, email seul), Marketplace Phases C et D, Phase 2 volet MFA, Phase 8 (sous-ensemble UI) et
+Phase 9 (sous-ensemble sécurité/audit) sont implémentées mais AUCUNE n'est validée par
+l'utilisateur.** Tranches A-D (2026-10-22) et Tranche E du moteur de chantier, bureaux de mission
+OPC/CT/SPS/BET (2026-10-23), **validées par l'utilisateur le 2026-10-26**. Module Marketplace &
+Entitlements **Phase A validée par l'utilisateur et Phase B (annuaire BTP) terminée** le
+2026-10-22, Phase 2 (persistance réelle) et Phase 1 validées. Voir `docs/ROADMAP.md` pour le
+détail exact des cases cochées/restantes, phase par phase.
+
+## Lot parallèle 2026-10-29 — à valider par l'utilisateur avant toute suite
+
+Deux vagues de plusieurs agents travaillant en worktrees isolées, consolidées et **déjà
+appliquées en production** (migrations Supabase + mergées sur `main`), mais dont aucune n'a reçu
+de validation fonctionnelle explicite de l'utilisateur (pas de parcours vérifié en navigateur avec
+les comptes de démonstration, contrairement aux phases précédentes de ce document).
+
+**Vague 1** : Phase 11 Mayotte (schéma de locale par organisation, non branché à l'UI), Phase 2
+MFA (TOTP natif + palier AAL2), Marketplace Phase C (bibliothèque de modèles premium, UI client
+`/services` + admin `/admin`), Marketplace Phase D (abonnements/crédits par service, UI client +
+admin), sous-ensemble Phase 8 (domaines, intégrations, signature dans `/parametres` ; gestion des
+`PortfolioGrant` dans `/portefeuille`). Deux corrections de sécurité appliquées avant mise en
+production : `debit_credits()` restreinte à un appel interne via `record_usage()`, et le
+durcissement 0033 (révocation `anon`/`public`) appliqué à des fonctions Marketplace C qui
+l'avaient oublié.
+
+**Vague 2** : garde-fou en base contre les sauts de statut de document illégitimes
+(`database/migrations/0050`), rattrapage de `database/README.md`/`docs/VALIDATION_CHECKLIST.md`
+jusqu'à la migration 0049, écran `/audit` (consultation + export CSV du journal d'audit, Phase 9
+RGPD).
+
+**Décision actée** : le modèle d'abonnement par service (Marketplace Phase D) reste distinct du
+plan plateforme (`organizations.subscription_plan`/`plan_features`, Phase 2) — pas de fusion
+prévue. Voir `docs/DECISIONS.md` (entrée du 2026-10-29) pour le détail complet et les points
+explicitement laissés ouverts (pas de révocation d'achat de modèle Marketplace C, pas de codes de
+récupération MFA, aucune fonctionnalité réelle n'appelle encore `record_usage()`).
+
+**Pour la suite** : Phase 5 (signature électronique), Phase 6 (n8n) et Phase 7 (Odoo) restent
+bloquées sur un choix de fournisseur/des identifiants externes que l'utilisateur doit fournir ;
+Marketplace Phase E dépend de la Phase 7. Phase 10 (performance) n'a pas de sens sans trafic réel
+à mesurer.
 
 ## Module Marketplace & Entitlements — Phase B : annuaire professionnel BTP (2026-10-22)
 
@@ -269,13 +302,20 @@ Voir `docs/DECISIONS.md` pour l'analyse complète des deux.
 
 - Les autres entités restent en lecture seule côté UI — pas de formulaire de création
   d'organisation, par exemple (seuls chantiers et documents ont un formulaire de création).
-- Odoo, email, WhatsApp, IA, n8n : toujours en implémentation `Demo*`, aucun I/O réseau réel.
-- MFA, onboarding self-service, feature-gating par `plan_features` : non implémentés (schéma
-  prêt, voir `docs/ROADMAP.md` Phase 8).
-- "Leaked password protection" Supabase Auth : désactivé, à activer manuellement (dashboard).
-- Marketplace : annuaire BTP, bibliothèque de documents premium, crédits, abonnements facturés,
-  intégration Odoo réelle du module (Phases B-E, voir `docs/ROADMAP.md`) ; édition du
-  catalogue/tarifs via UI.
+- Odoo (Phase 7), signature électronique (Phase 5), n8n (Phase 6), WhatsApp Business : toujours en
+  implémentation `Demo*`/non démarrés, bloqués sur un choix de fournisseur ou des identifiants
+  externes à fournir par l'utilisateur. IA (`DeepSeekAIProvider`) : implémenté mais inactif, clé
+  `DEEPSEEK_API_KEY` non fournie (choix explicite de l'utilisateur, reporté).
+- Onboarding self-service, feature-gating par `plan_features` (plan plateforme, distinct des
+  abonnements par service Marketplace D) : non implémentés — voir `docs/ROADMAP.md` Phase 8.
+- MFA : codes de récupération absents (API Supabase encore `@experimental`).
+- "Leaked password protection" Supabase Auth : **ne peut pas être activé sur le plan actuel du
+  projet Supabase — nécessite un passage en plan Pro**, décision reportée par l'utilisateur
+  (2026-10-29). Ne pas re-proposer le toggle du dashboard tant que le plan n'a pas changé.
+- Marketplace : Phase E (intégration Odoo/commercialisation) non démarrée, dépend de la Phase 7 ;
+  Phase C sans fonction de révocation d'achat ; Phase D sans aucune fonctionnalité réelle qui
+  appelle encore `record_usage()` ; édition du catalogue/tarifs via UI (toujours seedé
+  directement).
 - Tranches A-D : preuve WhatsApp réelle pour les relances, suppression
   a posteriori d'une entrée de journal/réserve/compte-rendu (l'édition est faite) — voir
   `docs/ROADMAP.md`.
@@ -306,7 +346,9 @@ garantir que seul un Super Administrateur peut accorder un accès premium.
 
 ## Prochaine étape
 
-Non démarré sans confirmation explicite de l'utilisateur. Candidats naturels : Phase C du module
-Marketplace (bibliothèque de documents premium), Phase 3 (génération de documents réelle), ou
-combler l'une des cases non faites des Tranches A-D (formulaire de
-configuration du délai de relance interne...).
+Rien ne démarre sans confirmation explicite de l'utilisateur. En priorité : validation
+fonctionnelle (parcours navigateur) du lot parallèle du 2026-10-29 (Mayotte, MFA, Marketplace
+C/D, Phase 8 UI, Phase 9), qui n'a reçu qu'une revue de code et une vérification technique
+(typecheck/lint/build/test + advisors Supabase), jamais de vérification en conditions réelles.
+Ensuite, débloqué uniquement sur décision/identifiants externes de l'utilisateur : Phase 5
+(signature), Phase 6 (n8n), Phase 7 (Odoo), Marketplace Phase E.

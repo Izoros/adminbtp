@@ -107,7 +107,8 @@
       "Bash(echo \"TYPECHECK EXIT=$?\")",
       "Bash(echo \"LINT EXIT=$?\")",
       "Bash(echo \"BUILD EXIT=$?\")",
-      "Bash(echo \"TEST EXIT=$?\")"
+      "Bash(echo \"TEST EXIT=$?\")",
+      "mcp__b0f5c649-f2e4-4386-a6b9-03a0d64a25b1__search_docs"
     ]
   }
 }
